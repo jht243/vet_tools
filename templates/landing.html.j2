@@ -1,0 +1,117 @@
+{% extends "_base.html.j2" %}
+{% from "_base.html.j2" import share_button %}
+{% from "_cluster_nav.html.j2" import cluster_nav %}
+{% from "_card_grid.html.j2" import card_grid_section %}
+{% from "_recent_briefings.html.j2" import recent_briefings_rail %}
+
+{% block content %}
+<article class="container">
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <span>{{ page.title }}</span>
+  </nav>
+
+  <header>
+    {% if page.page_type == 'sector' %}
+    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
+      Industry guide
+    </div>
+    {% else %}
+    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
+      Resource guide
+    </div>
+    {% endif %}
+    <h1>{{ page.title }}</h1>
+    {% if page.subtitle %}<p class="subtitle">{{ page.subtitle }}</p>{% endif %}
+    <div class="meta">
+      <span><strong>Last updated</strong> {{ page.last_generated_at.strftime('%B %d, %Y') }}</span>
+      {% if page.word_count %}<span>{{ page.word_count }}-word guide</span>{% endif %}
+      <span><strong>Editor</strong> Ban the Bots</span>
+      <span style="margin-left:auto;">{{ share_button('https://banthebots.org' ~ page.canonical_path, page.title) }}</span>
+    </div>
+  </header>
+
+  {% if page.sections_json and page.sections_json.table_of_contents %}
+  <aside class="takeaways" aria-label="On this page">
+    <h3>On this page</h3>
+    <ul>
+      {% for s in page.sections_json.table_of_contents %}
+      <li><a href="#{{ s.anchor }}">{{ s.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </aside>
+  {% endif %}
+
+  {% if page.sections_json and page.sections_json.key_takeaways %}
+  <aside class="takeaways" aria-label="Key takeaways" style="border-left-color:#cc0000;">
+    <h3>Key takeaways</h3>
+    <ul>
+      {% for t in page.sections_json.key_takeaways %}<li>{{ t }}</li>{% endfor %}
+    </ul>
+  </aside>
+  {% endif %}
+
+  <div class="body">
+    {{ page.body_html | safe }}
+  </div>
+
+  {# FAQ block — renders from page.faq_json (DB column, list of {question,answer})
+     or falls back to faq_block (legacy list of (q,a) tuples from page_renderer). #}
+  {% set _faq_items = page.faq_json if (page.faq_json and page.faq_json|length > 0) else [] %}
+  {% set _faq_legacy = faq_block if faq_block else [] %}
+  {% if _faq_items or _faq_legacy %}
+  <section class="sdn-faq" aria-label="Frequently asked questions" style="margin-top:40px;">
+    <h2 id="faq">Frequently asked questions</h2>
+    {% if _faq_items %}
+      {% for item in _faq_items %}
+      <details {% if loop.first %}open{% endif %} style="border:1px solid #d8dde6; border-left:3px solid #002b5e; border-radius:3px; padding:12px 16px; margin-bottom:8px; background:#fff;">
+        <summary style="font-family:var(--font-serif); color:#002b5e; font-weight:700; font-size:16px; cursor:pointer; list-style:none;">
+          <span style="color:#cc0000; font-weight:700;">▸</span> {{ item.question }}
+        </summary>
+        <div style="font-size:14px; color:#222; margin-top:10px; line-height:1.55;">
+          {{ item.answer }}
+        </div>
+      </details>
+      {% endfor %}
+      {# FAQPage JSON-LD — built inline from the DB faq_json so Google can surface rich results. #}
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {% for item in _faq_items %}
+          {
+            "@type": "Question",
+            "name": {{ item.question | tojson }},
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": {{ item.answer | tojson }}
+            }
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ]
+      }
+      </script>
+    {% else %}
+      {% for q, a in _faq_legacy %}
+      <details {% if loop.first %}open{% endif %} style="border:1px solid #d8dde6; border-left:3px solid #002b5e; border-radius:3px; padding:12px 16px; margin-bottom:8px; background:#fff;">
+        <summary style="font-family:var(--font-serif); color:#002b5e; font-weight:700; font-size:16px; cursor:pointer; list-style:none;">
+          <span style="color:#cc0000; font-weight:700;">▸</span> {{ q }}
+        </summary>
+        <div style="font-size:14px; color:#222; margin-top:10px; line-height:1.55;">
+          {{ a }}
+        </div>
+      </details>
+      {% endfor %}
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {# Latest related briefings — shared rail reuses the 3-card grid. #}
+  {{ recent_briefings_rail(recent_briefings, heading='Latest related briefings') }}
+
+  {{ cluster_nav(cluster_ctx) }}
+
+</article>
+{% endblock %}

@@ -1,0 +1,550 @@
+{#
+  Shared base layout for non-report pages (blog posts, blog index,
+  pillar / sector / sanctions / tools). Inherits the visual identity of
+  the home report — Libre Baskerville + Open Sans + the navy/red palette
+  — but slim, server-side rendered, and gzip-friendly (no embedded report
+  CSS bloat).
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "_google_tag.html.j2" %}
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  {% set _seo = seo|default({}) %}
+  {% set _canonical = _seo.canonical|default(request.url if request is defined else '') %}
+  <title>{{ _seo.title|default('Ban the Bots')|seo_title(70) }}</title>
+  <meta name="description" content="{{ _seo.description|default('')|seo_desc(160) }}">
+  {% if _seo.keywords %}<meta name="keywords" content="{{ _seo.keywords }}">{% endif %}
+  {% if _seo.news_keywords %}<meta name="news_keywords" content="{{ _seo.news_keywords }}">{% endif %}
+  <meta name="author" content="{{ _seo.site_name|default('Ban the Bots') }}">
+  <meta name="robots" content="{{ _seo.robots|default('index, follow, max-image-preview:large, max-snippet:-1') }}">
+  <link rel="canonical" href="{{ _canonical }}">
+  <link rel="alternate" hreflang="en" href="{{ _canonical }}">
+  <link rel="alternate" hreflang="x-default" href="{{ _canonical }}">
+
+  <meta property="og:type" content="{{ _seo.og_type|default('article') }}">
+  <meta property="og:site_name" content="{{ _seo.site_name|default('Ban the Bots') }}">
+  <meta property="og:locale" content="{{ _seo.locale|default('en_US') }}">
+  <meta property="og:url" content="{{ _canonical }}">
+  <meta property="og:title" content="{{ _seo.title|default('')|seo_title(70) }}">
+  <meta property="og:description" content="{{ _seo.description|default('')|seo_desc(160) }}">
+  <meta property="og:image" content="{{ _seo.og_image|default('') }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  {% if _seo.published_iso %}<meta property="article:published_time" content="{{ _seo.published_iso }}">{% endif %}
+  {% if _seo.modified_iso %}<meta property="article:modified_time" content="{{ _seo.modified_iso }}">{% endif %}
+  {% if _seo.section %}<meta property="article:section" content="{{ _seo.section }}">{% endif %}
+  {% for tag in _seo.article_tags|default([]) %}<meta property="article:tag" content="{{ tag }}">
+  {% endfor %}
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ _seo.title|default('')|seo_title(70) }}">
+  <meta name="twitter:description" content="{{ _seo.description|default('')|seo_desc(160) }}">
+  <meta name="twitter:image" content="{{ _seo.og_image|default('') }}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+
+  {% if rel_links is defined and rel_links %}
+    {{ rel_links | safe }}
+  {% endif %}
+
+  {% if jsonld %}
+  <script type="application/ld+json">{{ jsonld | safe }}</script>
+  {% endif %}
+
+  <style>
+    :root {
+      --sr-blue: #002b5e;
+      --sr-blue-dark: #001f44;
+      --sr-red: #cc0000;
+      --sr-gray-bg: #f8f9fa;
+      --sr-gray-light: #e9ecef;
+      --sr-gray-text: #6c757d;
+      --sr-dark-text: #212529;
+      --white: #ffffff;
+      --font-serif: 'Libre Baskerville', 'Times New Roman', Times, serif;
+      --font-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--white); color: var(--sr-dark-text); line-height: 1.65; font-size: 17px; -webkit-font-smoothing: antialiased; }
+    a { color: var(--sr-blue); text-decoration: underline; text-decoration-color: var(--sr-gray-light); text-underline-offset: 3px; }
+    a:hover { color: var(--sr-red); text-decoration-color: var(--sr-red); }
+    /* Top-nav styling — kept identical to templates/report.html.j2 so the
+       header looks the same on every page (homepage, tools, briefings…). */
+    .top-nav { background-color: var(--sr-blue); color: var(--white); padding: 12px 0; font-family: var(--font-sans); }
+    .top-nav-inner { max-width: 1140px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+    .nav-brand { font-family: var(--font-serif); font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; color: var(--white); text-decoration: none; display: flex; align-items: center; gap: 12px; line-height: 1; }
+    .nav-brand svg.brand-logo { width: 30px; height: 30px; flex-shrink: 0; display: block; }
+    .nav-links { display: flex; align-items: center; gap: 24px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; line-height: 1; }
+    .nav-links a { color: var(--white); text-decoration: none; transition: opacity 0.2s; display: inline-flex; align-items: center; }
+    .nav-links a:hover { opacity: 0.8; }
+    .nav-login { background: var(--sr-red); padding: 8px 16px; border-radius: 3px; line-height: 1; }
+    /* Hamburger button — hidden on desktop, shown on <=768px to expose nav-links. */
+    .nav-toggle { display: none; background: transparent; border: 0; padding: 8px; margin: -8px -4px -8px 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .nav-toggle-bar { display: block; width: 24px; height: 2px; background: var(--white); border-radius: 2px; margin: 5px 0; transition: transform 0.2s ease, opacity 0.15s ease; }
+    .nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(2) { opacity: 0; }
+    .nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    @media (max-width: 768px) {
+      .top-nav-inner { flex-wrap: wrap; }
+      .nav-toggle { display: block; }
+      .nav-links { display: none; flex-direction: column; align-items: stretch; width: 100%; gap: 0; margin-top: 12px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.18); font-size: 0.95rem; }
+      .nav-links a { padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .nav-links a:last-child { border-bottom: 0; }
+      .nav-login { display: inline-block; align-self: flex-start; margin-top: 10px; padding: 10px 18px; }
+      .top-nav.is-open .nav-links { display: flex; }
+    }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .container-wide { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* Breadcrumbs row — turned into a flex container so the auto-injected
+       share button sits flush-right on the same line. */
+    .breadcrumbs { font-size: 13px; color: var(--sr-gray-text); margin: 24px 0 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .breadcrumbs a { color: var(--sr-gray-text); }
+    .breadcrumbs span { margin: 0 0; }
+    .breadcrumbs .breadcrumb-share { margin-left: auto; }
+
+    article header h1 { font-family: var(--font-serif); font-size: 38px; line-height: 1.2; color: var(--sr-blue-dark); margin: 12px 0; font-weight: 700; }
+    article header .subtitle { font-family: var(--font-serif); font-style: italic; font-size: 20px; color: var(--sr-gray-text); margin-bottom: 18px; }
+    article header .meta { font-size: 13px; color: var(--sr-gray-text); border-top: 1px solid var(--sr-gray-light); border-bottom: 1px solid var(--sr-gray-light); padding: 12px 0; margin-bottom: 28px; display: flex; gap: 18px; flex-wrap: wrap; }
+    article header .meta strong { color: var(--sr-dark-text); }
+
+    article .body h2 { font-family: var(--font-serif); font-size: 24px; color: var(--sr-blue-dark); margin: 32px 0 12px; font-weight: 700; }
+    article .body h3 { font-family: var(--font-serif); font-size: 19px; color: var(--sr-blue-dark); margin: 24px 0 10px; }
+    article .body p { margin: 0 0 16px; }
+    article .body ul, article .body ol { margin: 0 0 16px 24px; }
+    article .body li { margin-bottom: 8px; }
+    article .body blockquote { border-left: 3px solid var(--sr-red); padding: 4px 16px; margin: 20px 0; color: var(--sr-gray-text); font-style: italic; font-family: var(--font-serif); }
+
+    .takeaways { background: var(--sr-gray-bg); border-left: 3px solid var(--sr-blue); padding: 18px 22px; margin: 24px 0 32px; }
+    .takeaways h3 { font-family: var(--font-serif); font-size: 16px; color: var(--sr-blue-dark); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .takeaways ul { margin-left: 20px; }
+    .takeaways li { margin-bottom: 6px; font-size: 15px; }
+
+    .source-citation { background: #fff8e1; border-left: 3px solid #f5b041; padding: 14px 18px; margin: 24px 0; font-size: 14px; color: var(--sr-dark-text); }
+    .source-citation a { font-weight: 600; }
+
+    .related { margin: 48px 0 24px; padding-top: 24px; border-top: 1px solid var(--sr-gray-light); }
+    .related h3 { font-family: var(--font-serif); font-size: 18px; color: var(--sr-blue-dark); margin-bottom: 12px; }
+    .related ul { list-style: none; }
+    .related li { padding: 8px 0; border-bottom: 1px dotted var(--sr-gray-light); }
+    .related li a { font-weight: 600; color: var(--sr-blue); text-decoration: none; }
+    .related li small { color: var(--sr-gray-text); margin-left: 8px; }
+
+    /* Canonical 3-card discovery grid (see templates/_card_grid.html.j2).
+       Used everywhere an internal-link "related / latest / cluster"
+       section surfaces 2-6 adjacent pages — briefings rails, sanctions
+       surname clusters, sector siblings, continue-exploring blocks.
+       The visual language matches the /research/sdn/ dossier hub, which
+       established the pattern. Any page extending _base.html.j2 gets
+       these styles for free. */
+    .cr-card-section { margin: 48px 0 24px; padding-top: 24px; border-top: 1px solid var(--sr-gray-light); }
+    .cr-card-header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; justify-content: space-between; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--sr-blue); }
+    .cr-card-title { font-family: var(--font-serif); font-size: 22px; color: var(--sr-blue-dark); margin: 0; letter-spacing: -0.3px; line-height: 1.3; }
+    .cr-card-meta { font-size: 13px; color: var(--sr-gray-text); }
+    .cr-card-intro { font-size: 14.5px; color: #495057; line-height: 1.6; margin: 0 0 18px; }
+    .cr-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .cr-card { border: 1px solid #d8e0eb; border-radius: 4px; padding: 18px 20px; background: #fff; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: inherit; }
+    .cr-card:hover { border-color: var(--sr-blue); box-shadow: 0 4px 16px rgba(0, 43, 94, 0.08); transform: translateY(-1px); text-decoration: none; }
+    .cr-card-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--sr-red); }
+    .cr-card-eyebrow::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--sr-red); }
+    .cr-card-headline { font-family: var(--font-serif); font-size: 16px; margin: 0; color: #0a1828; line-height: 1.3; font-weight: 700; }
+    .cr-card-raw { font-size: 11.5px; color: #6a7484; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+    .cr-card-tagline { font-size: 13.5px; color: #2a3645; line-height: 1.5; flex: 1; margin: 0; }
+    .cr-card-meta-rows { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #5a6478; padding-top: 10px; border-top: 1px solid #eef2f7; }
+    .cr-card-meta-rows strong { color: #1a2b3d; font-weight: 600; }
+    .cr-card-cta { font-size: 13px; font-weight: 600; color: var(--sr-blue); margin-top: 4px; }
+    .cr-card-cta::after { content: " →"; }
+    .cr-card-footer { margin-top: 18px; font-size: 14px; }
+    .cr-card-footer a { color: var(--sr-blue); }
+
+    .index-grid { display: grid; grid-template-columns: 1fr; gap: 22px; margin: 24px 0 48px; }
+    @media (min-width: 720px) { .index-grid { grid-template-columns: 1fr 1fr; } }
+    .index-card { position: relative; background: var(--white); border: 1px solid var(--sr-gray-light); border-radius: 4px; padding: 20px 22px; transition: border-color 0.15s, transform 0.15s; cursor: pointer; }
+    .index-card:hover { border-color: var(--sr-blue); transform: translateY(-1px); }
+    .index-card:hover a.title-link { color: var(--sr-red); }
+    .index-card a.card-link { position: absolute; inset: 0; z-index: 1; text-indent: -9999px; overflow: hidden; border-radius: 4px; }
+    .index-card a.card-link:focus-visible { outline: 2px solid var(--sr-blue); outline-offset: 2px; }
+    .index-card a.title-link { position: relative; z-index: 2; font-family: var(--font-serif); font-weight: 700; font-size: 20px; color: var(--sr-blue-dark); text-decoration: none; line-height: 1.3; display: block; margin-bottom: 8px; pointer-events: none; }
+    .index-card .meta { font-size: 12px; color: var(--sr-gray-text); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .index-card .summary { font-size: 14px; color: var(--sr-dark-text); line-height: 1.55; }
+
+    .cr-search-panel { background: #f4f8fc; border: 1px solid #cfddee; border-left: 4px solid var(--sr-blue); border-radius: 4px; padding: 16px 18px; margin: 16px 0 24px; }
+    .cr-search-panel .cr-search-label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1.1px; color: var(--sr-blue-dark); font-weight: 700; margin: 0 0 8px; }
+    .cr-search-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+    .cr-search-row input[type="text"], .cr-search-row input[type="search"], .cr-search-row select { flex: 1 1 240px; min-width: 0; padding: 13px 15px; border: 2px solid var(--sr-blue); border-radius: 3px; font-family: var(--font-sans); font-size: 15px; background: var(--white); color: var(--sr-dark-text); }
+    .cr-search-row select { flex: 0 1 220px; border-color: #b9c7d8; }
+    .cr-search-row button { padding: 13px 20px; background: var(--sr-blue); color: var(--white); border: 0; border-radius: 3px; font-family: var(--font-sans); font-size: 14px; font-weight: 700; cursor: pointer; }
+    .cr-search-row button:hover { background: var(--sr-blue-dark); }
+    .cr-search-help { margin: 8px 0 0; font-size: 13px; color: var(--sr-gray-text); line-height: 1.5; }
+    .cr-empty-filter { display: none; padding: 18px 20px; margin: 16px 0; background: var(--sr-gray-bg); border-left: 3px solid var(--sr-red); color: var(--sr-gray-text); font-size: 14px; }
+
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 36px 0 48px; padding: 16px 0; border-top: 1px solid var(--sr-gray-light); }
+    .pagination-link { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--sr-blue); text-decoration: none; padding: 8px 16px; border: 1px solid var(--sr-blue); border-radius: 3px; transition: background 0.15s, color 0.15s; }
+    .pagination-link:hover { background: var(--sr-blue); color: var(--white); }
+    .pagination-link.disabled { color: var(--sr-gray-text); border-color: var(--sr-gray-light); pointer-events: none; }
+    .pagination-info { font-family: var(--font-sans); font-size: 13px; color: var(--sr-gray-text); }
+
+    .footer-cta { background: var(--sr-gray-bg); border-top: 1px solid var(--sr-gray-light); padding: 32px 24px; text-align: center; margin-top: 64px; }
+    .footer-cta h3 { font-family: var(--font-serif); color: var(--sr-blue-dark); margin-bottom: 8px; font-size: 22px; }
+    .footer-cta p { color: var(--sr-gray-text); margin-bottom: 16px; }
+    .footer-cta a.btn { display: inline-block; background: var(--sr-red); color: var(--white); padding: 10px 24px; border-radius: 3px; text-decoration: none; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+    .site-footer { background: var(--sr-blue-dark); color: rgba(255,255,255,0.7); padding: 24px; text-align: center; font-size: 13px; }
+    .site-footer a { color: rgba(255,255,255,0.85); text-decoration: none; margin: 0 8px; }
+
+    /* Share button — same look & behavior as on the homepage report cards.
+       Used across every sub-page (blog post, landing, tools, calendar…). */
+    .share-btn { background: transparent; border: 1px solid var(--sr-gray-light); border-radius: 999px; padding: 6px 14px; font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--sr-gray-text); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; line-height: 1; transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease; text-decoration: none; }
+    .share-btn:hover { color: var(--sr-blue); border-color: var(--sr-blue); }
+    .share-btn:active { transform: scale(0.97); }
+    .share-btn.copied { color: #166534; border-color: #166534; background: #f0fdf4; }
+    .share-btn svg { display: block; }
+    /* Page-level share row sits flush-right above the headline, matching
+       the visual weight of the "By Ban the Bots" meta line. */
+    .page-share-row { display: flex; justify-content: flex-end; margin: 4px 0 -4px; }
+    /* Toast — bottom-center floating pill, ~1.6s. */
+    .share-toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--sr-blue-dark); color: var(--white); padding: 10px 20px; border-radius: 999px; font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: 0.3px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 9999; }
+    .share-toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .feedback-pill { position: fixed; right: 20px; bottom: 20px; z-index: 9998; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid rgba(0,43,94,0.18); border-radius: 999px; background: var(--white); color: var(--sr-blue); box-shadow: 0 8px 24px rgba(0,31,68,0.14); font-family: var(--font-sans); font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.15s ease, color 0.15s ease; }
+    .feedback-pill:hover { color: var(--sr-red); box-shadow: 0 10px 28px rgba(0,31,68,0.18); }
+    .feedback-pill:active { transform: scale(0.97); }
+    .feedback-pill svg { flex: 0 0 auto; }
+    .feedback-backdrop { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 20px 72px; background: rgba(10,24,40,0.16); }
+    .feedback-backdrop[hidden] { display: none; }
+    .feedback-modal { position: relative; width: min(440px, calc(100vw - 40px)); background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 18px 50px rgba(0,31,68,0.24); padding: 32px 36px 36px; text-align: left; }
+    .feedback-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .feedback-modal-heading { flex: 1; min-width: 0; padding-right: 4px; }
+    .feedback-modal h2 { font-family: var(--font-serif); font-size: 1.35rem; font-weight: 700; font-style: italic; line-height: 1.25; color: #001f3f; margin: 0 0 12px; }
+    .feedback-modal-intro { font-family: var(--font-sans); font-size: 13.5px; font-weight: 700; font-style: italic; color: #666; line-height: 1.5; margin: 0; }
+    .feedback-close { flex: 0 0 auto; border: 0; background: transparent; color: #888; cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 4px; margin: -4px -4px 0 0; }
+    .feedback-close:hover { color: #001f3f; }
+    .feedback-honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+    .feedback-field { margin-bottom: 18px; }
+    .feedback-label { display: block; font-family: var(--font-sans); font-size: 13px; font-weight: 700; font-style: italic; color: #001f3f; margin: 0 0 8px; }
+    .feedback-modal textarea { width: 100%; min-height: 120px; resize: vertical; box-sizing: border-box; padding: 12px 14px; border: 1px solid #a0b0c0; border-radius: 4px; font-family: var(--font-sans); font-size: 14px; line-height: 1.5; color: var(--sr-dark-text); }
+    .feedback-modal textarea::placeholder { color: #999; }
+    .feedback-modal textarea:focus { outline: 2px solid rgba(0, 31, 63, 0.2); outline-offset: 0; border-color: #001f3f; }
+    .feedback-email-input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #dde1e8; border-radius: 4px; font-family: var(--font-sans); font-size: 14px; line-height: 1.5; color: var(--sr-dark-text); }
+    .feedback-email-input::placeholder { color: #999; }
+    .feedback-email-input:focus { outline: 2px solid rgba(0, 31, 63, 0.15); outline-offset: 0; border-color: #a8b0bc; }
+    .feedback-actions { margin-top: 4px; }
+    .feedback-submit { width: 100%; border-radius: 4px; padding: 14px 16px; font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; background: #c02c1b; color: #fff; border: 1px solid #c02c1b; }
+    .feedback-submit:hover { background: #a82616; border-color: #a82616; }
+    .feedback-submit:disabled { opacity: 0.72; cursor: wait; }
+    .feedback-status { min-height: 20px; margin-top: 12px; font-size: 13px; color: #666; }
+    .feedback-status.is-error { color: #b42318; }
+    .feedback-status.is-success { color: #166534; }
+    @media (max-width: 768px) {
+      .feedback-pill,
+      .feedback-backdrop { display: none !important; }
+    }
+  </style>
+
+  {# Topic-cluster nav styles — loaded on every page that extends
+     _base.html.j2 so the `cluster_nav` macro from _cluster_nav.html.j2
+     renders consistently regardless of which template imports it. #}
+  {% from "_cluster_nav.html.j2" import cluster_nav_css %}
+  {{ cluster_nav_css() }}
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <a class="nav-brand" href="/">{% include "_brand_logo.svg" %}Ban the Bots</a>
+    <button type="button" class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    <div class="nav-links" id="primary-nav">
+      <a href="/briefing">Briefings</a>
+      <a href="/ai-backlash/">AI Backlash</a>
+      <a href="/responsible-ai/">Responsible AI</a>
+      <a href="/ai-incidents/">Incidents</a>
+      <a href="/explainers">Explainers</a>
+      <a href="/ai-risk-assessment/" class="nav-login">Risk Assessment</a>
+    </div>
+  </div>
+</nav>
+
+{# Reusable share button macro. Pages call {{ share_button(url, title) }}
+   anywhere they want to render a Share affordance. The global script
+   below wires up navigator.share / clipboard fallback. #}
+{% macro share_button(url, title, label='Share') -%}
+<button type="button" class="share-btn"
+        data-share-url="{{ url }}"
+        data-share-title="{{ title|e }}"
+        aria-label="Share this page">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+  <span class="share-btn-label">{{ label }}</span>
+</button>
+{%- endmacro %}
+
+{% block content %}{% endblock %}
+
+<div class="footer-cta">
+  <h3>Get the daily AI briefing in your inbox</h3>
+  <p>Daily coverage of AI risk, regulation, and the human-first business case — free.</p>
+  <a class="btn" href="/#newsletter">Subscribe free</a>
+</div>
+
+<footer class="site-footer">
+  &copy; {{ current_year|default(2026) }} Ban the Bots ·
+  <a href="/sitemap.xml">Sitemap</a> ·
+  <a href="/ai-backlash/">AI Backlash</a> ·
+  <a href="/responsible-ai/">Responsible AI</a> ·
+  <a href="/ai-incidents/">Incidents</a>
+</footer>
+
+<button type="button" class="feedback-pill" aria-haspopup="dialog" aria-controls="feedback-modal">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+  </svg>
+  <span>Share Your Ideas</span>
+</button>
+<div class="feedback-backdrop" hidden>
+  <section class="feedback-modal" id="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+    <div class="feedback-modal-header">
+      <div class="feedback-modal-heading">
+        <h2 id="feedback-title">Help us build what you need.</h2>
+        <p class="feedback-modal-intro">Tell us what tools, data, checklists, or workflow would make your experience better.</p>
+      </div>
+      <button type="button" class="feedback-close" aria-label="Close feedback form">&times;</button>
+    </div>
+    <form class="feedback-form">
+      <label class="feedback-honeypot" for="feedback-company">Company</label>
+      <input class="feedback-honeypot" id="feedback-company" name="company" type="text" tabindex="-1" autocomplete="off">
+      <div class="feedback-field">
+        <label class="feedback-label" for="feedback-idea">Your idea</label>
+        <textarea id="feedback-idea" name="feedback" maxlength="4000" required placeholder="What would make your work easier?"></textarea>
+      </div>
+      <div class="feedback-field">
+        <label class="feedback-label" for="feedback-email">(Optional) Email, if you want us to follow up.</label>
+        <input class="feedback-email-input" type="email" id="feedback-email" name="email" placeholder="you@example.com" autocomplete="email" maxlength="254">
+      </div>
+      <div class="feedback-actions">
+        <button type="submit" class="feedback-submit">SEND FEEDBACK</button>
+      </div>
+      <div class="feedback-status" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+</div>
+
+<script>
+// Mobile nav toggle. The hamburger button is the only way to reach the
+// nav links on screens <=768px, so this script is required, not nice-to-have.
+(function initNavToggle() {
+  var btn = document.querySelector('.top-nav .nav-toggle');
+  var nav = document.querySelector('.top-nav');
+  if (!btn || !nav) return;
+  function setOpen(open) {
+    nav.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+  btn.addEventListener('click', function() {
+    setOpen(!nav.classList.contains('is-open'));
+  });
+  nav.querySelectorAll('.nav-links a').forEach(function(a) {
+    a.addEventListener('click', function() { setOpen(false); });
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') setOpen(false);
+  });
+})();
+
+// Auto-inject a Share button into every breadcrumbs row. This means tools,
+// calendar, sanctions tracker, blog index, etc. all get a consistent share
+// affordance without per-template edits. Skip when the nav already contains a
+// share button, when data-no-breadcrumb-share is set (page shows Share
+// elsewhere), or when a sibling .page-share-row would duplicate the control.
+(function autoInjectBreadcrumbShare() {
+  var canonicalEl = document.querySelector('link[rel="canonical"]');
+  var canonical = (canonicalEl && canonicalEl.getAttribute('href')) || window.location.href;
+  var title = document.title || 'Ban the Bots';
+  document.querySelectorAll('nav.breadcrumbs').forEach(function(crumbs) {
+    if (crumbs.hasAttribute('data-no-breadcrumb-share')) return;
+    if (crumbs.querySelector('.share-btn')) return;
+    var next = crumbs.nextElementSibling;
+    if (next && next.classList && next.classList.contains('page-share-row') &&
+        next.querySelector('.share-btn')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'share-btn breadcrumb-share';
+    btn.setAttribute('data-share-url', canonical);
+    btn.setAttribute('data-share-title', title);
+    btn.setAttribute('aria-label', 'Share this page');
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
+      '<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' +
+      '</svg><span class="share-btn-label">Share</span>';
+    crumbs.appendChild(btn);
+  });
+})();
+
+// Share button handler — used by any .share-btn on this page (page header,
+// inline buttons, breadcrumbs auto-injected, etc.). On mobile / browsers
+// exposing navigator.share we open the native share sheet; on desktop we
+// copy the canonical URL and show a "Link copied" toast. Falls back to
+// window.location.href when no data-share-url is provided.
+(function initShareButtons() {
+  var toastEl = null;
+  function showToast(msg) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'share-toast';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    requestAnimationFrame(function() { toastEl.classList.add('is-visible'); });
+    clearTimeout(toastEl._hideTimer);
+    toastEl._hideTimer = setTimeout(function() {
+      toastEl.classList.remove('is-visible');
+    }, 1600);
+  }
+  function flashCopied(btn) {
+    var label = btn.querySelector('.share-btn-label');
+    var prev = label ? label.textContent : null;
+    btn.classList.add('copied');
+    if (label) label.textContent = 'Copied';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      if (label && prev !== null) label.textContent = prev;
+    }, 1600);
+  }
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function(resolve, reject) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        resolve();
+      } catch (err) { reject(err); }
+    });
+  }
+  document.querySelectorAll('.share-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var url = btn.getAttribute('data-share-url') || window.location.href;
+      var title = btn.getAttribute('data-share-title') || document.title;
+      if (navigator.share) {
+        navigator.share({ title: title, url: url }).catch(function() {
+          copyToClipboard(url).then(function() {
+            flashCopied(btn);
+            showToast('Link copied');
+          }).catch(function() {});
+        });
+        return;
+      }
+      copyToClipboard(url).then(function() {
+        flashCopied(btn);
+        showToast('Link copied');
+      }).catch(function() {
+        showToast('Could not copy link');
+      });
+    });
+  });
+})();
+
+(function initFeedbackWidget() {
+  var pill = document.querySelector('.feedback-pill');
+  var backdrop = document.querySelector('.feedback-backdrop');
+  if (!pill || !backdrop) return;
+  var form = backdrop.querySelector('.feedback-form');
+  var closeBtn = backdrop.querySelector('.feedback-close');
+  var textarea = backdrop.querySelector('textarea[name="feedback"]');
+  var emailInput = backdrop.querySelector('input[name="email"]');
+  var submitBtn = backdrop.querySelector('.feedback-submit');
+  var status = backdrop.querySelector('.feedback-status');
+  var previousFocus = null;
+  var defaultSubmit = 'SEND FEEDBACK';
+
+  function setStatus(message, kind) {
+    status.textContent = message || '';
+    status.classList.toggle('is-error', kind === 'error');
+    status.classList.toggle('is-success', kind === 'success');
+  }
+  function closeFeedback() {
+    backdrop.hidden = true;
+    form.reset();
+    submitBtn.disabled = false;
+    submitBtn.textContent = defaultSubmit;
+    setStatus('', '');
+    if (previousFocus && previousFocus.focus) previousFocus.focus();
+  }
+
+  pill.addEventListener('click', function() {
+    previousFocus = document.activeElement;
+    backdrop.hidden = false;
+    setStatus('', '');
+    requestAnimationFrame(function() { textarea.focus(); });
+  });
+  closeBtn.addEventListener('click', closeFeedback);
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop) closeFeedback();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !backdrop.hidden) closeFeedback();
+  });
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var feedback = textarea.value.trim();
+    if (!feedback) {
+      setStatus('Please enter a note before sending.', 'error');
+      textarea.focus();
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    setStatus('', '');
+    fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        feedback: feedback,
+        email: emailInput ? emailInput.value.trim() : '',
+        company: (form.querySelector('input[name="company"]') || {}).value || '',
+        page_url: window.location.href,
+        page_title: document.title || 'Ban the Bots'
+      })
+    })
+    .then(function(r) {
+      return r.json().then(function(data) { return { ok: r.ok, data: data }; });
+    })
+    .then(function(result) {
+      if (!result.ok || !result.data.ok) throw new Error(result.data.error || 'Feedback could not be sent.');
+      setStatus('Thank you. Your feedback was sent.', 'success');
+      form.reset();
+      submitBtn.textContent = 'Sent';
+      setTimeout(closeFeedback, 1300);
+    })
+    .catch(function(err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = defaultSubmit;
+      setStatus(err.message || 'Something went wrong. Please try again.', 'error');
+    });
+  });
+})();
+</script>
+</body>
+</html>

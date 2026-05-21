@@ -1,0 +1,103 @@
+{% extends "_base.html.j2" %}
+{% from "_base.html.j2" import share_button %}
+{% from "_card_grid.html.j2" import card_grid_section %}
+
+{% block content %}
+<article class="container">
+
+  <nav class="breadcrumbs" data-no-breadcrumb-share aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <a href="/briefing">Analysis</a><span>/</span>
+    <span>{{ post.title }}</span>
+  </nav>
+
+  <header>
+    {% if post.primary_sector %}
+    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
+      {{ post.primary_sector|replace('_',' ')|title }}
+    </div>
+    {% endif %}
+    <h1>{{ post.title }}</h1>
+    {% if post.subtitle %}<p class="subtitle">{{ post.subtitle }}</p>{% endif %}
+    <div class="meta">
+      <span><strong>Published</strong> {{ post.published_date.strftime('%B %d, %Y') }}</span>
+      {% if post.reading_minutes %}<span><strong>Read</strong> {{ post.reading_minutes }} min</span>{% endif %}
+      {% if post.word_count %}<span>{{ post.word_count }} words</span>{% endif %}
+      <span><strong>By</strong> Ban the Bots</span>
+      <span style="margin-left:auto;">{{ share_button('https://banthebots.org/briefing/' ~ post.slug, post.title) }}</span>
+    </div>
+  </header>
+
+  {% if takeaways %}
+  <aside class="takeaways" aria-label="Key takeaways">
+    <h3>Key takeaways</h3>
+    <ul>
+      {% for t in takeaways %}<li>{{ t }}</li>{% endfor %}
+    </ul>
+  </aside>
+  {% endif %}
+
+  <div class="body">
+    {{ post.body_html | link_people | safe }}
+  </div>
+
+  {#
+    Primary source citation. Historical bug (fixed 2026-04): the source
+    URL was rendered as its own anchor text, which for Google News RSS
+    links produced a wall of ~400 opaque base64-looking characters
+    inside the citation box ("horrible UX" — 2026-04 design review).
+    We now render a short, human-readable publisher label (resolved
+    server-side in src/page_renderer.py::_source_display_name) as the
+    anchor text and keep the underlying URL as the href. The full URL
+    is still reachable with one click and still present in the page's
+    JSON-LD `citation` field for structured-data consumers.
+  #}
+  {% if post.canonical_source_url %}
+  <div class="source-citation">
+    <strong>Primary source:</strong>
+    <a href="{{ post.canonical_source_url }}" rel="nofollow noopener" target="_blank">{{ source_label|default('source') }}</a>
+    — referenced for fact-checking; this analysis is independent commentary by the
+    Ban the Bots editorial team.
+  </div>
+  {% endif %}
+
+  <div style="display:flex; align-items:center; gap:14px; margin: 24px 0 8px; padding: 14px 0; border-top: 1px solid var(--sr-gray-light);">
+    <span style="font-size:13px; color: var(--sr-gray-text);">Found this useful?</span>
+    {{ share_button('https://banthebots.org/briefing/' ~ post.slug, post.title, label='Share analysis') }}
+  </div>
+
+  {#
+    "More on this sector" — related briefings from the same primary
+    sector, filled with recency fallbacks when the sector is thin. This
+    block used to be a bullet list; it now uses the canonical 3-card
+    discovery grid so it matches every other "related pages" section on
+    the site (tool-page briefing rails, sanctions surname clusters,
+    etc.). See templates/_card_grid.html.j2 for the shared component.
+  #}
+  {% if related %}
+  {% set _related_cards = [] %}
+  {% for r in related %}
+    {% set _eyebrow = (r.primary_sector|replace('_',' ')|upper) if r.primary_sector else 'ANALYSIS' %}
+    {% set _meta_rows = [] %}
+    {% if r.published_date %}{% set _ = _meta_rows.append('<strong>' ~ r.published_date.strftime('%b %d, %Y') ~ '</strong>') %}{% endif %}
+    {% if r.reading_minutes %}{% set _ = _meta_rows.append(r.reading_minutes|string ~ ' min read') %}{% endif %}
+    {% set _ = _related_cards.append({
+        'href': '/briefing/' ~ r.slug,
+        'eyebrow': _eyebrow,
+        'title': r.title,
+        'tagline': r.summary or '',
+        'meta_rows': _meta_rows,
+        'cta': 'Read analysis'
+      }) %}
+  {% endfor %}
+  {{ card_grid_section(
+       heading='More on this topic',
+       cards=_related_cards,
+       aria_label='Related briefings',
+       footer_link={'href': '/briefing', 'label': 'Browse all daily briefings'},
+       footer_mode='always'
+  ) }}
+  {% endif %}
+
+</article>
+{% endblock %}

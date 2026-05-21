@@ -1,0 +1,140 @@
+{% extends "_base.html.j2" %}
+{% from "_base.html.j2" import share_button %}
+{% from "_card_grid.html.j2" import card_grid_section %}
+
+{% block content %}
+<article class="container">
+
+  <nav class="breadcrumbs" data-no-breadcrumb-share aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <a href="/ai-incidents/">AI Incidents</a><span>/</span>
+    <span>{{ incident.title[:60] }}{% if incident.title|length > 60 %}…{% endif %}</span>
+  </nav>
+
+  <header>
+    {# Severity + sector badges #}
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; align-items:center;">
+      {% if incident.severity %}
+      {% set _sv_colors = {'critical': '#7f1d1d', 'high': '#9a3412', 'medium': '#92400e', 'low': '#166534'} %}
+      {% set _sv_bgs = {'critical': '#fee2e2', 'high': '#ffedd5', 'medium': '#fef3c7', 'low': '#dcfce7'} %}
+      <span style="display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;
+                   color:{{ _sv_colors.get(incident.severity, '#374151') }};
+                   background:{{ _sv_bgs.get(incident.severity, '#f3f4f6') }};">
+        {{ incident.severity }} severity
+      </span>
+      {% endif %}
+      {% if incident.sector %}
+      <a href="/ai-incidents/?sector={{ incident.sector }}"
+         style="display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; background:#dbeafe; color:#1e3a5f; text-decoration:none;">
+        {{ incident.sector|replace('-',' ')|title }}
+      </a>
+      {% endif %}
+      {% if incident.source %}
+      <span style="font-size:12px; color:var(--sr-gray-text); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+        Source: {{ incident.source|upper }}
+      </span>
+      {% endif %}
+    </div>
+
+    <h1>{{ incident.title }}</h1>
+
+    <div class="meta">
+      {% if incident.incident_date %}
+      <span><strong>Incident date</strong> {{ incident.incident_date.strftime('%B %d, %Y') }}</span>
+      {% endif %}
+      {% if incident.company %}
+      <span><strong>Company</strong> {{ incident.company }}</span>
+      {% endif %}
+      {% if incident.technology %}
+      <span><strong>Technology</strong> {{ incident.technology }}</span>
+      {% endif %}
+      {% if incident.harm_type %}
+      <span><strong>Harm type</strong> {{ incident.harm_type }}</span>
+      {% endif %}
+      <span style="margin-left:auto;">
+        {{ share_button('https://banthebots.org/ai-incidents/' ~ incident.id, incident.title) }}
+      </span>
+    </div>
+  </header>
+
+  {# Description / summary #}
+  {% if incident.summary_html %}
+  <div class="body">{{ incident.summary_html | safe }}</div>
+  {% elif incident.description %}
+  <div class="body">
+    {% for para in incident.description.split('\n\n') %}
+    <p>{{ para }}</p>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:var(--sr-gray-text); font-style:italic; margin: 24px 0;">
+    Detailed summary not yet available for this incident.
+  </p>
+  {% endif %}
+
+  {# Primary source link #}
+  {% if incident.source_url %}
+  <div class="source-citation">
+    <strong>Primary source:</strong>
+    <a href="{{ incident.source_url }}" rel="nofollow noopener" target="_blank">{{ incident.source_url[:80] }}{% if incident.source_url|length > 80 %}…{% endif %}</a>
+    — referenced for fact-checking; this tracker aggregates publicly reported incidents.
+  </div>
+  {% endif %}
+
+  {# Analysis JSON if present (optional structured data from LLM) #}
+  {% if incident.analysis_json %}
+  {% set analysis = incident.analysis_json %}
+  {% if analysis.takeaway %}
+  <aside class="takeaways" aria-label="Key takeaways">
+    <h3>Analysis</h3>
+    <p style="margin:0; font-size:15px;">{{ analysis.takeaway | safe }}</p>
+  </aside>
+  {% endif %}
+  {% endif %}
+
+  <div style="display:flex; align-items:center; gap:14px; margin: 24px 0 8px; padding: 14px 0; border-top: 1px solid var(--sr-gray-light);">
+    <span style="font-size:13px; color:var(--sr-gray-text);">Know about a similar incident?</span>
+    {{ share_button('https://banthebots.org/ai-incidents/' ~ incident.id, incident.title, label='Share incident') }}
+  </div>
+
+  {# Related briefings #}
+  {% if related_briefings %}
+  {% set _cards = [] %}
+  {% for b in related_briefings %}
+    {% set _eyebrow = (b.primary_sector|replace('_',' ')|upper) if b.primary_sector else 'BRIEFING' %}
+    {% set _meta = [] %}
+    {% if b.published_date %}{% set _ = _meta.append('<strong>' ~ b.published_date.strftime('%b %d, %Y') ~ '</strong>') %}{% endif %}
+    {% if b.reading_minutes %}{% set _ = _meta.append(b.reading_minutes|string ~ ' min read') %}{% endif %}
+    {% set _ = _cards.append({
+        'href': '/briefing/' ~ b.slug,
+        'eyebrow': _eyebrow,
+        'title': b.title,
+        'tagline': b.summary or '',
+        'meta_rows': _meta,
+        'cta': 'Read briefing'
+    }) %}
+  {% endfor %}
+  {{ card_grid_section(
+       heading='Related briefings',
+       cards=_cards,
+       aria_label='Related AI briefings',
+       footer_link={'href': '/briefing', 'label': 'Browse all briefings'},
+       footer_mode='always'
+  ) }}
+  {% endif %}
+
+  {# Bottom nav #}
+  <div style="margin: 32px 0 16px; padding: 16px 0; border-top:1px solid var(--sr-gray-light); display:flex; gap:24px; flex-wrap:wrap; font-size:14px;">
+    <a href="/ai-incidents/" style="color:var(--sr-blue); font-weight:600;">← All AI incidents</a>
+    {% if incident.sector %}
+    <a href="/ai-incidents/?sector={{ incident.sector }}" style="color:var(--sr-blue);">
+      More {{ incident.sector|replace('-',' ')|title }} incidents →
+    </a>
+    <a href="/responsible-ai/{{ incident.sector }}/" style="color:var(--sr-blue);">
+      {{ incident.sector|replace('-',' ')|title }} AI guide →
+    </a>
+    {% endif %}
+  </div>
+
+</article>
+{% endblock %}

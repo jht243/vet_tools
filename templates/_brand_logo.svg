@@ -1,0 +1,19 @@
+<svg class="brand-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Ban the Bots" role="img">
+  <defs>
+    <clipPath id="btb-badge"><rect x="1" y="1" width="30" height="30" rx="6"/></clipPath>
+  </defs>
+  <!-- Navy background -->
+  <rect x="1" y="1" width="30" height="30" rx="6" fill="#002b5e"/>
+  <!-- Robot face outline -->
+  <rect x="9" y="10" width="14" height="12" rx="2" stroke="white" stroke-width="1.5"/>
+  <!-- Robot eyes -->
+  <rect x="12" y="13" width="3" height="3" rx="0.5" fill="white"/>
+  <rect x="18" y="13" width="3" height="3" rx="0.5" fill="white"/>
+  <!-- Robot antenna -->
+  <line x1="16" y1="10" x2="16" y2="7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="16" cy="6" r="1.5" fill="white"/>
+  <!-- Ban slash (red diagonal) -->
+  <line x1="8" y1="8" x2="24" y2="24" stroke="#cc0000" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Soft white border -->
+  <rect x="1" y="1" width="30" height="30" rx="6" stroke="rgba(255,255,255,0.3)" stroke-width="1" fill="none"/>
+</svg>

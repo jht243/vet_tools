@@ -1,0 +1,167 @@
+{% extends "_base.html.j2" %}
+
+{% block content %}
+<section class="container-wide">
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <span>AI Incidents</span>
+  </nav>
+
+  <header style="margin: 16px 0 24px;">
+    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
+      Ban the Bots · Live tracker
+    </div>
+    <h1 style="font-family:var(--font-serif); font-size:36px; color:var(--sr-blue-dark); margin:8px 0 12px;">
+      AI Incident Tracker
+    </h1>
+    <p style="font-family:var(--font-serif); font-style:italic; color:var(--sr-gray-text); font-size:18px; max-width:700px;">
+      Real-world failures, harms, and near-misses involving AI systems — sourced from
+      the <a href="https://incidentdatabase.ai" rel="noopener noreferrer" target="_blank">AI Incident Database</a>
+      and <a href="https://aiaaic.org" rel="noopener noreferrer" target="_blank">AIAAIC</a>.
+      Updated daily.
+    </p>
+  </header>
+
+  {# Filters #}
+  <form method="get" action="/ai-incidents/" class="cr-search-panel" role="search" aria-label="Filter incidents">
+    <label class="cr-search-label">Filter incidents</label>
+    <div class="cr-search-row">
+      <select name="sector" aria-label="Filter by sector">
+        <option value="">All sectors</option>
+        {% for s in sectors %}
+        <option value="{{ s }}" {% if s == sector_filter %}selected{% endif %}>
+          {{ s|replace('-', ' ')|title }}
+        </option>
+        {% endfor %}
+      </select>
+      <select name="severity" aria-label="Filter by severity">
+        <option value="">All severities</option>
+        {% for sv in severities %}
+        <option value="{{ sv }}" {% if sv == severity_filter %}selected{% endif %}>
+          {{ sv|title }}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit">Filter</button>
+      {% if sector_filter or severity_filter %}
+      <a href="/ai-incidents/" style="padding: 13px 16px; font-size:14px; color:var(--sr-gray-text);">Clear</a>
+      {% endif %}
+    </div>
+    {% if sector_filter or severity_filter %}
+    <p class="cr-search-help">
+      Showing {{ total }} incident{% if total != 1 %}s{% endif %}
+      {% if sector_filter %}in <strong>{{ sector_filter|replace('-',' ')|title }}</strong>{% endif %}
+      {% if severity_filter %}with severity <strong>{{ severity_filter }}</strong>{% endif %}.
+    </p>
+    {% else %}
+    <p class="cr-search-help">{{ total }} incident{% if total != 1 %}s{% endif %} in the database.</p>
+    {% endif %}
+  </form>
+
+  {# Incident table #}
+  {% if incidents %}
+  <div style="overflow-x:auto; margin: 8px 0 24px;">
+    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--sr-blue); text-align:left;">
+          <th style="padding:10px 12px; font-family:var(--font-sans); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--sr-gray-text);">Date</th>
+          <th style="padding:10px 12px; font-family:var(--font-sans); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--sr-gray-text);">Incident</th>
+          <th style="padding:10px 12px; font-family:var(--font-sans); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--sr-gray-text);">Sector</th>
+          <th style="padding:10px 12px; font-family:var(--font-sans); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--sr-gray-text);">Severity</th>
+          <th style="padding:10px 12px; font-family:var(--font-sans); font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--sr-gray-text);">Company</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in incidents %}
+        <tr style="border-bottom:1px solid var(--sr-gray-light); transition:background 0.12s;"
+            onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+          <td style="padding:12px; white-space:nowrap; color:var(--sr-gray-text); font-size:13px; vertical-align:top;">
+            {{ inc.incident_date.strftime('%b %d, %Y') if inc.incident_date else '—' }}
+          </td>
+          <td style="padding:12px; vertical-align:top; min-width:260px;">
+            <a href="/ai-incidents/{{ inc.id }}"
+               style="font-family:var(--font-serif); font-weight:700; font-size:15px; color:var(--sr-blue-dark); text-decoration:none; line-height:1.3; display:block;">
+              {{ inc.title }}
+            </a>
+            {% if inc.source_url %}
+            <a href="{{ inc.source_url }}" rel="nofollow noopener" target="_blank"
+               style="font-size:12px; color:var(--sr-gray-text); text-decoration:none;">
+              {{ inc.source|upper }} ↗
+            </a>
+            {% endif %}
+          </td>
+          <td style="padding:12px; vertical-align:top;">
+            {% if inc.sector %}
+            <a href="/ai-incidents/?sector={{ inc.sector }}"
+               style="font-size:12px; font-weight:600; color:var(--sr-blue); text-decoration:none; white-space:nowrap;">
+              {{ inc.sector|replace('-',' ')|title }}
+            </a>
+            {% else %}
+            <span style="color:var(--sr-gray-text); font-size:12px;">—</span>
+            {% endif %}
+          </td>
+          <td style="padding:12px; vertical-align:top;">
+            {% if inc.severity %}
+            {% set _sv_colors = {'critical': '#7f1d1d', 'high': '#9a3412', 'medium': '#92400e', 'low': '#166534'} %}
+            {% set _sv_bgs = {'critical': '#fee2e2', 'high': '#ffedd5', 'medium': '#fef3c7', 'low': '#dcfce7'} %}
+            <span style="display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+                         color:{{ _sv_colors.get(inc.severity, '#374151') }};
+                         background:{{ _sv_bgs.get(inc.severity, '#f3f4f6') }};">
+              {{ inc.severity }}
+            </span>
+            {% else %}
+            <span style="color:var(--sr-gray-text); font-size:12px;">—</span>
+            {% endif %}
+          </td>
+          <td style="padding:12px; vertical-align:top; font-size:13px; color:var(--sr-dark-text); max-width:180px;">
+            {{ inc.company or '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pagination #}
+  {% if total_pages > 1 %}
+  <nav class="pagination" aria-label="Incident pages">
+    {% set _qs = ('&sector=' ~ sector_filter) if sector_filter else '' %}
+    {% set _qs = _qs ~ (('&severity=' ~ severity_filter) if severity_filter else '') %}
+    {% if page > 1 %}
+      <a href="/ai-incidents/?page={{ page - 1 }}{{ _qs }}" class="pagination-link" rel="prev">&larr; Newer</a>
+    {% else %}
+      <span class="pagination-link disabled">&larr; Newer</span>
+    {% endif %}
+    <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a href="/ai-incidents/?page={{ page + 1 }}{{ _qs }}" class="pagination-link" rel="next">Older &rarr;</a>
+    {% else %}
+      <span class="pagination-link disabled">Older &rarr;</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div style="padding: 40px 0; color:var(--sr-gray-text);">
+    <p>No incidents found{% if sector_filter or severity_filter %} matching the selected filters{% endif %}.</p>
+    {% if sector_filter or severity_filter %}
+    <p style="margin-top:8px;"><a href="/ai-incidents/">Clear filters →</a></p>
+    {% else %}
+    <p style="margin-top:8px;">
+      The incident database populates automatically when the daily pipeline runs.
+      Check back after the next scheduled run.
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# Cross-link to pillar + responsible AI #}
+  <div style="margin: 32px 0 16px; padding: 18px 22px; background:var(--sr-gray-bg); border-left:3px solid var(--sr-blue); border-radius:3px; font-size:14px;">
+    <strong>Want context on these incidents?</strong>
+    Read our <a href="/ai-backlash/">AI Backlash explainer</a> or browse
+    <a href="/responsible-ai/">Responsible AI by Industry</a> for sector-specific risk guidance.
+  </div>
+
+</section>
+{% endblock %}

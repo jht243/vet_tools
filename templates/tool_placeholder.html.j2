@@ -1,0 +1,122 @@
+{% extends "_base.html.j2" %}
+
+{% block content %}
+<section class="container">
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <span>{{ tool.title }}</span>
+  </nav>
+
+  <header style="margin: 24px 0 32px; max-width: 680px;">
+    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
+      Ban the Bots · Coming soon
+    </div>
+    <h1 style="font-family:var(--font-serif); font-size:38px; color:var(--sr-blue-dark); margin:10px 0 14px; line-height:1.15;">
+      {{ tool.title }}
+    </h1>
+    <p style="font-family:var(--font-serif); font-style:italic; font-size:20px; color:var(--sr-gray-text); margin-bottom:20px; line-height:1.4;">
+      {{ tool.subtitle }}
+    </p>
+    <p style="font-size:16px; color:var(--sr-dark-text); line-height:1.65;">
+      {{ tool.description }}
+    </p>
+  </header>
+
+  {# Email capture #}
+  <div style="background:var(--sr-gray-bg); border:1px solid var(--sr-gray-light); border-left:4px solid var(--sr-blue); border-radius:4px; padding:28px 32px; max-width:520px; margin-bottom:48px;">
+    <h2 style="font-family:var(--font-serif); font-size:20px; color:var(--sr-blue-dark); margin:0 0 8px;">
+      Get notified when this launches
+    </h2>
+    <p style="font-size:14px; color:var(--sr-gray-text); margin:0 0 18px;">
+      We'll send one email when it's ready. No spam.
+    </p>
+    <form id="tool-waitlist-form" style="display:flex; flex-wrap:wrap; gap:10px;">
+      <input
+        type="email"
+        id="waitlist-email"
+        name="email"
+        placeholder="you@yourcompany.com"
+        required
+        autocomplete="email"
+        style="flex:1 1 240px; min-width:0; padding:12px 14px; border:2px solid var(--sr-blue); border-radius:3px; font-family:var(--font-sans); font-size:15px;"
+      >
+      <button
+        type="submit"
+        style="padding:12px 22px; background:var(--sr-blue); color:var(--white); border:0; border-radius:3px; font-family:var(--font-sans); font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;"
+      >
+        Notify me
+      </button>
+    </form>
+    <div id="waitlist-status" role="status" aria-live="polite" style="min-height:20px; margin-top:10px; font-size:13px; color:var(--sr-gray-text);"></div>
+  </div>
+
+  {# Related resources #}
+  <div style="border-top:1px solid var(--sr-gray-light); padding-top:28px; margin-bottom:48px;">
+    <h3 style="font-family:var(--font-serif); font-size:18px; color:var(--sr-blue-dark); margin-bottom:12px;">
+      While you wait, explore our free resources
+    </h3>
+    <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;">
+      <li>
+        <a href="/ai-backlash/" style="font-weight:600;">AI Backlash Explained</a>
+        <span style="color:var(--sr-gray-text); font-size:14px;"> — what the backlash is and how it affects your business</span>
+      </li>
+      <li>
+        <a href="/responsible-ai/" style="font-weight:600;">Responsible AI by Industry</a>
+        <span style="color:var(--sr-gray-text); font-size:14px;"> — sector-specific regulations and risk checklists</span>
+      </li>
+      <li>
+        <a href="/ai-incidents/" style="font-weight:600;">AI Incident Tracker</a>
+        <span style="color:var(--sr-gray-text); font-size:14px;"> — real failures, harms, and near-misses updated daily</span>
+      </li>
+      <li>
+        <a href="/briefing" style="font-weight:600;">Daily Briefings</a>
+        <span style="color:var(--sr-gray-text); font-size:14px;"> — AI regulation and risk news, plain English</span>
+      </li>
+    </ul>
+  </div>
+
+</section>
+
+<script>
+(function () {
+  var form = document.getElementById('tool-waitlist-form');
+  var statusEl = document.getElementById('waitlist-status');
+  var slug = {{ tool.slug | tojson }};
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = (document.getElementById('waitlist-email') || {}).value || '';
+    if (!email) return;
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    statusEl.textContent = '';
+    statusEl.style.color = '';
+
+    fetch('/api/subscribe-tool/' + slug, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (result) {
+      if (result.ok && result.data.ok) {
+        statusEl.textContent = "You're on the list. We'll email you when it launches.";
+        statusEl.style.color = '#166534';
+        form.reset();
+      } else {
+        throw new Error(result.data.error || 'Something went wrong.');
+      }
+    })
+    .catch(function (err) {
+      statusEl.textContent = err.message || 'Could not add you — please try again.';
+      statusEl.style.color = '#b42318';
+    })
+    .finally(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Notify me'; }
+    });
+  });
+})();
+</script>
+{% endblock %}

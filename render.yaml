@@ -1,0 +1,133 @@
+services:
+  - type: web
+    name: ban-the-bots
+    runtime: python
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: BUTTONDOWN_API_KEY
+        sync: false
+      - key: NEWSLETTER_PROVIDER
+        value: buttondown
+      - key: NEWSLETTER_FROM_EMAIL
+        value: briefing@banthebots.org
+      - key: NEWSLETTER_API_KEY
+        sync: false
+      - key: SITE_URL
+        value: https://banthebots.org
+      - key: SITE_NAME
+        value: Ban the Bots
+      - key: CANONICAL_SITE_URL
+        value: https://banthebots.org
+      - key: GOOGLE_INDEXING_SA_JSON
+        sync: false
+      - key: INDEXNOW_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: jht243/banthebots
+      - key: RESEND_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+    healthCheckPath: /health
+
+  - type: cron
+    name: btb-daily-pipeline
+    runtime: python
+    # 9am + 4pm ET = 14:00 + 21:00 UTC
+    schedule: "0 14,21 * * *"
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python run_daily.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: NEWSLETTER_PROVIDER
+        value: buttondown
+      - key: NEWSLETTER_FROM_EMAIL
+        value: briefing@banthebots.org
+      - key: NEWSLETTER_API_KEY
+        sync: false
+      - key: BUTTONDOWN_API_KEY
+        sync: false
+      - key: GOOGLE_INDEXING_SA_JSON
+        sync: false
+      - key: INDEXNOW_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: jht243/banthebots
+      - key: SITE_URL
+        value: https://banthebots.org
+      - key: CANONICAL_SITE_URL
+        value: https://banthebots.org
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: cron
+    name: btb-daily-seo-email
+    runtime: python
+    # 11am ET = 15:00 UTC
+    schedule: "0 15 * * *"
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python scripts/send_daily_seo_email.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GOOGLE_REPORTING_SA_JSON
+        sync: false
+      - key: GOOGLE_REPORTING_GA4_PROPERTY_ID
+        sync: false
+      - key: GOOGLE_REPORTING_GSC_SITE_URL
+        value: https://banthebots.org
+      - key: SEO_EMAIL_PROVIDER
+        value: resend
+      - key: SEO_EMAIL_RECIPIENT
+        sync: false
+      - key: SEO_EMAIL_SUBJECT
+        value: Ban the Bots — Daily SEO
+      - key: RESEND_API_KEY
+        sync: false
+      - key: NEWSLETTER_FROM_EMAIL
+        value: briefing@banthebots.org
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: cron
+    name: btb-weekly-landing-regen
+    runtime: python
+    # Monday 6am UTC
+    schedule: "0 6 * * 1"
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python scripts/generate_landing_pages.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: LOG_LEVEL
+        value: INFO
