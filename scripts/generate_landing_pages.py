@@ -41,23 +41,59 @@ logger = logging.getLogger("generate_landing_pages")
 SEED_EXPLAINERS = [
     (
         "eu-ai-act",
-        "What Is the EU AI Act? A Plain-English Guide for Business Owners",
-        "eu ai act small business compliance",
+        "What Is the EU AI Act? Plain-English Guide for Everyone",
+        "what is eu ai act and what does it mean for me",
     ),
     (
         "ai-jobs",
-        "Is AI Really Taking Jobs? What the Data Says in 2026",
-        "is ai taking jobs statistics",
+        "Is AI Really Taking Jobs? What the Data Actually Says",
+        "is ai taking jobs statistics workers",
     ),
     (
         "ai-water-use",
         "How Much Water Do AI Data Centers Use?",
-        "ai data center water consumption",
+        "how much water does ai use data centers",
     ),
     (
         "no-ai-policy",
-        "How to Write a No-AI Policy for Your Business",
-        "no ai policy template business",
+        "How to Write a No-AI Policy (For Anyone, Not Just Businesses)",
+        "no ai policy template freelancer artist creator",
+    ),
+    # New — culture/slop cluster (KD 19.2, zero current coverage)
+    (
+        "ai-slop",
+        "What Is AI Slop? Why the Internet Feels Worse Than It Used To",
+        "what is ai slop meaning internet getting worse",
+    ),
+    # New — creator/copyright cluster (KD 8.8, easiest to rank)
+    (
+        "ai-art-theft",
+        "Is AI Stealing Art? What Artists Are Fighting For and Why It Matters",
+        "is ai art theft stealing from artists copyright",
+    ),
+    # New — labor/jobs cluster (compete with willrobotstakemyjob.com)
+    (
+        "ai-proof-jobs",
+        "The Most AI-Proof Jobs: What Work Humans Will Always Do Better",
+        "what jobs can ai not replace most ai proof careers",
+    ),
+    # New — data center/local cluster, community angle
+    (
+        "data-center-impact",
+        "AI Data Centers Near You: Water, Power, and Property Values",
+        "ai data center near me water usage environmental impact community",
+    ),
+    # New — parent/student angle on labor cluster
+    (
+        "what-to-study",
+        "What Should Your Kids Study to Be AI-Proof? A Parent's Guide",
+        "what should kids study for future with ai jobs",
+    ),
+    # New — risk/safety cluster, citizen angle
+    (
+        "ai-regulation",
+        "AI Laws Being Passed Right Now: What They Mean for You",
+        "ai regulation news us eu uk what it means for regular people",
     ),
 ]
 
