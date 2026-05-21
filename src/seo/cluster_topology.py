@@ -3,12 +3,17 @@ Internal-linking topic-cluster topology — the single source of truth for
 which page belongs to which cluster, who the pillar is, and the exact
 anchor text every backlink should use.
 
-Five BTB clusters:
-  1. ai-backlash      pillar: /ai-backlash/
-  2. ai-incidents     pillar: /ai-incidents/
-  3. ai-regulation    pillar: /explainers/eu-ai-act
-  4. ai-labor         pillar: /explainers/ai-jobs
-  5. ai-energy        pillar: /explainers/ai-water-use
+Ten BTB clusters:
+  1. ai-backlash        pillar: /ai-backlash/
+  2. ai-incidents       pillar: /ai-incidents/
+  3. ai-regulation      pillar: /explainers/eu-ai-act
+  4. ai-labor           pillar: /explainers/ai-jobs
+  5. ai-energy          pillar: /explainers/ai-water-use
+  6. data-center        pillar: /data-center-map/
+  7. ai-jobs            pillar: /ai-proof-jobs/
+  8. resistance         pillar: /fighting-back/
+  9. creator-copyright  pillar: /explainers/ai-art-theft
+ 10. parenting          pillar: /parents/
 
 Public API (kept tiny on purpose):
     cluster_for(path)     -> Cluster | None
@@ -27,7 +32,7 @@ from typing import Optional
 # consistent topical signal.
 _ANCHOR: dict[str, str] = {
     # ai-backlash cluster
-    "/ai-backlash/": "AI Backlash Explained: What Business Owners Need to Know",
+    "/ai-backlash/": "AI Backlash: What It Means for Workers, Families, and Communities",
     "/responsible-ai/healthcare/": "Responsible AI in Healthcare — risks, regulations, checklist",
     "/responsible-ai/finance/": "Responsible AI in Finance — CFPB, liability, compliance guide",
     "/responsible-ai/legal/": "Responsible AI in Legal — attorney ethics and AI liability",
@@ -44,7 +49,7 @@ _ANCHOR: dict[str, str] = {
     # ai-regulation cluster
     "/explainers/eu-ai-act": "EU AI Act Explained — what every business needs to know",
     "/briefing": "AI Risk & Responsible AI Daily Briefings",
-    "/explainers/": "AI Explainers for Business Owners",
+    "/explainers/": "AI Explainers — Plain English for Everyone",
 
     # ai-labor cluster
     "/explainers/ai-jobs": "AI and Jobs: What the Research Actually Shows",
@@ -53,9 +58,39 @@ _ANCHOR: dict[str, str] = {
     "/explainers/ai-water-use": "AI Water Use and Energy: The Data Center Impact Explained",
 
     # tool pages
-    "/ai-risk-assessment/": "AI Risk Assessment — see where your business is exposed",
-    "/no-ai-policy-template/": "No-AI Policy Template — ready to use for your business",
-    "/human-made-policy-template/": "Human-Made Policy Template — certify your content is human",
+    "/ai-risk-assessment/": "How AI Could Affect Your Life — a plain-English checker",
+    "/no-ai-policy-template/": "No-AI Policy Template — for freelancers, artists, and creators",
+    "/human-made-policy-template/": "Human-Made Policy Template — certify your work is human-made",
+
+    # data-center cluster
+    "/data-center-map/": "Find AI Data Centers Near You — interactive map",
+    "/explainers/data-center-impact": "AI Data Centers: Water, Power, and Your Community",
+
+    # labor/jobs cluster
+    "/ai-proof-jobs/": "AI-Proof Jobs: What Work Humans Will Always Do Better",
+    "/will-ai-replace-my-job/": "Will AI Replace My Job? Check Any Occupation",
+    "/ai-layoffs/": "AI Layoffs Tracker — Companies That Cut Jobs Because of AI",
+
+    # resistance cluster
+    "/fighting-back/": "Fighting Back Against AI — No-AI Policies, Worker Protections & Laws",
+
+    # creator/copyright cluster
+    "/explainers/ai-art-theft": "Is AI Stealing Art? What Artists Are Fighting For",
+    "/ai-lawsuits/": "AI Lawsuits Tracker — Who's Suing OpenAI, Stability AI & More",
+
+    # parenting cluster
+    "/parents/": "Parenting in the Age of AI — A Parent's Plain-English Guide",
+    "/parents/screen-time/": "AI & Screen Time — What Parents Need to Know",
+    "/parents/what-to-study/": "What Should My Kids Study? AI-Proof Subjects & Skills",
+    "/parents/ai-safety/": "AI Safety for Kids — Character AI, Deepfakes, and More",
+    "/parents/how-to-use-ai-for-good/": "How Kids Can Use AI as a Learning Tool, Not a Crutch",
+    "/parents/social-media/": "AI & Social Media Algorithms — What They Do to Kids",
+
+    # slop/culture cluster
+    "/explainers/ai-slop": "What Is AI Slop? Why the Internet Feels Worse Than It Used To",
+
+    # regulation
+    "/explainers/ai-regulation": "AI Laws Being Passed Right Now — What They Mean for You",
 }
 
 
@@ -210,6 +245,105 @@ CLUSTERS: dict[str, Cluster] = {
             _ck("/ai-incidents/",            "Environmental harms flagged in the AI incident database."),
         ),
     ),
+
+    "data-center": Cluster(
+        key="data-center",
+        name="AI Data Centers & Environment",
+        summary=(
+            "Where AI's physical infrastructure lives — and what it costs communities "
+            "in water, power, and land. Interactive map, water use data, and local impact guides."
+        ),
+        pillar=_ck(
+            "/data-center-map/",
+            "Find AI data centers near you — proposed, under construction, and operating.",
+        ),
+        members=(
+            _ck("/explainers/ai-water-use",      "How much water AI data centers actually consume."),
+            _ck("/explainers/data-center-impact", "What data centers mean for your community."),
+            _ck("/briefing",                      "Daily news on AI data center announcements."),
+            _ck("/ai-backlash/",                  "Environmental impact is a key driver of AI backlash."),
+        ),
+    ),
+
+    "ai-jobs": Cluster(
+        key="ai-jobs",
+        name="AI & Jobs",
+        summary=(
+            "Which jobs AI is replacing, which are resilient, and how to check your own occupation. "
+            "Tracks real layoffs and links to worker protections."
+        ),
+        pillar=_ck(
+            "/ai-proof-jobs/",
+            "AI-proof jobs: what work humans will always do better.",
+        ),
+        members=(
+            _ck("/will-ai-replace-my-job/",   "Check any job title — risk level, resilient tasks, skills."),
+            _ck("/ai-layoffs/",               "Every company that cut jobs because of AI."),
+            _ck("/explainers/ai-jobs",        "Is AI really taking jobs? What the data says."),
+            _ck("/fighting-back/",            "Unions and governments protecting workers from AI displacement."),
+            _ck("/briefing",                  "Daily coverage of AI layoff announcements."),
+        ),
+    ),
+
+    "resistance": Cluster(
+        key="resistance",
+        name="Fighting Back Against AI",
+        summary=(
+            "Companies, unions, and governments drawing the line — no-AI policies, "
+            "worker protection clauses, legislation, and collective actions."
+        ),
+        pillar=_ck(
+            "/fighting-back/",
+            "Who's fighting back against AI — and what they're doing.",
+        ),
+        members=(
+            _ck("/ai-lawsuits/",              "Every major lawsuit filed against AI companies."),
+            _ck("/ai-layoffs/",               "Track which companies are cutting jobs because of AI."),
+            _ck("/no-ai-policy-template/",    "Template: draw the line on AI in your own work."),
+            _ck("/explainers/ai-art-theft",   "Is AI stealing art? What artists are fighting for."),
+            _ck("/ai-backlash/",              "The broader context of the anti-AI movement."),
+        ),
+    ),
+
+    "creator-copyright": Cluster(
+        key="creator-copyright",
+        name="AI & Creator Rights",
+        summary=(
+            "Artists, authors, and musicians fighting AI companies in court and in policy. "
+            "Copyright lawsuits, opt-out tools, and the case against training data scraping."
+        ),
+        pillar=_ck(
+            "/explainers/ai-art-theft",
+            "Is AI stealing art? What artists are fighting for and why it matters.",
+        ),
+        members=(
+            _ck("/ai-lawsuits/",              "Every major copyright and IP lawsuit against AI companies."),
+            _ck("/fighting-back/",            "No-AI policies and creator pledges."),
+            _ck("/ai-backlash/",              "The broader AI backlash and what's driving it."),
+            _ck("/briefing",                  "Daily coverage of AI copyright and creator news."),
+        ),
+    ),
+
+    "parenting": Cluster(
+        key="parenting",
+        name="Parenting in the Age of AI",
+        summary=(
+            "Screen time, AI safety for kids, what to study, social media algorithms, "
+            "and how to use AI as a learning tool — a practical guide for parents."
+        ),
+        pillar=_ck(
+            "/parents/",
+            "Parenting in the age of AI — a plain-English guide for parents.",
+        ),
+        members=(
+            _ck("/parents/screen-time/",             "AI apps and screen time — what the research says."),
+            _ck("/parents/what-to-study/",           "What should my kids study to be AI-proof?"),
+            _ck("/parents/ai-safety/",               "AI safety for kids — Character AI, deepfakes, and more."),
+            _ck("/parents/how-to-use-ai-for-good/",  "Using AI as a learning tool, not a homework shortcut."),
+            _ck("/parents/social-media/",            "How AI recommendation algorithms target children."),
+            _ck("/ai-proof-jobs/",                   "Which jobs are genuinely resilient — for career planning."),
+        ),
+    ),
 }
 
 
@@ -236,6 +370,29 @@ _PATH_TO_CLUSTER: tuple[tuple[str, str], ...] = (
     ("/explainers/ai-jobs",          "ai-labor"),
 
     ("/explainers/ai-water-use",     "ai-energy"),
+
+    ("/data-center-map/",               "data-center"),
+    ("/explainers/ai-water-use",        "data-center"),
+    ("/explainers/data-center-impact",  "data-center"),
+
+    ("/ai-proof-jobs/",                 "ai-jobs"),
+    ("/will-ai-replace-my-job/",        "ai-jobs"),
+    ("/ai-layoffs/",                    "ai-jobs"),
+
+    ("/fighting-back/",                 "resistance"),
+    ("/ai-lawsuits/",                   "resistance"),
+
+    ("/explainers/ai-art-theft",        "creator-copyright"),
+
+    ("/parents/",                       "parenting"),
+    ("/parents/screen-time/",           "parenting"),
+    ("/parents/what-to-study/",         "parenting"),
+    ("/parents/ai-safety/",             "parenting"),
+    ("/parents/how-to-use-ai-for-good/","parenting"),
+    ("/parents/social-media/",          "parenting"),
+
+    ("/explainers/ai-slop",             "resistance"),
+    ("/explainers/ai-regulation",       "ai-regulation"),
 )
 
 

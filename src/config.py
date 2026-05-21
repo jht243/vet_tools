@@ -133,6 +133,10 @@ class Settings(BaseSettings):
     google_indexing_lookback_days: int = 7
     google_indexing_max_per_run: int = 50
 
+    # ── Ahrefs API ─────────────────────────────────────────────────────
+    ahrefs_api_key: str = ""
+    ahrefs_project_id: str = ""  # Ahrefs Site Audit project ID
+
 
 settings = Settings()
 

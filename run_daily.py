@@ -140,8 +140,8 @@ def main(skip_scrape: bool, skip_email: bool, dry_run: bool):
             "warnings": len(seo_report.warnings),
         }
         if seo_report.errors:
-            console.print(f"  [yellow]![/yellow] SEO audit: {seo_report.pages_crawled} pages, {len(seo_report.errors)} errors")
-            for f in seo_report.errors:
+            console.print(f"  [yellow]![/yellow] SEO audit: {seo_report.pages_crawled} pages, {len(seo_report.errors)} errors, {len(seo_report.warnings)} warnings")
+            for f in seo_report.errors[:10]:
                 console.print(f"        [red]error:[/red] {f}")
         else:
             console.print(f"  [green]✓[/green] SEO audit: {seo_report.pages_crawled} pages, 0 errors, {len(seo_report.warnings)} warnings")
@@ -154,16 +154,53 @@ def main(skip_scrape: bool, skip_email: bool, dry_run: bool):
             results["seo_autofix"] = fix_result
             if fix_result.get("fixed", 0) > 0:
                 console.print(
-                    f"  [green]✓[/green] SEO auto-fix: {fix_result['fixed']} pages fixed, "
-                    f"${fix_result.get('total_cost_usd', 0):.3f} LLM cost"
+                    f"  [green]✓[/green] SEO auto-fix: "
+                    f"{fix_result['fixed']} fixed, "
+                    f"{fix_result.get('skipped', 0)} skipped, "
+                    f"${fix_result.get('total_cost_usd', 0):.4f} LLM cost"
                 )
+                for d in fix_result.get("details", []):
+                    console.print(f"    · {d.get('fix', ''):22s} {d.get('path', '')}")
             else:
                 reason = fix_result.get("reason", fix_result.get("status", ""))
                 console.print(f"  [dim]·[/dim] SEO auto-fix: nothing to fix ({reason})")
+            manual = fix_result.get("manual_fix_required", [])
+            if manual:
+                console.print(f"  [yellow]⚠[/yellow] {len(manual)} issue(s) need manual/template fixes:")
+                for m in manual[:10]:
+                    console.print(f"    · {m.get('issue', ''):22s} {m.get('path', '')}")
         except Exception as e:
             logger.error("SEO auto-fix failed: %s", e, exc_info=True)
             results["seo_autofix"] = {"error": str(e)}
             console.print(f"  [yellow]![/yellow] SEO auto-fix failed (non-fatal): {e}")
+
+        # Phase 6c: Ahrefs-powered site audit. Daily: IndexNow submission.
+        # Weekly (Monday): full issue-type scan + keyword gap analysis.
+        from datetime import datetime as _dt
+        _is_weekly = _dt.utcnow().weekday() == 0  # Monday
+        _ahrefs_label = "weekly" if _is_weekly else "daily"
+        console.print(f"\n[bold cyan]Phase 6c:[/bold cyan] Ahrefs site audit ({_ahrefs_label})...")
+        if settings.ahrefs_api_key:
+            try:
+                from src.seo.ahrefs_audit import run_ahrefs_audit
+                ahrefs_report = run_ahrefs_audit(weekly=_is_weekly)
+                results["ahrefs_audit"] = ahrefs_report.summary()
+                console.print(
+                    f"  [green]✓[/green] Ahrefs audit: "
+                    f"{ahrefs_report.total_findings} findings, "
+                    f"{ahrefs_report.auto_fixed} auto-fixed, "
+                    f"{ahrefs_report.alerts} alerts, "
+                    f"{ahrefs_report.units_used} API units"
+                )
+                if ahrefs_report.health_score is not None:
+                    console.print(f"    Health score: {ahrefs_report.health_score}/100")
+            except Exception as e:
+                logger.warning("Ahrefs audit failed: %s", e, exc_info=True)
+                results["ahrefs_audit"] = {"error": str(e)}
+                console.print(f"  [yellow]![/yellow] Ahrefs audit failed (non-fatal): {e}")
+        else:
+            console.print("  [dim]Skipped — AHREFS_API_KEY not configured[/dim]")
+            results["ahrefs_audit"] = {"status": "skipped", "reason": "no API key"}
 
     except Exception as e:
         logger.error("SEO audit failed: %s", e, exc_info=True)

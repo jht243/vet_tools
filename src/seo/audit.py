@@ -393,15 +393,18 @@ def _extract_jsonld_types(blocks: list[dict]) -> list[str]:
 
 _HUB_PATHS = frozenset((
     "/",
-    "/tools",
-    "/sanctions-tracker",
-    "/companies",
-    "/invest-in-venezuela",
     "/briefing",
     "/explainers",
-    "/travel",
-    "/people",
-    "/research/sdn/",
+    "/ai-layoffs/",
+    "/ai-lawsuits/",
+    "/fighting-back/",
+    "/data-center-map/",
+    "/ai-proof-jobs/",
+    "/will-ai-replace-my-job/",
+    "/parents/",
+    "/ai-incidents/",
+    "/ai-backlash/",
+    "/responsible-ai/",
 ))
 
 
@@ -462,8 +465,8 @@ def _normalize_path(href: str) -> str | None:
     if parsed.scheme and parsed.scheme not in ("http", "https", ""):
         return None
     if parsed.netloc and parsed.netloc not in (
-        "localhost", "127.0.0.1", "caracasresearch.com",
-        "www.caracasresearch.com",
+        "localhost", "127.0.0.1", "banthebots.org",
+        "www.banthebots.org",
     ):
         return None
     path = parsed.path or "/"
@@ -494,8 +497,23 @@ def _gather_seed_urls() -> list[str]:
     seeds.update((
         "/briefing",
         "/explainers",
-        "/real-estate/",
-        "/tools",
+        "/ai-layoffs/",
+        "/ai-lawsuits/",
+        "/fighting-back/",
+        "/data-center-map/",
+        "/ai-proof-jobs/",
+        "/will-ai-replace-my-job/",
+        "/parents/",
+        "/parents/screen-time/",
+        "/parents/what-to-study/",
+        "/parents/ai-safety/",
+        "/parents/how-to-use-ai-for-good/",
+        "/parents/social-media/",
+        "/explainers/ai-slop",
+        "/explainers/ai-art-theft",
+        "/explainers/ai-water-use",
+        "/explainers/ai-regulation",
+        "/explainers/data-center-impact",
     ))
 
     return sorted(seeds)
