@@ -408,6 +408,78 @@ def _persist_post(
     return post
 
 
+_CURATOR_SYSTEM = """You are the editorial director of "Ban the Bots," an AI risk news site for SMB owners.
+
+Given a list of analyzed articles (with ID, score, angle, source, and headline), select the best articles to turn into full briefings today.
+
+Rules:
+1. Return EXACTLY {n} article IDs (or fewer if fewer candidates exist).
+2. Maximise TOPIC DIVERSITY — at most 2 articles per angle category.
+3. Prefer higher relevance scores, but a score-6 story on an underrepresented angle beats a score-8 story that duplicates today's coverage.
+4. Prefer tier1 and official sources over tier2 when scores are similar.
+5. Exclude articles whose headlines are near-identical to each other.
+
+Return ONLY a JSON array of integer IDs, e.g. [12, 45, 7, ...]. No other text."""
+
+
+def _llm_curate_candidates(
+    client: OpenAI,
+    candidates: list[ExternalArticleEntry],
+    n: int,
+) -> list[int]:
+    """Single LLM call that acts as editor-in-chief, picking the best n IDs."""
+    if len(candidates) <= n:
+        return [c.id for c in candidates]
+
+    lines = []
+    for c in candidates:
+        a = c.analysis_json or {}
+        score = a.get("relevance_score", 0)
+        angles = ", ".join(a.get("angles") or [a.get("primary_angle", "?")])
+        trust = a.get("source_trust") or c.source_credibility or "?"
+        headline = (a.get("headline_short") or c.headline or "")[:90]
+        lines.append(f"ID={c.id} score={score} angle={angles} src={trust} | {headline}")
+
+    prompt = (
+        f"Select the best {n} articles for today's briefings.\n\n"
+        + "\n".join(lines)
+    )
+
+    try:
+        resp = client.chat.completions.create(
+            model=settings.openai_narrative_model,
+            messages=[
+                {"role": "system", "content": _CURATOR_SYSTEM.format(n=n)},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            max_tokens=200,
+        )
+        raw = (resp.choices[0].message.content or "").strip()
+        usage = getattr(resp, "usage", None)
+        if usage:
+            _LLM_USAGE["calls"] += 1
+            _LLM_USAGE["input_tokens"] += getattr(usage, "prompt_tokens", 0)
+            _LLM_USAGE["output_tokens"] += getattr(usage, "completion_tokens", 0)
+
+        # Parse JSON array of ints from the response
+        match = re.search(r"\[[\d,\s]+\]", raw)
+        if match:
+            ids = json.loads(match.group())
+            valid_ids = {c.id for c in candidates}
+            chosen = [i for i in ids if i in valid_ids]
+            if chosen:
+                logger.info("blog_generator: curator picked %d/%d candidates: %s",
+                            len(chosen), len(candidates), chosen)
+                return chosen[:n]
+    except Exception as exc:
+        logger.warning("blog_generator: curation LLM call failed, falling back to score sort: %s", exc)
+
+    # Fallback: top-n by relevance score
+    scored = sorted(candidates, key=lambda c: (c.analysis_json or {}).get("relevance_score", 0), reverse=True)
+    return [c.id for c in scored[:n]]
+
+
 def run_blog_generation(*, budget: int | None = None) -> dict:
     """
     Find candidate entries with no blog post yet, write up to `budget`
@@ -432,15 +504,20 @@ def run_blog_generation(*, budget: int | None = None) -> dict:
             if ("external_articles", r.id) not in existing
         ]
 
-        ranked: list[tuple[int, ExternalArticleEntry]] = []
-        for r in ext_candidates:
-            ranked.append((
-                int((r.analysis_json or {}).get("relevance_score", 0)),
-                r,
-            ))
-        ranked.sort(key=lambda t: (t[0], t[1].published_date), reverse=True)
-
         client = OpenAI(api_key=settings.openai_api_key)
+
+        # LLM editorial curation: pick the best `budget` from all candidates.
+        # Falls back to score-sort if the LLM call fails.
+        logger.info(
+            "blog_generator: %d unwritten candidates → asking LLM to pick best %d",
+            len(ext_candidates), budget,
+        )
+        chosen_ids = _llm_curate_candidates(client, ext_candidates, budget)
+        chosen_set = set(chosen_ids)
+
+        # Build ordered list of chosen items, preserving curator order.
+        id_to_item = {c.id: c for c in ext_candidates}
+        ordered = [id_to_item[i] for i in chosen_ids if i in id_to_item]
 
         generated = 0
         failed = 0
@@ -448,10 +525,11 @@ def run_blog_generation(*, budget: int | None = None) -> dict:
         total_cost = 0.0
         slugs: list[str] = []
 
-        for relevance, item in ranked[:budget + 20]:
+        for item in ordered:
             if generated >= budget:
                 break
 
+            relevance = int((item.analysis_json or {}).get("relevance_score", 0))
             headline = (item.analysis_json or {}).get("headline_short") or item.headline or ""
             dup_of = _is_topic_duplicate(headline, recent_headlines, client=client)
             if dup_of:
@@ -505,7 +583,8 @@ def run_blog_generation(*, budget: int | None = None) -> dict:
             "generated": generated,
             "failed": failed,
             "skipped_topic_dupes": skipped_dupes,
-            "candidates": len(ranked),
+            "candidates": len(ext_candidates),
+            "curated": len(chosen_ids),
             "budget": budget,
             "estimated_cost_usd": round(total_cost, 4),
             "slugs": slugs,

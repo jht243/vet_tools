@@ -105,16 +105,16 @@ class Settings(BaseSettings):
         return u
 
     # Long-form blog post generator. Each post is roughly 700-900 words.
-    blog_gen_budget_per_run: int = 6
+    # An LLM curation call picks the best 10 from all candidates each run.
+    blog_gen_budget_per_run: int = 10
     blog_gen_min_relevance: int = 5
     blog_gen_lookback_days: int = 14
     blog_gen_max_words: int = 900
 
     # ── Google News intake cap ─────────────────────────────────────────
-    # Maximum number of NEW Google News articles to persist per calendar day.
-    # Intentionally aligned with blog_gen_budget_per_run so every persisted
-    # article has a 1:1 chance of becoming a blog post on the same cron tick.
-    google_news_daily_cap: int = 6
+    # Allow more articles in so the LLM curator has a good pool to choose
+    # from across all scrapers. Hard daily briefing cap is blog_gen_budget_per_run.
+    google_news_daily_cap: int = 20
 
     # ── AI Incidents ───────────────────────────────────────────────────
     ai_incidents_daily_cap: int = 20
