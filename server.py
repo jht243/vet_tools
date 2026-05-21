@@ -666,6 +666,37 @@ def data_center_map():
         abort(500)
 
 
+# ── AI-Proof Jobs ─────────────────────────────────────────────────────
+
+@app.route("/ai-proof-jobs/")
+@app.route("/ai-proof-jobs")
+def ai_proof_jobs():
+    return _serve_landing_page("pillar:ai-proof-jobs")
+
+
+@app.route("/will-ai-replace-my-job/")
+@app.route("/will-ai-replace-my-job")
+def will_ai_replace_my_job():
+    try:
+        import json
+        from src.page_renderer import _env as _pr_env
+        from pathlib import Path
+
+        job_data_path = Path(__file__).resolve().parent / "static" / "data" / "job_risk.json"
+        job_data = json.loads(job_data_path.read_text())
+
+        tmpl = _pr_env.get_template("tools/job_checker.html.j2")
+        html = tmpl.render(
+            job_data=job_data,
+            site_name=settings.site_name,
+            canonical_url=f"{_base_url()}/will-ai-replace-my-job/",
+        )
+        return Response(html, mimetype="text/html")
+    except Exception as exc:
+        logger.exception("job checker render failed: %s", exc)
+        abort(500)
+
+
 # ── AI Layoffs ────────────────────────────────────────────────────────
 
 _LAYOFFS_PER_PAGE = 30

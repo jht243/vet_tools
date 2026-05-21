@@ -103,7 +103,8 @@ SEED_EXPLAINERS = [
 @click.option("--skip-pillar", is_flag=True, help="Skip the /ai-backlash/ pillar page")
 @click.option("--skip-industry", is_flag=True, help="Skip the 8 industry pages")
 @click.option("--skip-explainers", is_flag=True, help="Skip the seed explainer pages")
-def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: bool):
+@click.option("--skip-ai-proof-jobs", is_flag=True, help="Skip the /ai-proof-jobs/ pillar page")
+def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: bool, skip_ai_proof_jobs: bool):
     """Ban the Bots — Generate / refresh all landing pages."""
 
     console.print(Panel("[bold]Ban the Bots — Landing Page Generator[/bold]", style="blue"))
@@ -111,6 +112,7 @@ def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: b
     from src.landing_generator import (
         INDUSTRY_SLUGS,
         generate_pillar_page,
+        generate_ai_proof_jobs_pillar,
         generate_industry_page,
         generate_all_industry_pages,
         generate_explainer,
@@ -156,6 +158,24 @@ def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: b
                 console.print(f"  [red]✗[/red] {slug}: {e}")
     else:
         console.print("\n[dim]Phase 2: Industry pages — SKIPPED[/dim]")
+
+    # ── AI-Proof Jobs pillar ──────────────────────────────────────────────────
+    if not skip_ai_proof_jobs:
+        console.print("\n[bold cyan]Phase 3a:[/bold cyan] AI-Proof Jobs pillar (/ai-proof-jobs/) ...")
+        try:
+            row = generate_ai_proof_jobs_pillar(force=force)
+            cost = row.llm_cost_usd or 0.0
+            total_cost += cost
+            results.append((row.canonical_path, "ok", cost))
+            console.print(
+                f"  [green]✓[/green] {row.canonical_path} — {row.word_count} words, ${cost:.4f}"
+            )
+        except Exception as e:
+            logger.error("AI-proof jobs pillar failed: %s", e, exc_info=True)
+            results.append(("/ai-proof-jobs/", f"error: {e}", None))
+            console.print(f"  [red]✗[/red] AI-proof jobs failed: {e}")
+    else:
+        console.print("\n[dim]Phase 3a: AI-Proof Jobs — SKIPPED[/dim]")
 
     # ── Explainers ────────────────────────────────────────────────────────────
     if not skip_explainers:

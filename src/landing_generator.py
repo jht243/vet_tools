@@ -327,7 +327,87 @@ LIVE CONTEXT (a small sample of the most recent {n_items} high-relevance briefin
 Open with the plain-English answer to the question in the title — the reader came here to get a straight answer, so give it in the first paragraph. Then walk through the context: why this is happening, who it affects, what the stakes are. Address the most common follow-up questions. Close with what readers can actually do — point them to our trackers (/ai-layoffs/, /fighting-back/, /data-center-map/) or our AI backlash guide at /ai-backlash/. Avoid hyperbole. No marketing language."""
 
 
+# ── AI-Proof Jobs pillar prompt ───────────────────────────────────────────────
+
+AI_PROOF_JOBS_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing an evergreen pillar page: "AI-Proof Jobs: What Work Humans Will Always Do Better."
+
+Audience: workers, career-changers, and parents who are scared about AI taking jobs. Write for someone who works in an office, a factory, a school, or a hospital and is wondering if they'll still have a job in 10 years. NOT an HR executive or management consultant. Speak plainly, with warmth and honesty.
+
+You MUST:
+- Write 1400-1800 words of clear, human-first prose. No hype. No false reassurance.
+- Structure with HTML <h2> sections (6-8 of them). Short <p> paragraphs (2-4 sentences each).
+- Cover: (1) what "AI-proof" actually means (it's about tasks, not whole jobs), (2) the job categories most resilient to automation and why — physical dexterity in variable environments, human care and emotional connection, creative judgment, local trust and relationships, crisis response, (3) specific job families that score well on these dimensions, (4) what workers in higher-risk jobs can do to shift toward resilient skills, (5) a frank acknowledgment that some displacement is coming and what that means.
+- Cite specific research, name real automation studies, and use real statistics from the LIVE CONTEXT. Never invent statistics.
+- Insert internal links naturally. Valid internal URLs ONLY: /will-ai-replace-my-job/, /ai-layoffs/, /fighting-back/, /ai-backlash/, /ai-incidents/, /parents/, /explainers/ai-proof-jobs, /explainers/ai-jobs, /explainers/what-to-study, /explainers/ai-regulation, /briefing.
+- Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
+
+Return ONE JSON object with these fields:
+- title (string, 55-75 chars, front-load "AI-Proof Jobs")
+- subtitle (string, 100-150 chars — speak to the worker, not the executive)
+- meta_description (string, 140-160 chars, plain text, ends with period)
+- body_html (string, full 1400-1800 word body, allowed tags only)
+- key_takeaways (array of 5-7 plain-text bullet sentences)
+- keywords (array of 10-14 lowercase phrases)
+- table_of_contents (array of {anchor, label} objects matching your h2 sections)
+- faq_json (array of 5 objects with "question" and "answer" string keys — questions real workers Google, e.g. "What jobs are safe from AI?", "Will AI replace nurses?", "What should I study to avoid AI taking my job?", "Are trade jobs safe from AI?", "How long until AI takes most jobs?")
+
+Return ONLY the JSON object. No markdown fences."""
+
+AI_PROOF_JOBS_USER_PROMPT_TEMPLATE = """Write the evergreen pillar page for "Ban the Bots" on AI-proof jobs.
+
+LIVE CONTEXT ({n_items} recent high-relevance items from our article database — use these to ground your analysis in real, dated events and studies):
+
+{context_json}
+
+Open with honest framing: some jobs are genuinely safer than others, and the research tells us why. Walk through the categories of work that are hardest to automate — physical dexterity in unpredictable environments, human care and emotional intelligence, creative judgment that requires cultural context, local trust relationships, crisis and emergency response. Give specific job examples in each category. Address the workers most at risk and what skills they can develop. Close with a section on what's being done — unions, legislation, no-AI policies — pointing to /fighting-back/ and /ai-layoffs/ for the real-world picture."""
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
+
+def generate_ai_proof_jobs_pillar(*, force: bool = False) -> LandingPage:
+    """Generate (or regenerate) the /ai-proof-jobs/ pillar page."""
+    if not settings.openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY not set; cannot generate AI-proof jobs pillar")
+
+    init_db()
+    db = SessionLocal()
+    try:
+        page_key = "pillar:ai-proof-jobs"
+        if not force:
+            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
+            if existing and existing.last_generated_at and (
+                datetime.utcnow() - existing.last_generated_at < timedelta(days=6)
+            ):
+                logger.info("ai-proof-jobs pillar is fresh (regenerated %s); skipping", existing.last_generated_at)
+                return existing
+
+        signal = _gather_recent_signal(db, limit=30, angles_filter=["jobs_labor"])
+        user = AI_PROOF_JOBS_USER_PROMPT_TEMPLATE.format(
+            n_items=len(signal["recent_items"]),
+            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
+        )
+
+        client = OpenAI(api_key=settings.openai_api_key)
+        raw, usage = _premium_call(client, system=AI_PROOF_JOBS_SYSTEM_PROMPT, user=user, max_tokens=12000)
+        payload = json.loads(raw)
+
+        fields = _payload_to_landing_row(
+            payload,
+            page_key=page_key,
+            page_type="pillar",
+            canonical_path="/ai-proof-jobs/",
+            sector_slug=None,
+            usage=usage,
+        )
+        row = _upsert_landing(db, fields)
+        logger.info(
+            "ai-proof-jobs pillar generated: %d words, model=%s, cost=$%.4f",
+            row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
+        )
+        return row
+    finally:
+        db.close()
+
 
 def generate_pillar_page(*, force: bool = False) -> LandingPage:
     """Generate (or regenerate) the /ai-backlash/ pillar page."""

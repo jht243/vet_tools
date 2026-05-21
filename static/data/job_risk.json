@@ -1,0 +1,299 @@
+{
+  "jobs": [
+    {
+      "title": "Truck Driver",
+      "aliases": ["trucker", "cdl driver", "long-haul driver", "delivery driver", "semi driver"],
+      "risk": "medium",
+      "risk_label": "Evolving — some tasks automated, core role persists",
+      "at_risk_tasks": ["Route optimization is now AI-driven", "Some warehouses use automated loading systems", "Highway platooning (AI-assisted convoys) is being tested"],
+      "resilient_tasks": ["Navigating complex urban environments", "Handling exceptions, accidents, and road hazards", "Customer interaction and last-mile delivery", "Mechanical problem-solving on the road"],
+      "resilient_skills": ["Hazmat certification", "Specialized cargo (oversized loads, refrigerated)", "Last-mile and urban delivery"],
+      "timeline": "Autonomous long-haul on limited highways is closer than urban delivery. Most analysts expect 10–20 years before widespread displacement.",
+      "source": "BLS, McKinsey Global Institute"
+    },
+    {
+      "title": "Teacher",
+      "aliases": ["educator", "school teacher", "elementary teacher", "middle school teacher", "high school teacher", "k-12 teacher"],
+      "risk": "low",
+      "risk_label": "Low risk — human relationship is the job",
+      "at_risk_tasks": ["Grading multiple-choice tests and routine assignments", "Creating lesson plan templates", "Administrative paperwork"],
+      "resilient_tasks": ["Building relationships with students", "Recognizing when a child is struggling emotionally", "Classroom management and conflict resolution", "Mentoring and encouraging students who lack confidence", "Adapting lessons in real time to a room of individuals"],
+      "resilient_skills": ["Special education certification", "Counseling and social-emotional learning", "Bilingual education"],
+      "timeline": "AI is an assistive tool in education, not a replacement. The human relationship between teacher and student is consistently shown to be the primary driver of student outcomes.",
+      "source": "OECD, National Education Association"
+    },
+    {
+      "title": "Nurse",
+      "aliases": ["registered nurse", "rn", "lpn", "licensed practical nurse", "nursing", "hospital nurse", "icu nurse"],
+      "risk": "low",
+      "risk_label": "Low risk — care, judgment, and touch can't be automated",
+      "at_risk_tasks": ["Routine documentation and charting (AI scribes are emerging)", "Scheduling and shift planning", "Some monitoring and alerting tasks"],
+      "resilient_tasks": ["Physical patient care and assessment", "Emotional support for patients and families", "Clinical judgment in complex situations", "Administering treatment and medications", "Coordinating with doctors and families during crises"],
+      "resilient_skills": ["ICU and critical care specialization", "Nurse practitioner credentials", "Mental health nursing"],
+      "timeline": "AI helps nurses work more efficiently but cannot replace hands-on care, empathy, or the clinical judgment developed through years of experience.",
+      "source": "American Nurses Association, McKinsey Health Institute"
+    },
+    {
+      "title": "Graphic Designer",
+      "aliases": ["designer", "visual designer", "creative designer", "art director", "brand designer"],
+      "risk": "high",
+      "risk_label": "High risk — AI image tools directly compete with entry-level work",
+      "at_risk_tasks": ["Stock illustration and generic imagery", "Simple logo variations and icon sets", "Basic social media graphics and templates", "Photo editing and background removal"],
+      "resilient_tasks": ["Brand strategy and creative direction", "Client communication and translating business needs into design", "Art direction requiring cultural nuance", "Complex campaigns with many stakeholders", "UX/UI design requiring user research"],
+      "resilient_skills": ["UX/UI design (Figma, user research)", "Motion design and video", "3D and spatial design", "Senior creative direction"],
+      "timeline": "Entry-level graphic design jobs are already declining (21% drop in postings since 2022). Senior and strategic design roles are more protected.",
+      "source": "Adobe, Burning Glass Institute, ArtStation"
+    },
+    {
+      "title": "Software Engineer",
+      "aliases": ["programmer", "developer", "software developer", "coder", "swe", "backend developer", "frontend developer", "full stack developer"],
+      "risk": "medium",
+      "risk_label": "Evolving — AI writes code, but engineers direct it",
+      "at_risk_tasks": ["Writing boilerplate and repetitive code", "Generating unit tests for known patterns", "Documentation and code comments", "Simple bug fixes for well-understood issues"],
+      "resilient_tasks": ["System architecture and design decisions", "Understanding business requirements and translating them to technical specs", "Debugging novel or complex problems", "Code review and maintaining quality standards", "Security, performance, and scalability engineering"],
+      "resilient_skills": ["Systems design and architecture", "Security engineering", "ML engineering and AI product development", "DevOps and platform engineering"],
+      "timeline": "AI coding tools are raising productivity but also raising expectations. Junior roles are most at risk; senior engineers who direct AI tools are in demand.",
+      "source": "GitHub, Stack Overflow Developer Survey, Goldman Sachs"
+    },
+    {
+      "title": "Radiologist",
+      "aliases": ["radiology", "x-ray technician", "radiologic technologist", "imaging specialist"],
+      "risk": "medium",
+      "risk_label": "Evolving — AI assists interpretation, specialists still required",
+      "at_risk_tasks": ["Screening reads for common, well-defined conditions (e.g. chest X-ray pneumonia)", "Routine report generation for normal studies", "Prioritization of worklists"],
+      "resilient_tasks": ["Complex or ambiguous case interpretation", "Interventional radiology procedures", "Communicating findings to patients and clinical teams", "Quality oversight of AI-generated reads", "Rare disease and multi-system cases"],
+      "resilient_skills": ["Interventional radiology", "Neuroradiology", "Pediatric radiology", "AI oversight and quality assurance"],
+      "timeline": "AI is a second reader, not a replacement. Radiologists who adopt AI are more productive; those who don't may be at risk in high-volume routine work.",
+      "source": "American College of Radiology, Nature Medicine"
+    },
+    {
+      "title": "Accountant",
+      "aliases": ["bookkeeper", "cpa", "certified public accountant", "tax preparer", "financial accountant", "accounting"],
+      "risk": "high",
+      "risk_label": "High risk — routine bookkeeping is nearly fully automatable",
+      "at_risk_tasks": ["Data entry and transaction categorization", "Routine tax preparation for standard returns", "Bank reconciliation", "Generating standard financial reports", "Accounts payable/receivable processing"],
+      "resilient_tasks": ["Tax strategy and planning for complex situations", "Financial advisory and business consulting", "Audit and fraud investigation", "M&A and restructuring work", "Managing client relationships and understanding business context"],
+      "resilient_skills": ["CPA with advisory specialization", "Forensic accounting", "Financial planning (CFP)", "M&A and valuation"],
+      "timeline": "Routine bookkeeping roles have been declining for years as software handles more. The CPA doing complex advisory work is safer than the data-entry accountant.",
+      "source": "BLS Occupational Outlook, McKinsey"
+    },
+    {
+      "title": "Lawyer",
+      "aliases": ["attorney", "paralegal", "legal assistant", "solicitor", "barrister", "associate attorney"],
+      "risk": "medium",
+      "risk_label": "Evolving — document work is automating, courtroom and counsel are not",
+      "at_risk_tasks": ["Legal document review and due diligence", "Contract drafting from standard templates", "Legal research for common questions", "Summarizing case law"],
+      "resilient_tasks": ["Trial advocacy and courtroom argument", "Client counseling in complex or sensitive situations", "Negotiation and deal-making", "Creative legal strategy in novel situations", "Ethics and judgment calls"],
+      "resilient_skills": ["Litigation and trial work", "Complex transactional work (M&A, securities)", "Criminal defense and family law", "AI law and technology regulation (emerging)"],
+      "timeline": "Junior associate work in document review is most at risk. Partner-level strategic counsel and litigation are well-protected.",
+      "source": "American Bar Association, Thomson Reuters Institute"
+    },
+    {
+      "title": "Customer Service Representative",
+      "aliases": ["customer support", "call center agent", "help desk", "customer care", "support agent"],
+      "risk": "high",
+      "risk_label": "High risk — chatbots and voice AI directly replace this work",
+      "at_risk_tasks": ["Answering frequently asked questions", "Processing routine returns, cancellations, and account changes", "First-line troubleshooting for known issues", "Routing calls to the right department"],
+      "resilient_tasks": ["Handling emotionally difficult or complex situations", "De-escalating angry or distressed customers", "Cases requiring judgment and exceptions to policy", "High-value customer retention conversations"],
+      "resilient_skills": ["Complex complaint resolution", "Technical support for specialized products", "B2B account management"],
+      "timeline": "AI chatbots already handle 60–70% of routine inquiries at many large companies. Tier-1 support roles are declining rapidly; specialist and escalation roles persist.",
+      "source": "Gartner, Forrester, McKinsey"
+    },
+    {
+      "title": "Data Entry Clerk",
+      "aliases": ["data entry", "data entry specialist", "typist", "data processor", "records clerk"],
+      "risk": "high",
+      "risk_label": "Very high risk — this is exactly what AI was built to do",
+      "at_risk_tasks": ["Entering structured data from forms or documents", "Copying information between systems", "Transcription of audio or handwritten content", "Verifying records against source documents"],
+      "resilient_tasks": ["Handling unusual exceptions and ambiguous data", "Working with stakeholders to understand what data means"],
+      "resilient_skills": ["Data analysis (Excel, SQL)", "Database management", "Process improvement and operations coordination"],
+      "timeline": "Automation of data entry has been underway for over a decade. AI has accelerated this significantly. Retraining toward data analysis is strongly recommended.",
+      "source": "BLS, World Economic Forum Future of Jobs"
+    },
+    {
+      "title": "Writer",
+      "aliases": ["content writer", "copywriter", "journalist", "blogger", "technical writer", "author", "freelance writer"],
+      "risk": "medium",
+      "risk_label": "Evolving — AI competes for commodity content, not quality journalism",
+      "at_risk_tasks": ["Generic SEO articles and product descriptions", "Routine press releases from templates", "Simple social media captions", "Summarization and listicles"],
+      "resilient_tasks": ["Original investigative journalism", "Complex narrative non-fiction", "Writing that requires source relationships and trust", "Cultural criticism with a distinct voice", "Ghostwriting and personal storytelling"],
+      "resilient_skills": ["Investigative reporting", "Long-form narrative writing", "Editing and fact-checking AI-generated content", "Specialized beat reporting (law, science, finance)"],
+      "timeline": "Commodity content is already largely AI-generated. Quality, voice-driven, and investigative writing is less affected but markets for it are also shrinking.",
+      "source": "Reuters Institute, Nieman Lab"
+    },
+    {
+      "title": "Plumber",
+      "aliases": ["plumbing", "pipe fitter", "pipefitter", "plumbing contractor"],
+      "risk": "low",
+      "risk_label": "Low risk — physical, variable, and site-specific",
+      "at_risk_tasks": ["Scheduling and dispatching (AI can optimize routing)", "Generating invoices and estimates from standard jobs"],
+      "resilient_tasks": ["Diagnosing problems in unique, non-standard installations", "Physical installation and repair in confined or complex spaces", "Working in homes with unpredictable layouts and conditions", "Emergency response at any hour"],
+      "resilient_skills": ["Gas line certification", "Commercial plumbing", "Hydronics and radiant heating"],
+      "timeline": "Physical trades requiring dexterity in unpredictable environments are among the hardest jobs to automate. Demand for skilled tradespeople is growing as the workforce ages.",
+      "source": "BLS, Associated General Contractors"
+    },
+    {
+      "title": "Electrician",
+      "aliases": ["electrical contractor", "electrical worker", "journeyman electrician", "master electrician", "wireman"],
+      "risk": "low",
+      "risk_label": "Low risk — hands-on, licensed, and growing in demand",
+      "at_risk_tasks": ["Estimating and quoting standard jobs (software helps)", "Managing work orders and scheduling"],
+      "resilient_tasks": ["Diagnosing electrical faults in existing buildings", "Wiring complex installations to code", "Working in tight, non-standard spaces", "Reading plans and adapting to real-world conditions"],
+      "resilient_skills": ["EV charging installation", "Solar and battery storage systems", "Industrial controls and automation systems"],
+      "timeline": "Electricians are among the most in-demand tradespeople due to EV adoption, solar installation, and aging electrical infrastructure. Automation is not a near-term threat.",
+      "source": "BLS, National Electrical Contractors Association"
+    },
+    {
+      "title": "Social Worker",
+      "aliases": ["case worker", "child welfare worker", "clinical social worker", "mental health social worker", "lcsw", "msw"],
+      "risk": "low",
+      "risk_label": "Low risk — human judgment and trust are the core of this work",
+      "at_risk_tasks": ["Paperwork and case documentation (AI scribes help)", "Matching clients to available resources"],
+      "resilient_tasks": ["Building trust with vulnerable individuals and families", "Assessing risk in complex and fluid situations", "Advocating for clients in bureaucratic systems", "Crisis intervention", "Cultural competency in diverse communities"],
+      "resilient_skills": ["LCSW licensure", "Child protective services", "Substance use counseling", "School social work"],
+      "timeline": "Social work requires human empathy, cultural understanding, and the ability to build trust across deeply challenging circumstances. It cannot be automated.",
+      "source": "NASW, BLS"
+    },
+    {
+      "title": "Financial Analyst",
+      "aliases": ["investment analyst", "equity analyst", "budget analyst", "financial planning analyst", "fp&a analyst"],
+      "risk": "medium",
+      "risk_label": "Evolving — data analysis is automating, judgment and communication persist",
+      "at_risk_tasks": ["Pulling and formatting data from multiple sources", "Building standard financial models from templates", "Generating routine reports and dashboards", "Summarizing earnings calls and filings"],
+      "resilient_tasks": ["Interpreting ambiguous or contradictory data", "Advising on investment decisions with incomplete information", "Presenting findings to non-technical executives", "Spotting unusual patterns that require investigation", "Building relationships with company management"],
+      "resilient_skills": ["CFA designation", "Alternative investments and private equity", "ESG and sustainable finance", "Quant and data science skills"],
+      "timeline": "AI is very good at financial data processing but poor at the judgment, narrative, and relationship-building that senior analysts do.",
+      "source": "CFA Institute, Goldman Sachs"
+    },
+    {
+      "title": "Paralegal",
+      "aliases": ["legal secretary", "law clerk", "legal assistant"],
+      "risk": "high",
+      "risk_label": "High risk — document review and research are core AI strengths",
+      "at_risk_tasks": ["Document review in discovery", "Legal research for standard questions", "Drafting standard contracts and forms", "Organizing case files and evidence"],
+      "resilient_tasks": ["Client intake and relationship support", "Complex procedural coordination across multiple courts", "Specialized paralegal work in niche practice areas"],
+      "resilient_skills": ["Paralegal certification in specialized areas (IP, immigration, real estate)", "Litigation support technology management", "E-discovery platform management"],
+      "timeline": "Thomson Reuters found AI can do much of paralegal document work in a fraction of the time. Firms are already reducing junior associate and paralegal head count.",
+      "source": "Thomson Reuters Institute, American Bar Association"
+    },
+    {
+      "title": "Pharmacist",
+      "aliases": ["pharmacy", "clinical pharmacist", "retail pharmacist", "hospital pharmacist"],
+      "risk": "medium",
+      "risk_label": "Evolving — dispensing is automating, clinical roles are growing",
+      "at_risk_tasks": ["Counting and dispensing standard prescriptions", "Basic drug interaction checking (now largely automated)", "Routine prior authorization paperwork"],
+      "resilient_tasks": ["Medication therapy management and counseling", "Clinical pharmacy in hospital and specialty settings", "Complex patient cases with multiple drugs and conditions", "Immunization and patient education"],
+      "resilient_skills": ["Clinical pharmacy (PharmD with residency)", "Specialty pharmacy (oncology, transplant)", "Pharmacogenomics"],
+      "timeline": "Automated dispensing is already widespread. Retail pharmacist roles are declining while clinical pharmacist demand grows.",
+      "source": "ASHP, BLS"
+    },
+    {
+      "title": "HR Manager",
+      "aliases": ["human resources", "hr generalist", "human resources manager", "people manager", "recruiter", "talent acquisition"],
+      "risk": "medium",
+      "risk_label": "Evolving — administrative HR is automating, strategic HR is not",
+      "at_risk_tasks": ["Resume screening and initial candidate filtering", "Scheduling interviews", "Standard onboarding documentation", "Answering routine policy questions (AI chatbots handle these)"],
+      "resilient_tasks": ["Handling complex employee relations issues", "Organizational design and workforce planning", "Navigating sensitive terminations and disputes", "Building culture and managing change", "DEI strategy and implementation"],
+      "resilient_skills": ["SHRM-SCP or SPHR certification", "Labor relations and employment law", "Organizational development", "People analytics"],
+      "timeline": "AI hiring tools are already screening resumes, but they've also introduced documented bias. Human oversight of AI in hiring is becoming legally and ethically essential.",
+      "source": "SHRM, McKinsey"
+    },
+    {
+      "title": "Architect",
+      "aliases": ["building architect", "architectural designer", "interior architect", "urban designer"],
+      "risk": "medium",
+      "risk_label": "Evolving — design generation is augmented, not replaced",
+      "at_risk_tasks": ["Generating design variations and massing studies", "Producing standard details and specifications from templates", "Code compliance checking"],
+      "resilient_tasks": ["Understanding client needs and translating them to spatial solutions", "Site analysis and contextual design", "Project management and contractor coordination", "Creative problem-solving in complex or constrained sites", "Community engagement and public presentation"],
+      "resilient_skills": ["Licensed architect (AIA/RA) status", "Sustainable design (LEED)", "Historic preservation", "Urban design and planning"],
+      "timeline": "AI generates design options much faster, but architecture requires human judgment, client relationships, and licensed sign-off. Firms using AI are more competitive.",
+      "source": "AIA, Autodesk"
+    },
+    {
+      "title": "Physical Therapist",
+      "aliases": ["physiotherapist", "pt", "physical therapy", "occupational therapist", "ot"],
+      "risk": "low",
+      "risk_label": "Low risk — hands-on care and therapeutic relationship are the product",
+      "at_risk_tasks": ["Documentation and progress notes (AI scribes help)", "Designing standard home exercise programs"],
+      "resilient_tasks": ["Manual therapy and hands-on treatment", "Assessing movement and pain in the full context of a patient's life", "Motivating and coaching patients through difficult recovery", "Adapting treatment in real time to patient response"],
+      "resilient_skills": ["Sports rehabilitation", "Neurological PT (stroke, TBI)", "Pediatric physical therapy", "Pain management specialization"],
+      "timeline": "Physical rehabilitation requires physical presence, touch, and a therapeutic relationship. Demand for PTs is growing due to aging population and sports medicine.",
+      "source": "APTA, BLS"
+    },
+    {
+      "title": "Chef",
+      "aliases": ["cook", "line cook", "executive chef", "sous chef", "head cook", "kitchen worker"],
+      "risk": "low",
+      "risk_label": "Low risk — creativity, craft, and sensory judgment are hard to automate",
+      "at_risk_tasks": ["High-volume fast food preparation (fast food automation is advancing)", "Inventory management and ordering", "Recipe scaling calculations"],
+      "resilient_tasks": ["Creative menu development", "Running a kitchen under pressure", "Teaching and leading a team", "Tasting, adjusting, and developing flavor", "Guest interaction and hospitality"],
+      "resilient_skills": ["Pastry and baking expertise", "Specialty cuisine (sushi, French technique)", "Food and beverage management"],
+      "timeline": "Automation is entering fast food, but culinary craft in sit-down restaurants depends on creativity and sensory judgment that remains distinctly human.",
+      "source": "National Restaurant Association, BLS"
+    },
+    {
+      "title": "Warehouse Worker",
+      "aliases": ["fulfillment center worker", "logistics worker", "picker", "packer", "warehouse associate", "forklift operator"],
+      "risk": "high",
+      "risk_label": "High risk — Amazon and others are rapidly automating warehouse tasks",
+      "at_risk_tasks": ["Picking items from shelves in organized warehouses", "Sorting and routing packages on conveyor systems", "Inventory scanning and tracking", "Moving standardized items between stations"],
+      "resilient_tasks": ["Handling irregular, fragile, or non-standard items", "Maintenance and oversight of automated systems", "Flexible loading/unloading in variable environments", "Customer-facing roles and returns processing"],
+      "resilient_skills": ["Forklift and heavy equipment certification", "Warehouse management systems (WMS) operation", "Maintenance and robotics technician training"],
+      "timeline": "Amazon has deployed over 750,000 robots. The WEF estimates 85 million warehouse and manufacturing jobs are at risk globally by 2025. Retraining is urgent.",
+      "source": "World Economic Forum, Amazon, BLS"
+    },
+    {
+      "title": "Journalist",
+      "aliases": ["reporter", "news reporter", "investigative journalist", "photojournalist", "broadcast journalist"],
+      "risk": "medium",
+      "risk_label": "Evolving — AI writes commodity news, human journalism is irreplaceable",
+      "at_risk_tasks": ["Writing earnings reports and sports scores from structured data", "Generating routine local news briefs from press releases", "Social media posting and SEO headline variations"],
+      "resilient_tasks": ["Source development and investigative work", "Going where stories are happening", "Earning trust of vulnerable sources", "Synthesizing complex topics for general audiences", "Visual and on-camera storytelling"],
+      "resilient_skills": ["Investigative and data journalism", "Video journalism and documentary", "Specialized beat expertise (courts, science, conflict zones)"],
+      "timeline": "Local news has already been devastated, partly by AI content farms. National investigative journalism at quality outlets is under less direct AI threat but under severe economic pressure.",
+      "source": "Reuters Institute, Nieman Lab, Columbia Journalism Review"
+    },
+    {
+      "title": "Real Estate Agent",
+      "aliases": ["realtor", "real estate broker", "buyers agent", "listing agent", "property agent"],
+      "risk": "medium",
+      "risk_label": "Evolving — search is automated, relationships and negotiation are not",
+      "at_risk_tasks": ["Property matching and search (now largely algorithmic)", "Generating listing descriptions and marketing copy", "Answering common buyer/seller questions"],
+      "resilient_tasks": ["Negotiating deals with complex human dynamics", "Building long-term client trust in the largest transaction of their lives", "Reading local market nuance that isn't in the data", "Handling the emotional complexity of buying and selling homes"],
+      "resilient_skills": ["Luxury and high-end market specialization", "Commercial real estate", "Property management"],
+      "timeline": "Platforms like Zillow have reduced the informational advantage agents once held. Agents who add clear value beyond search are better positioned.",
+      "source": "NAR, Zillow"
+    },
+    {
+      "title": "Mental Health Therapist",
+      "aliases": ["therapist", "psychologist", "counselor", "psychiatrist", "psychotherapist", "lmft", "lpc"],
+      "risk": "low",
+      "risk_label": "Low risk — therapeutic relationship cannot be replicated",
+      "at_risk_tasks": ["Session notes and clinical documentation (AI scribes help)", "Matching patients to therapists based on fit"],
+      "resilient_tasks": ["Building the therapeutic alliance — the single strongest predictor of outcomes", "Navigating complex trauma and crisis situations", "Cultural and contextual sensitivity", "Adapting evidence-based approaches to the individual", "Making safety assessments in suicidal ideation cases"],
+      "resilient_skills": ["EMDR and trauma-informed care", "DBT and specialized modality training", "Child and adolescent therapy", "Substance use and co-occurring disorders"],
+      "timeline": "AI mental health chatbots (Character.AI, Woebot, etc.) are being scrutinized for causing harm. Licensed therapists are the gold standard and demand exceeds supply in most markets.",
+      "source": "APA, NASW, National Alliance on Mental Illness"
+    }
+  ],
+  "categories": {
+    "high": {
+      "label": "High Risk",
+      "color": "#dc2626",
+      "bg": "#fee2e2",
+      "message": "AI can already do significant portions of this work. This doesn't mean your job disappears tomorrow — but it's worth thinking about which skills to develop."
+    },
+    "medium": {
+      "label": "Evolving",
+      "color": "#d97706",
+      "bg": "#fef3c7",
+      "message": "Parts of this role are automating, but the core work requiring judgment, relationships, or physical presence is holding up. Focus on what AI can't do."
+    },
+    "low": {
+      "label": "Low Risk",
+      "color": "#16a34a",
+      "bg": "#dcfce7",
+      "message": "This role is among the more resilient to AI automation. Human presence, physical dexterity, care, or irreplaceable judgment are at the center of the work."
+    }
+  }
+}
