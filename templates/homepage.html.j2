@@ -1,0 +1,564 @@
+{% extends "_base.html.j2" %}
+
+{% block head_extra %}
+<style>
+  /* ── Hero ─────────────────────────────────────────────────────── */
+  .hp-hero {
+    background: var(--sr-blue);
+    color: var(--white);
+    padding: 72px 24px 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hp-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(204,0,0,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hp-hero-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  .hp-hero-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 18px;
+  }
+  .hp-hero h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: 700;
+    line-height: 1.12;
+    margin: 0 0 20px;
+    color: var(--white);
+  }
+  .hp-hero-sub {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: clamp(16px, 2.2vw, 21px);
+    color: rgba(255,255,255,0.82);
+    line-height: 1.5;
+    max-width: 600px;
+    margin: 0 auto 36px;
+  }
+  .hp-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+  .hp-btn-primary {
+    display: inline-block;
+    background: var(--sr-red);
+    color: var(--white);
+    padding: 14px 30px;
+    border-radius: 3px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .hp-btn-primary:hover { background: #aa0000; color: var(--white); text-decoration: none; }
+  .hp-btn-ghost {
+    display: inline-block;
+    background: transparent;
+    color: var(--white);
+    padding: 13px 28px;
+    border-radius: 3px;
+    border: 2px solid rgba(255,255,255,0.5);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .hp-btn-ghost:hover { border-color: var(--white); background: rgba(255,255,255,0.08); color: var(--white); text-decoration: none; }
+
+  /* ── Stats strip ──────────────────────────────────────────────── */
+  .hp-stats {
+    background: var(--sr-blue-dark);
+    color: rgba(255,255,255,0.75);
+    padding: 14px 24px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .hp-stats-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 28px;
+  }
+  .hp-stat-item strong { color: var(--white); }
+  .hp-stat-sep { opacity: 0.3; }
+
+  /* ── Engagement cards ─────────────────────────────────────────── */
+  .hp-engage {
+    background: var(--sr-gray-bg);
+    padding: 60px 24px;
+    border-bottom: 1px solid var(--sr-gray-light);
+  }
+  .hp-engage-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .hp-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--sr-red);
+    margin-bottom: 6px;
+  }
+  .hp-section-heading {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    color: var(--sr-blue-dark);
+    margin: 0 0 32px;
+    font-weight: 700;
+  }
+  .hp-engage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .hp-engage-card {
+    background: var(--white);
+    border: 1px solid var(--sr-gray-light);
+    border-radius: 5px;
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .hp-engage-card:hover { border-color: var(--sr-blue); box-shadow: 0 4px 18px rgba(0,43,94,0.09); }
+  .hp-engage-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--sr-blue);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+  .hp-engage-icon svg { display: block; }
+  .hp-engage-card h3 {
+    font-family: var(--font-serif);
+    font-size: 19px;
+    color: var(--sr-blue-dark);
+    margin: 0;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .hp-engage-card p {
+    font-size: 14px;
+    color: var(--sr-gray-text);
+    line-height: 1.6;
+    margin: 0;
+    flex: 1;
+  }
+  .hp-engage-link {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sr-blue);
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .hp-engage-link::after { content: " →"; }
+  .hp-engage-link:hover { color: var(--sr-red); text-decoration: none; }
+
+  /* ── Newsletter inline form ───────────────────────────────────── */
+  .hp-newsletter-card {
+    background: var(--sr-blue);
+    border-color: var(--sr-blue);
+    color: var(--white);
+  }
+  .hp-newsletter-card:hover { border-color: var(--sr-blue-dark); }
+  .hp-newsletter-card h3 { color: var(--white); }
+  .hp-newsletter-card p { color: rgba(255,255,255,0.75); }
+  .hp-nl-form { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .hp-nl-form input[type="email"] {
+    padding: 11px 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.1);
+    color: var(--white);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .hp-nl-form input[type="email"]::placeholder { color: rgba(255,255,255,0.5); }
+  .hp-nl-form input[type="email"]:focus { outline: none; border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.15); }
+  .hp-nl-submit {
+    padding: 11px 16px;
+    background: var(--sr-red);
+    color: var(--white);
+    border: 0;
+    border-radius: 3px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .hp-nl-submit:hover { background: #aa0000; }
+
+  /* ── Coverage areas ───────────────────────────────────────────── */
+  .hp-coverage {
+    background: var(--white);
+    padding: 64px 24px;
+    border-bottom: 1px solid var(--sr-gray-light);
+  }
+  .hp-coverage-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .hp-coverage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .hp-coverage-tile {
+    border: 1px solid #d8e0eb;
+    border-radius: 5px;
+    padding: 24px 22px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    background: var(--white);
+  }
+  .hp-coverage-tile:hover {
+    border-color: var(--sr-blue);
+    box-shadow: 0 4px 18px rgba(0,43,94,0.09);
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+  .hp-cov-icon {
+    font-size: 26px;
+    line-height: 1;
+  }
+  .hp-cov-title {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    color: var(--sr-blue-dark);
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+  }
+  .hp-cov-desc {
+    font-size: 13px;
+    color: var(--sr-gray-text);
+    line-height: 1.55;
+    margin: 0;
+  }
+  .hp-cov-cta {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--sr-red);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: auto;
+  }
+
+  /* ── Recent briefings ─────────────────────────────────────────── */
+  .hp-briefings {
+    background: var(--sr-gray-bg);
+    padding: 64px 24px 72px;
+  }
+  .hp-briefings-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .hp-briefings-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--sr-blue);
+  }
+  .hp-briefings-header .hp-section-heading { margin-bottom: 0; }
+  .hp-briefings-all {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sr-blue);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .hp-briefings-all:hover { color: var(--sr-red); text-decoration: none; }
+  .hp-briefings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+  }
+  .hp-brf-card {
+    background: var(--white);
+    border: 1px solid #d8e0eb;
+    border-radius: 5px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .hp-brf-card:hover {
+    border-color: var(--sr-blue);
+    box-shadow: 0 4px 16px rgba(0,43,94,0.08);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+  .hp-brf-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--sr-red);
+  }
+  .hp-brf-title {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--sr-blue-dark);
+    line-height: 1.3;
+    margin: 0;
+  }
+  .hp-brf-summary {
+    font-size: 13.5px;
+    color: #4a5568;
+    line-height: 1.55;
+    margin: 0;
+    flex: 1;
+  }
+  .hp-brf-meta {
+    font-size: 11.5px;
+    color: var(--sr-gray-text);
+    padding-top: 8px;
+    border-top: 1px solid #eef2f7;
+  }
+
+  @media (max-width: 600px) {
+    .hp-hero { padding: 48px 20px 56px; }
+    .hp-engage-grid, .hp-briefings-grid { grid-template-columns: 1fr; }
+    .hp-coverage-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Hero ──────────────────────────────────────────────────────────────── #}
+<section class="hp-hero">
+  <div class="hp-hero-inner">
+    <span class="hp-hero-eyebrow">AI Risk Intelligence · Updated Daily</span>
+    <h1>The Human Case<br>Against AI Hype</h1>
+    <p class="hp-hero-sub">
+      Plain-English coverage of AI regulation, labor disruption, environmental cost,
+      and real-world incidents — for business owners who need facts, not hype.
+    </p>
+    <div class="hp-hero-actions">
+      <a href="/#newsletter" class="hp-btn-primary">Subscribe Free</a>
+      <a href="/briefing" class="hp-btn-ghost">Browse Briefings</a>
+    </div>
+  </div>
+</section>
+
+{# ── Stats strip ───────────────────────────────────────────────────────── #}
+{% if briefing_count or incident_count %}
+<div class="hp-stats">
+  <div class="hp-stats-inner">
+    {% if briefing_count %}
+    <span class="hp-stat-item"><strong>{{ briefing_count }}+</strong> briefings published</span>
+    {% endif %}
+    {% if incident_count %}
+    <span class="hp-stat-sep">·</span>
+    <span class="hp-stat-item"><strong>{{ incident_count }}</strong> AI incidents tracked</span>
+    {% endif %}
+    <span class="hp-stat-sep">·</span>
+    <span class="hp-stat-item">Updated daily</span>
+  </div>
+</div>
+{% endif %}
+
+{# ── Engagement cards ──────────────────────────────────────────────────── #}
+<section class="hp-engage">
+  <div class="hp-engage-inner">
+    <div class="hp-section-label">Get Involved</div>
+    <h2 class="hp-section-heading">Three ways to stay ahead</h2>
+    <div class="hp-engage-grid">
+
+      {# Newsletter card — styled differently (navy bg) #}
+      <div class="hp-engage-card hp-newsletter-card">
+        <div class="hp-engage-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <h3>Daily Briefing</h3>
+        <p>Get the AI risk digest in your inbox every morning — regulation, labor, energy, incidents. No noise.</p>
+        <form class="hp-nl-form" id="hp-nl-form" action="/api/subscribe" method="POST">
+          <input type="email" name="email" id="hp-nl-email" placeholder="your@email.com" required autocomplete="email">
+          <button type="submit" class="hp-nl-submit">Subscribe Free</button>
+        </form>
+      </div>
+
+      {# Risk assessment #}
+      <div class="hp-engage-card">
+        <div class="hp-engage-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>AI Risk Assessment</h3>
+        <p>Answer 10 questions and get a plain-English report on where AI could hurt your business — and what to do about it.</p>
+        <a class="hp-engage-link" href="/ai-risk-assessment/">Take the assessment</a>
+      </div>
+
+      {# Browse by topic #}
+      <div class="hp-engage-card">
+        <div class="hp-engage-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <h3>Browse the Archive</h3>
+        <p>Over {{ briefing_count or 'hundreds of' }} briefings spanning every major AI risk category — search and filter by topic.</p>
+        <a class="hp-engage-link" href="/briefing">Browse all briefings</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{# ── Coverage areas ────────────────────────────────────────────────────── #}
+<section class="hp-coverage">
+  <div class="hp-coverage-inner">
+    <div class="hp-section-label">What We Cover</div>
+    <h2 class="hp-section-heading">Every angle of AI risk, in plain English</h2>
+    <div class="hp-coverage-grid">
+
+      <a class="hp-coverage-tile" href="/responsible-ai/">
+        <div class="hp-cov-icon">⚖️</div>
+        <h3 class="hp-cov-title">Regulation &amp; Policy</h3>
+        <p class="hp-cov-desc">EU AI Act, executive orders, state-level laws, and what compliance actually means for your business.</p>
+        <span class="hp-cov-cta">Explore →</span>
+      </a>
+
+      <a class="hp-coverage-tile" href="/ai-backlash/">
+        <div class="hp-cov-icon">👷</div>
+        <h3 class="hp-cov-title">Labor &amp; Jobs</h3>
+        <p class="hp-cov-desc">Layoffs attributed to automation, union actions, and the real workforce impact being reported on the ground.</p>
+        <span class="hp-cov-cta">Explore →</span>
+      </a>
+
+      <a class="hp-coverage-tile" href="/ai-incidents/">
+        <div class="hp-cov-icon">⚠️</div>
+        <h3 class="hp-cov-title">AI Incidents</h3>
+        <p class="hp-cov-desc">A running tracker of real-world AI failures — hallucinations, bias, errors, and reputational damage.</p>
+        <span class="hp-cov-cta">Explore →</span>
+      </a>
+
+      <a class="hp-coverage-tile" href="/explainers">
+        <div class="hp-cov-icon">📖</div>
+        <h3 class="hp-cov-title">Explainers</h3>
+        <p class="hp-cov-desc">Deep-dives on the concepts and terms driving AI policy — no CS degree required.</p>
+        <span class="hp-cov-cta">Explore →</span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+{# ── Recent briefings ──────────────────────────────────────────────────── #}
+{% if posts %}
+<section class="hp-briefings" id="newsletter">
+  <div class="hp-briefings-inner">
+    <div class="hp-briefings-header">
+      <h2 class="hp-section-heading" style="margin-bottom:0;">Latest Briefings</h2>
+      <a class="hp-briefings-all" href="/briefing">View all →</a>
+    </div>
+    <div class="hp-briefings-grid">
+      {% for p in posts %}
+      <a class="hp-brf-card" href="/briefing/{{ p.slug }}">
+        <div class="hp-brf-eyebrow">
+          {{ p.primary_sector|replace('_',' ')|upper if p.primary_sector else 'ANALYSIS' }}
+        </div>
+        <h3 class="hp-brf-title">{{ p.title }}</h3>
+        {% if p.summary %}
+        <p class="hp-brf-summary">{{ p.summary }}</p>
+        {% endif %}
+        <div class="hp-brf-meta">{{ p.published_date.strftime('%b %d, %Y') }}{% if p.reading_minutes %} · {{ p.reading_minutes }} min read{% endif %}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<script>
+(function() {
+  var form = document.getElementById('hp-nl-form');
+  var btn = form ? form.querySelector('button[type="submit"]') : null;
+  var input = form ? form.querySelector('input[type="email"]') : null;
+  if (!form || !btn || !input) return;
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var email = input.value.trim();
+    if (!email) return;
+    btn.disabled = true;
+    btn.textContent = 'Subscribing…';
+    fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        btn.textContent = '✓ You\'re in!';
+        input.value = '';
+        input.disabled = true;
+      } else {
+        btn.disabled = false;
+        btn.textContent = data.error || 'Try again';
+        setTimeout(function() { btn.textContent = 'Subscribe Free'; }, 2500);
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'Try again';
+      setTimeout(function() { btn.textContent = 'Subscribe Free'; }, 2500);
+    });
+  });
+})();
+</script>
+
+{% endblock %}
