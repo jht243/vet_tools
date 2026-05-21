@@ -602,35 +602,36 @@ def ai_incident_detail(incident_id: int):
 
 _TOOL_PAGES = {
     "ai-risk-assessment": {
-        "title": "AI Risk Assessment",
-        "subtitle": "See exactly where your business is exposed before your first AI deployment.",
+        "title": "How AI Could Affect Your Life",
+        "subtitle": "10 questions about your job, your community, and your family. Find out what's actually at risk for you.",
         "description": (
-            "Our AI Risk Assessment tool walks you through 15 key questions about your current "
-            "AI usage, vendor relationships, and customer-facing workflows. You'll get a scored "
-            "risk profile across five dimensions: regulatory, reputational, operational, labor, "
-            "and environmental. Know what you're signing up for before you sign anything."
+            "Not sure how AI affects you personally? This short quiz walks you through the real "
+            "risks — for your job, your neighborhood, your kids, and your data. You'll get a "
+            "plain-English picture of where you're most exposed and what you can do about it. "
+            "Takes about 3 minutes. No corporate jargon."
         ),
         "canonical_path": "/ai-risk-assessment/",
     },
     "no-ai-policy-template": {
         "title": "No-AI Policy Template",
-        "subtitle": "A ready-to-use policy telling customers, clients, and staff where you draw the line on AI.",
+        "subtitle": "A plain-English pledge for freelancers, artists, teachers, and anyone who wants to draw the line.",
         "description": (
-            "Not every business wants AI in their workflow — and that's a legitimate position. "
-            "Our No-AI Policy Template gives you a clear, plain-English document you can publish "
-            "on your website, share with clients, and distribute to staff. Covers content, "
-            "customer service, hiring, and data handling. Editable in Word or Google Docs."
+            "Not everyone wants AI in their work — and that's a completely legitimate choice. "
+            "This template gives you a clear, human-readable statement you can publish on your "
+            "website, share with clients, or post in your classroom. Covers your creative work, "
+            "communications, and decisions. Free to use, easy to customize."
         ),
         "canonical_path": "/no-ai-policy-template/",
     },
     "human-made-policy-template": {
-        "title": "Human-Made Policy Template",
-        "subtitle": "Certify and communicate that your content, services, and decisions are created by humans.",
+        "title": "Human-Made Label Template",
+        "subtitle": "Tell the world your work is made by a real person — and mean it.",
         "description": (
-            "The 'Human Made' label is becoming a competitive advantage in industries where "
-            "trust and craft matter. Our template gives you the language to certify your work "
-            "publicly — on your site, in proposals, and in client contracts. Includes a "
-            "simple audit checklist to help you stay honest about what qualifies."
+            "In a world flooded with AI-generated content, 'made by a human' is becoming "
+            "something people actually care about. This template gives you the language to say "
+            "it clearly and credibly — on your site, in your portfolio, in your contracts. "
+            "Includes a simple checklist to keep yourself honest. For creators, teachers, "
+            "journalists, and anyone whose craft depends on trust."
         ),
         "canonical_path": "/human-made-policy-template/",
     },

@@ -219,17 +219,17 @@ def _upsert_landing(db, fields: dict) -> LandingPage:
 
 # ── Pillar prompt ─────────────────────────────────────────────────────────────
 
-PILLAR_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing the definitive evergreen pillar page: "AI Backlash Explained: What Business Owners Need to Know."
+PILLAR_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing the definitive evergreen pillar page: "AI Backlash Explained."
 
-Audience: SMB owners, marketing directors, operations leads, HR managers — people who are being sold AI tools aggressively and want to make defensible decisions. NOT anti-AI ideologues. NOT enterprise CTOs.
+Audience: regular people — workers worried about their jobs, parents wondering what their kids should study, renters and homeowners near new AI data centers, artists whose work was scraped without permission, anyone who noticed the internet feeling worse and wants to understand why. NOT business compliance officers. NOT enterprise CTOs. Write as if explaining this to a smart friend who hasn't followed AI news closely but is starting to feel its effects.
 
 You MUST:
 - Write 1400-1800 words of clear, credible, human-first prose. No hype. No jargon.
 - Structure with HTML <h2> sections (6-8 of them). Short <p> paragraphs (2-4 sentences each).
 - Cite specific regulation names, real company names, real lawsuit names, real dollar figures, real job counts from the LIVE CONTEXT given by the user. Never invent statistics.
-- Cover: what the AI backlash actually is, why it's happening (labor fears, energy/water costs, content quality collapse, regulatory tightening, real liability cases), how to evaluate an AI vendor responsibly, and how to communicate your AI stance to customers.
-- End with a "What to do now" section linking to /ai-risk-assessment/.
-- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /ai-risk-assessment/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use.
+- Cover: what the AI backlash actually is and who is driving it (workers, artists, parents, communities near data centers), why it's happening (job displacement, energy and water costs, content quality collapse, regulatory tightening, real harm cases), what ordinary people can do about it.
+- End with a "What you can do" section linking to our tools.
+- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/ai-regulation.
 - Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
 
 Return ONE JSON object with these fields:
@@ -240,7 +240,7 @@ Return ONE JSON object with these fields:
 - key_takeaways (array of 5-7 plain-text bullet sentences)
 - keywords (array of 10-14 lowercase phrases — head terms + long-tail)
 - table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of exactly 5 objects with "question" and "answer" string keys — long-tail FAQ questions a business owner would Google, e.g. "Is the AI backlash real?", "Will AI replace my employees?", "What is the EU AI Act for small businesses?", "What does 'AI slop' mean?", "How do I write a no-AI policy?")
+- faq_json (array of exactly 5 objects with "question" and "answer" string keys — long-tail FAQ questions a real person would Google, e.g. "Is the AI backlash real?", "Will AI replace my job?", "What is AI slop?", "How do I find out if there's a data center near me?", "What companies have a no-AI policy?")
 
 Return ONLY the JSON object. No markdown fences."""
 
@@ -251,68 +251,67 @@ LIVE CONTEXT ({n_items} recent high-relevance items from our article database �
 
 {context_json}
 
-Open with the strongest current case that the AI backlash is real and consequential for business owners. Follow with why it's happening (labor fears, energy/water costs, content quality collapse, regulatory tightening, real liability cases). Walk through each major risk category with real recent examples. Address the nuance: AI adoption isn't categorically bad — the problem is uncritical adoption. Close with a concrete "What to do now" checklist linking to our tools at /ai-risk-assessment/."""
+Open with the strongest current case that the AI backlash is real and felt by ordinary people — workers, parents, artists, and communities. Follow with why it's happening: job displacement, energy and water costs from data centers, content quality collapse (AI slop), regulatory tightening, and real harm cases. Walk through each category with real examples from the live context. Acknowledge the nuance: the backlash isn't about AI being inherently evil — it's about who bears the costs and who captures the benefits. Close with a concrete "What you can do" section pointing readers to our tools and trackers."""
 
 
 # ── Industry prompt ───────────────────────────────────────────────────────────
 
-INDUSTRY_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing an evergreen industry guide on responsible AI adoption.
+INDUSTRY_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing an evergreen guide about AI's impact on a specific industry — written for the people who work in it and depend on it, not the executives running it.
 
-Audience: business owners, operations managers, and compliance leads in a specific industry who are evaluating AI tools and need to understand real risks before committing.
+Audience: workers, patients, students, and consumers affected by AI in this sector — a nurse, a loan applicant, a student, a retail worker, a teacher. NOT HR departments or compliance officers. Write about how AI decisions in this industry affect ordinary people's lives, jobs, safety, and rights.
 
 You MUST:
 - Write 900-1200 words of industry-specific, plain-English prose. No hype.
 - Structure with HTML <h2> sections (5-6 of them).
-- Cover: (1) what AI tools are being deployed in this industry and specific risks, (2) applicable regulations and compliance considerations (name them specifically — HIPAA+AI for healthcare, CFPB for finance, FERPA for education, etc.), (3) real incidents or cases from the LIVE CONTEXT, (4) a risk checklist (5-7 concrete factors as a <ul>), (5) a responsible adoption framework, (6) CTA to /ai-risk-assessment/.
+- Cover: (1) what AI tools are being deployed in this industry and how they affect workers and consumers, (2) applicable laws and protections that exist (name them specifically — HIPAA for healthcare, FERPA for education, CFPB for finance, etc.), (3) real incidents or harms from the LIVE CONTEXT, (4) a "watch out for" checklist (5-7 concrete things workers and consumers should know as a <ul>), (5) what's being done to protect people in this industry, (6) where to learn more.
 - Cite specific regulation names, real company names, real cases from the LIVE CONTEXT. Never invent statistics.
-- Insert internal links to: /ai-backlash/ (parent pillar), /ai-incidents/, /ai-risk-assessment/, /no-ai-policy-template/, /human-made-policy-template/, /briefing.
+- Insert internal links to: /ai-backlash/, /ai-incidents/, /ai-layoffs/, /fighting-back/, /no-ai-policy-template/, /human-made-policy-template/, /briefing.
 - Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
 
 Return ONE JSON object with these fields:
-- title (string, 55-75 chars, front-load the industry name and "AI" or "responsible AI")
-- subtitle (string, 100-150 chars)
+- title (string, 55-75 chars, front-load the industry name and "AI")
+- subtitle (string, 100-150 chars — speak to the worker/consumer, not the executive)
 - meta_description (string, 140-160 chars, plain text, ends with period)
 - body_html (string, 900-1200 words, allowed tags only)
 - key_takeaways (array of 4-6 plain-text bullet sentences)
 - keywords (array of 8-12 lowercase phrases)
 - table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of 4-5 objects with "question" and "answer" string keys — specific long-tail questions for this industry, e.g. "Is AI taking jobs in healthcare?", "What are the HIPAA risks of AI chatbots?")
+- faq_json (array of 4-5 objects with "question" and "answer" string keys — questions a real worker or patient would Google, e.g. "Is AI taking nursing jobs?", "Can my bank use AI to deny my loan?", "Are AI teachers replacing human teachers?")
 
 Return ONLY the JSON object. No markdown fences."""
 
 
-INDUSTRY_USER_PROMPT_TEMPLATE = """Write the evergreen responsible AI guide for the {industry_label} industry for "Ban the Bots."
+INDUSTRY_USER_PROMPT_TEMPLATE = """Write the evergreen guide for "Ban the Bots" about AI's impact on the {industry_label} industry — for the people who work in it or depend on it.
 
 LIVE CONTEXT ({n_items} recent high-relevance items from our article database relevant to AI in this industry — use these to ground your analysis in real, dated events):
 
 {context_json}
 
-Open with the specific AI tools being adopted in {industry_label} and why the risks are different from other industries. Walk through the regulatory landscape (name the specific regulations that apply). Surface real incidents or cases from the live context. Build a practical risk checklist a business owner can actually use. Close with a responsible adoption framework and a CTA to our AI risk assessment tool at /ai-risk-assessment/."""
+Open with how AI is already changing day-to-day life for workers and consumers in {industry_label} — name specific tools and real consequences. Walk through the laws that are supposed to protect people (name them). Surface real incidents or cases from the live context where AI caused harm or job loss in this sector. Build a practical "watch out for" checklist a worker or patient can actually use. Close by pointing to what's being done — unions, legislation, no-AI policies — and where readers can track developments."""
 
 
 # ── Explainer prompt ──────────────────────────────────────────────────────────
 
 EXPLAINER_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots" writing an evergreen explainer.
 
-Audience: business owners, journalists, students, and the general business-curious reader who Googled the topic and wants the definitive plain-English answer.
+Audience: anyone who Googled this question — a worker, a student, a parent, a concerned citizen. They don't follow tech news but they're feeling AI's effects in their daily life and want a real answer, not a press release. Write as if talking to a smart person who just asked you this question at a dinner party. No jargon, no business-speak.
 
 You MUST:
 - Write 800-1100 words of clear, accessible prose. Define every acronym on first use.
 - Structure with HTML <h2> sections (4-6 of them). Short <p> paragraphs.
 - Be evergreen. Avoid week-of-publication news framing. Reference LIVE CONTEXT only for illustration.
-- Insert internal links to: /ai-backlash/, /ai-incidents/, /responsible-ai/{industry}/ pages, /ai-risk-assessment/, /no-ai-policy-template/, /human-made-policy-template/, /briefing.
-- Valid internal URLs: /ai-backlash/, /ai-incidents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /ai-risk-assessment/, /no-ai-policy-template/, /human-made-policy-template/, /briefing.
+- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/what-to-study, /explainers/ai-regulation.
 - Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
 
 Return ONE JSON object with these fields:
 - title (string, 55-75 chars, optimized for the explainer's head term)
-- subtitle (string, 100-150 chars)
+- subtitle (string, 100-150 chars — speak to the person who just Googled this, not a business audience)
 - meta_description (string, 140-160 chars, plain text, ends with period)
 - body_html (string, allowed tags only)
 - key_takeaways (array of 4-6 plain-text bullet sentences)
 - keywords (array of 8-12 lowercase phrases, including head term + long-tail)
 - table_of_contents (array of {anchor, label} objects)
-- faq_json (array of 4-5 objects with "question" and "answer" string keys)
+- faq_json (array of 4-5 objects with "question" and "answer" string keys — questions a real person would Google, not a corporate buyer)
 
 Return ONLY the JSON object. No markdown fences."""
 
@@ -325,7 +324,7 @@ LIVE CONTEXT (a small sample of the most recent {n_items} high-relevance briefin
 
 {context_json}
 
-Open with the plain-English answer to the question in the title (the user came here to get one), then walk through the historical and structural context, address the most common related questions, and close with what to do next (linking to our AI backlash guide at /ai-backlash/ or our risk assessment tool at /ai-risk-assessment/). Avoid hyperbole. No marketing language."""
+Open with the plain-English answer to the question in the title — the reader came here to get a straight answer, so give it in the first paragraph. Then walk through the context: why this is happening, who it affects, what the stakes are. Address the most common follow-up questions. Close with what readers can actually do — point them to our trackers (/ai-layoffs/, /fighting-back/, /data-center-map/) or our AI backlash guide at /ai-backlash/. Avoid hyperbole. No marketing language."""
 
 
 # ── Public API ────────────────────────────────────────────────────────────────

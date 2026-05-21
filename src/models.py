@@ -278,6 +278,103 @@ class AIIncident(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AILayoff(Base):
+    """
+    Companies that announced layoffs attributed to AI automation.
+    Powers the /ai-layoffs/ tracker page.
+    """
+
+    __tablename__ = "ai_layoffs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    company = Column(String(200), nullable=False, index=True)
+    industry = Column(String(80), nullable=True, index=True)
+    country = Column(String(80), nullable=True, default="US")
+    state = Column(String(80), nullable=True, index=True)
+    job_count = Column(Integer, nullable=True)
+    announced_date = Column(Date, nullable=True, index=True)
+    ai_cause_notes = Column(Text, nullable=True)
+    source_url = Column(String(1000), nullable=True)
+    source_name = Column(String(200), nullable=True)
+    verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DataCenter(Base):
+    """
+    Known and proposed AI data centers.
+    Powers the /data-centers/ list and /data-center-map/ interactive map.
+    """
+
+    __tablename__ = "data_centers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    operator = Column(String(200), nullable=True, index=True)
+    status = Column(String(40), nullable=False, index=True, default="operating")
+    city = Column(String(100), nullable=True)
+    state = Column(String(80), nullable=True, index=True)
+    county = Column(String(100), nullable=True)
+    country = Column(String(80), nullable=True, default="US")
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)
+    capacity_mw = Column(Float, nullable=True)
+    water_source = Column(String(200), nullable=True)
+    announced_date = Column(Date, nullable=True)
+    source_url = Column(String(1000), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AILawsuit(Base):
+    """
+    Lawsuits filed against AI companies by creators, publishers, and individuals.
+    Powers the /ai-lawsuits/ tracker page.
+    """
+
+    __tablename__ = "ai_lawsuits"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    case_name = Column(String(300), nullable=False)
+    plaintiff = Column(String(300), nullable=False, index=True)
+    defendant = Column(String(300), nullable=False, index=True)
+    filed_date = Column(Date, nullable=True, index=True)
+    court = Column(String(200), nullable=True)
+    claim_type = Column(String(100), nullable=True, index=True)
+    status = Column(String(40), nullable=False, default="ongoing", index=True)
+    amount_sought_usd = Column(Float, nullable=True)
+    description = Column(Text, nullable=True)
+    source_url = Column(String(1000), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIResistanceAction(Base):
+    """
+    Companies, unions, and governments that are pushing back against AI —
+    no-AI policies, worker protections, legislation, and bans.
+    Powers the /fighting-back/ tracker page.
+    """
+
+    __tablename__ = "ai_resistance_actions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    actor = Column(String(300), nullable=False, index=True)
+    actor_type = Column(String(40), nullable=False, index=True)
+    action_type = Column(String(80), nullable=False, index=True)
+    country = Column(String(80), nullable=True, default="US")
+    state = Column(String(80), nullable=True, index=True)
+    industry = Column(String(80), nullable=True, index=True)
+    announced_date = Column(Date, nullable=True, index=True)
+    description = Column(Text, nullable=True)
+    source_url = Column(String(1000), nullable=True)
+    still_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class RiskAssessmentLead(Base):
     """Email captures from /ai-risk-assessment/ tool waitlist."""
 
