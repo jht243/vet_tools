@@ -61,8 +61,12 @@ _NAV_CACHE_PATHS = frozenset({
     "/briefing",
     "/ai-backlash/",
     "/ai-incidents/",
+    "/ai-layoffs/",
+    "/ai-lawsuits/",
+    "/fighting-back/",
     "/responsible-ai/",
     "/explainers",
+    "/parents/",
 })
 
 
@@ -598,6 +602,229 @@ def ai_incident_detail(incident_id: int):
         abort(500)
 
 
+# ── AI Layoffs ────────────────────────────────────────────────────────
+
+_LAYOFFS_PER_PAGE = 30
+
+
+@app.route("/ai-layoffs/")
+@app.route("/ai-layoffs")
+def ai_layoffs_index():
+    try:
+        from src.models import AILayoff, SessionLocal, init_db
+        from src.page_renderer import _env as _pr_env
+
+        page = request.args.get("page", 1, type=int)
+        if page < 1:
+            page = 1
+        industry_filter = request.args.get("industry", "").strip()
+        state_filter = request.args.get("state", "").strip()
+        year_filter = request.args.get("year", "").strip()
+
+        init_db()
+        db = SessionLocal()
+        try:
+            q = db.query(AILayoff).order_by(AILayoff.announced_date.desc(), AILayoff.id.desc())
+            if industry_filter:
+                q = q.filter(AILayoff.industry == industry_filter)
+            if state_filter:
+                q = q.filter(AILayoff.state == state_filter)
+            if year_filter:
+                import sqlalchemy
+                q = q.filter(sqlalchemy.extract("year", AILayoff.announced_date) == int(year_filter))
+
+            total = q.count()
+            total_pages = max(1, (total + _LAYOFFS_PER_PAGE - 1) // _LAYOFFS_PER_PAGE)
+            page = min(page, total_pages)
+            layoffs = q.offset((page - 1) * _LAYOFFS_PER_PAGE).limit(_LAYOFFS_PER_PAGE).all()
+
+            total_jobs_row = db.query(AILayoff.job_count).all()
+            total_jobs = sum(r[0] for r in total_jobs_row if r[0])
+
+            industries = [
+                r[0] for r in
+                db.query(AILayoff.industry).filter(AILayoff.industry.isnot(None))
+                .distinct().order_by(AILayoff.industry).all()
+            ]
+            states = [
+                r[0] for r in
+                db.query(AILayoff.state).filter(AILayoff.state.isnot(None))
+                .distinct().order_by(AILayoff.state).all()
+            ]
+            import datetime as _dt
+            years = sorted({
+                r[0].year for r in db.query(AILayoff.announced_date).all()
+                if r[0]
+            }, reverse=True)
+
+            tmpl = _pr_env.get_template("ai_layoffs.html.j2")
+            html = tmpl.render(
+                layoffs=layoffs,
+                page=page,
+                total_pages=total_pages,
+                total=total,
+                total_jobs=total_jobs,
+                industry_filter=industry_filter,
+                state_filter=state_filter,
+                year_filter=year_filter,
+                industries=industries,
+                states=states,
+                years=years,
+                site_name=settings.site_name,
+                canonical_url=f"{_base_url()}/ai-layoffs/",
+            )
+            return Response(html, mimetype="text/html")
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.exception("ai-layoffs index render failed: %s", exc)
+        abort(500)
+
+
+# ── AI Lawsuits ───────────────────────────────────────────────────────
+
+_LAWSUITS_PER_PAGE = 25
+
+
+@app.route("/ai-lawsuits/")
+@app.route("/ai-lawsuits")
+def ai_lawsuits_index():
+    try:
+        from src.models import AILawsuit, SessionLocal, init_db
+        from src.page_renderer import _env as _pr_env
+
+        page = request.args.get("page", 1, type=int)
+        if page < 1:
+            page = 1
+        claim_type_filter = request.args.get("claim_type", "").strip()
+        defendant_filter = request.args.get("defendant", "").strip()
+        status_filter = request.args.get("status", "").strip()
+
+        init_db()
+        db = SessionLocal()
+        try:
+            q = db.query(AILawsuit).order_by(AILawsuit.filed_date.desc(), AILawsuit.id.desc())
+            if claim_type_filter:
+                q = q.filter(AILawsuit.claim_type == claim_type_filter)
+            if defendant_filter:
+                q = q.filter(AILawsuit.defendant.ilike(f"%{defendant_filter}%"))
+            if status_filter:
+                q = q.filter(AILawsuit.status == status_filter)
+
+            total = q.count()
+            total_pages = max(1, (total + _LAWSUITS_PER_PAGE - 1) // _LAWSUITS_PER_PAGE)
+            page = min(page, total_pages)
+            lawsuits = q.offset((page - 1) * _LAWSUITS_PER_PAGE).limit(_LAWSUITS_PER_PAGE).all()
+
+            claim_types = [
+                r[0] for r in
+                db.query(AILawsuit.claim_type).filter(AILawsuit.claim_type.isnot(None))
+                .distinct().order_by(AILawsuit.claim_type).all()
+            ]
+            defendants = [
+                r[0] for r in
+                db.query(AILawsuit.defendant).distinct().order_by(AILawsuit.defendant).all()
+                if r[0]
+            ]
+            statuses = [r[0] for r in db.query(AILawsuit.status).distinct().order_by(AILawsuit.status).all()]
+
+            tmpl = _pr_env.get_template("ai_lawsuits.html.j2")
+            html = tmpl.render(
+                lawsuits=lawsuits,
+                page=page,
+                total_pages=total_pages,
+                total=total,
+                claim_type_filter=claim_type_filter,
+                defendant_filter=defendant_filter,
+                status_filter=status_filter,
+                claim_types=claim_types,
+                defendants=defendants,
+                statuses=statuses,
+                site_name=settings.site_name,
+                canonical_url=f"{_base_url()}/ai-lawsuits/",
+            )
+            return Response(html, mimetype="text/html")
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.exception("ai-lawsuits index render failed: %s", exc)
+        abort(500)
+
+
+# ── Fighting Back ─────────────────────────────────────────────────────
+
+_RESISTANCE_PER_PAGE = 24
+
+
+@app.route("/fighting-back/")
+@app.route("/fighting-back")
+def fighting_back_index():
+    try:
+        from src.models import AIResistanceAction, SessionLocal, init_db
+        from src.page_renderer import _env as _pr_env
+
+        page = request.args.get("page", 1, type=int)
+        if page < 1:
+            page = 1
+        actor_type_filter = request.args.get("actor_type", "").strip()
+        action_type_filter = request.args.get("action_type", "").strip()
+        industry_filter = request.args.get("industry", "").strip()
+
+        init_db()
+        db = SessionLocal()
+        try:
+            q = db.query(AIResistanceAction).order_by(
+                AIResistanceAction.announced_date.desc(), AIResistanceAction.id.desc()
+            )
+            if actor_type_filter:
+                q = q.filter(AIResistanceAction.actor_type == actor_type_filter)
+            if action_type_filter:
+                q = q.filter(AIResistanceAction.action_type == action_type_filter)
+            if industry_filter:
+                q = q.filter(AIResistanceAction.industry.ilike(f"%{industry_filter}%"))
+
+            total = q.count()
+            total_pages = max(1, (total + _RESISTANCE_PER_PAGE - 1) // _RESISTANCE_PER_PAGE)
+            page = min(page, total_pages)
+            actions = q.offset((page - 1) * _RESISTANCE_PER_PAGE).limit(_RESISTANCE_PER_PAGE).all()
+
+            actor_types = [
+                r[0] for r in
+                db.query(AIResistanceAction.actor_type).distinct().order_by(AIResistanceAction.actor_type).all()
+            ]
+            action_types = [
+                r[0] for r in
+                db.query(AIResistanceAction.action_type).distinct().order_by(AIResistanceAction.action_type).all()
+            ]
+            industries = [
+                r[0] for r in
+                db.query(AIResistanceAction.industry).filter(AIResistanceAction.industry.isnot(None))
+                .distinct().order_by(AIResistanceAction.industry).all()
+            ]
+
+            tmpl = _pr_env.get_template("fighting_back.html.j2")
+            html = tmpl.render(
+                actions=actions,
+                page=page,
+                total_pages=total_pages,
+                total=total,
+                actor_type_filter=actor_type_filter,
+                action_type_filter=action_type_filter,
+                industry_filter=industry_filter,
+                actor_types=actor_types,
+                action_types=action_types,
+                industries=industries,
+                site_name=settings.site_name,
+                canonical_url=f"{_base_url()}/fighting-back/",
+            )
+            return Response(html, mimetype="text/html")
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.exception("fighting-back index render failed: %s", exc)
+        abort(500)
+
+
 # ── Tool Placeholders ─────────────────────────────────────────────────
 
 _TOOL_PAGES = {
@@ -886,6 +1113,13 @@ def sitemap_xml():
         {"loc": f"{base}/ai-incidents/", "lastmod": today_iso, "changefreq": "daily", "priority": "0.85"},
         {"loc": f"{base}/responsible-ai/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
         {"loc": f"{base}/explainers", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base}/ai-layoffs/", "lastmod": today_iso, "changefreq": "daily", "priority": "0.9"},
+        {"loc": f"{base}/ai-lawsuits/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
+        {"loc": f"{base}/fighting-back/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
+        {"loc": f"{base}/ai-proof-jobs/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
+        {"loc": f"{base}/will-ai-replace-my-job/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.8"},
+        {"loc": f"{base}/data-center-map/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
+        {"loc": f"{base}/parents/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
         {"loc": f"{base}/ai-risk-assessment/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
         {"loc": f"{base}/no-ai-policy-template/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
         {"loc": f"{base}/human-made-policy-template/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},

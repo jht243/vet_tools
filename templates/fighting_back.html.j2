@@ -1,0 +1,183 @@
+{% extends "_base.html.j2" %}
+
+{% block page_hero %}
+<div class="page-hero-strip">
+  <div class="page-hero-inner">
+    <div class="page-hero-eyebrow">Ban the Bots · Live tracker</div>
+    <h1 class="page-hero-title">Fighting Back</h1>
+    <p class="page-hero-subtitle">
+      Companies, unions, and governments drawing the line on AI —
+      no-AI policies, worker protections, legislation, and bans.
+      {% if total %}<strong>{{ total }} actions</strong> documented.{% endif %}
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="container-wide">
+
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a><span>/</span>
+    <span>Fighting Back</span>
+  </nav>
+
+  {# Filters #}
+  <form method="get" action="/fighting-back/" class="cr-search-panel" role="search" aria-label="Filter resistance actions">
+    <label class="cr-search-label">Filter actions</label>
+    <div class="cr-search-row">
+      <select name="actor_type" aria-label="Filter by actor type">
+        <option value="">All actors</option>
+        {% for at in actor_types %}
+        <option value="{{ at }}" {% if at == actor_type_filter %}selected{% endif %}>
+          {{ at|replace('_',' ')|title }}
+        </option>
+        {% endfor %}
+      </select>
+      <select name="action_type" aria-label="Filter by action type">
+        <option value="">All action types</option>
+        {% for act in action_types %}
+        <option value="{{ act }}" {% if act == action_type_filter %}selected{% endif %}>
+          {{ act|replace('_',' ')|title }}
+        </option>
+        {% endfor %}
+      </select>
+      <select name="industry" aria-label="Filter by industry">
+        <option value="">All industries</option>
+        {% for ind in industries %}
+        <option value="{{ ind }}" {% if ind == industry_filter %}selected{% endif %}>
+          {{ ind|replace('-',' ')|replace('/',' ')|title }}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit">Filter</button>
+      {% if actor_type_filter or action_type_filter or industry_filter %}
+      <a href="/fighting-back/" style="padding: 13px 16px; font-size:14px; color:var(--sr-gray-text);">Clear</a>
+      {% endif %}
+    </div>
+    <p class="cr-search-help">
+      {% if actor_type_filter or action_type_filter or industry_filter %}
+        Showing {{ total }} action{% if total != 1 %}s{% endif %}
+        {% if actor_type_filter %} by <strong>{{ actor_type_filter|replace('_',' ')|title }}</strong>{% endif %}
+        {% if action_type_filter %}: <strong>{{ action_type_filter|replace('_',' ')|title }}</strong>{% endif %}
+        {% if industry_filter %} in <strong>{{ industry_filter|replace('-',' ')|title }}</strong>{% endif %}.
+      {% else %}
+        {{ total }} documented action{% if total != 1 %}s{% endif %} pushing back against AI.
+      {% endif %}
+    </p>
+  </form>
+
+  {% set _actor_colors = {
+    'union': '#1e40af',
+    'government': '#065f46',
+    'company': '#92400e',
+    'creator_org': '#6b21a8'
+  } %}
+  {% set _actor_bgs = {
+    'union': '#dbeafe',
+    'government': '#d1fae5',
+    'company': '#fef3c7',
+    'creator_org': '#f3e8ff'
+  } %}
+  {% set _action_labels = {
+    'no_ai_policy': 'No-AI Policy',
+    'worker_protection': 'Worker Protection',
+    'legislation': 'Legislation',
+    'contract': 'Union Contract',
+    'ban': 'Ban',
+    'pledge': 'Pledge'
+  } %}
+
+  {# Cards grid #}
+  {% if actions %}
+  <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:20px; margin: 16px 0 32px;">
+    {% for action in actions %}
+    <article style="border:1px solid var(--sr-gray-light); border-radius:6px; padding:22px 24px; background:var(--white); display:flex; flex-direction:column; gap:12px;">
+
+      {# Header row: actor type badge + action type badge #}
+      <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+        <span style="display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+                     color:{{ _actor_colors.get(action.actor_type, '#374151') }};
+                     background:{{ _actor_bgs.get(action.actor_type, '#f3f4f6') }};">
+          {{ action.actor_type|replace('_',' ')|title }}
+        </span>
+        <span style="display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:600; color:#374151; background:#f3f4f6; text-transform:uppercase; letter-spacing:0.5px;">
+          {{ _action_labels.get(action.action_type, action.action_type|replace('_',' ')|title) }}
+        </span>
+        {% if not action.still_active %}
+        <span style="display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; color:#6b7280; background:#f9fafb; text-transform:uppercase; letter-spacing:0.5px; text-decoration:line-through;">
+          Reversed
+        </span>
+        {% endif %}
+      </div>
+
+      {# Actor name #}
+      <div>
+        <strong style="font-family:var(--font-serif); font-size:17px; color:var(--sr-blue-dark); line-height:1.3; display:block;">
+          {{ action.actor }}
+        </strong>
+        <span style="font-size:12px; color:var(--sr-gray-text);">
+          {% if action.industry %}{{ action.industry|replace('-',' ')|replace('/',' / ')|title }}{% endif %}
+          {% if action.state %} · {{ action.state }}{% elif action.country and action.country != 'US' %} · {{ action.country }}{% endif %}
+          {% if action.announced_date %} · {{ action.announced_date.strftime('%b %Y') }}{% endif %}
+        </span>
+      </div>
+
+      {# Description #}
+      {% if action.description %}
+      <p style="font-size:14px; color:var(--sr-dark-text); line-height:1.65; margin:0; flex:1;">
+        {{ action.description[:300] }}{% if action.description|length > 300 %}…{% endif %}
+      </p>
+      {% endif %}
+
+      {# Source link #}
+      {% if action.source_url %}
+      <a href="{{ action.source_url }}" rel="nofollow noopener" target="_blank"
+         style="font-size:12px; color:var(--sr-gray-text); text-decoration:none; align-self:flex-start;">
+        Read more ↗
+      </a>
+      {% endif %}
+
+    </article>
+    {% endfor %}
+  </div>
+
+  {# Pagination #}
+  {% if total_pages > 1 %}
+  <nav class="pagination" aria-label="Action pages">
+    {% set _qs = ('&actor_type=' ~ actor_type_filter) if actor_type_filter else '' %}
+    {% set _qs = _qs ~ (('&action_type=' ~ action_type_filter) if action_type_filter else '') %}
+    {% set _qs = _qs ~ (('&industry=' ~ industry_filter) if industry_filter else '') %}
+    {% if page > 1 %}
+      <a href="/fighting-back/?page={{ page - 1 }}{{ _qs }}" class="pagination-link" rel="prev">&larr; Newer</a>
+    {% else %}
+      <span class="pagination-link disabled">&larr; Newer</span>
+    {% endif %}
+    <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a href="/fighting-back/?page={{ page + 1 }}{{ _qs }}" class="pagination-link" rel="next">Older &rarr;</a>
+    {% else %}
+      <span class="pagination-link disabled">Older &rarr;</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div style="padding: 40px 0; color:var(--sr-gray-text);">
+    <p>No actions found{% if actor_type_filter or action_type_filter or industry_filter %} matching the selected filters{% endif %}.</p>
+    {% if actor_type_filter or action_type_filter or industry_filter %}
+    <p style="margin-top:8px;"><a href="/fighting-back/">Clear filters →</a></p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# Cross-links #}
+  <div style="margin: 32px 0 16px; padding: 18px 22px; background:var(--sr-gray-bg); border-left:3px solid var(--sr-blue); border-radius:3px; font-size:14px; line-height:1.7;">
+    <strong>See the other side:</strong>
+    Track <a href="/ai-layoffs/">AI-driven layoffs</a>,
+    <a href="/ai-lawsuits/">lawsuits against AI companies</a>, and
+    read the <a href="/ai-backlash/">full AI backlash explainer</a>.
+  </div>
+
+</section>
+{% endblock %}
