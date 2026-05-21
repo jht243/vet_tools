@@ -131,6 +131,21 @@
     .source-citation { background: #fff8e1; border-left: 3px solid #f5b041; padding: 14px 18px; margin: 24px 0; font-size: 14px; color: var(--sr-dark-text); }
     .source-citation a { font-weight: 600; }
 
+    /* Source pill — appears in the meta row of briefing pages */
+    a.source-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--sr-blue); background: rgba(26,86,219,.08); border: 1px solid rgba(26,86,219,.2); border-radius: 20px; padding: 2px 10px; text-decoration: none; white-space: nowrap; transition: background 0.15s; }
+    a.source-pill:hover { background: rgba(26,86,219,.16); }
+
+    /* FAQ accordion section on briefing pages */
+    .faq { margin: 40px 0; padding-top: 32px; border-top: 1px solid var(--sr-gray-light); }
+    .faq h2 { font-family: var(--font-serif); font-size: 22px; color: var(--sr-blue-dark); margin-bottom: 16px; }
+    .faq details { border-bottom: 1px solid var(--sr-gray-light); padding: 0; }
+    .faq details:first-of-type { border-top: 1px solid var(--sr-gray-light); }
+    .faq summary { font-size: 16px; font-weight: 600; color: var(--sr-dark-text); padding: 14px 4px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; font-size: 20px; color: var(--sr-blue); flex-shrink: 0; margin-left: 12px; }
+    .faq details[open] summary::after { content: '−'; }
+    .faq details p { font-size: 15px; color: var(--sr-gray-text); line-height: 1.7; padding: 0 4px 14px; margin: 0; }
+
     .related { margin: 48px 0 24px; padding-top: 24px; border-top: 1px solid var(--sr-gray-light); }
     .related h3 { font-family: var(--font-serif); font-size: 18px; color: var(--sr-blue-dark); margin-bottom: 12px; }
     .related ul { list-style: none; }
