@@ -663,6 +663,21 @@ This article should:
 - Connect to other spoke pages where relevant
 - Avoid condescension — parents reading this are smart; they just need the information
 
+SPOKE-SPECIFIC REQUIREMENTS:
+- If spoke is "ai-safety": explicitly address "is Character AI safe for kids?" — it is one of the
+  top-searched parenting+AI questions. Discuss the lawsuit (Garcia v. Character.AI), the lack of
+  age verification, and the grooming/self-harm incident reports. Also cover ChatGPT, Snapchat My AI,
+  and Replika's child safety policies.
+- If spoke is "what-to-study": explicitly address "what should my kids study" and "what majors are
+  ai proof" — name specific subjects (trades, healthcare, social work, creative arts, law) and explain
+  why they are resilient. Reference BLS or McKinsey data.
+- If spoke is "social-media": address TikTok's algorithm (ForYou Page), YouTube autoplay, and
+  Instagram Reels — explain how AI recommendation systems work and what parents can do about them.
+- If spoke is "screen-time": address how AI apps differ from regular apps (they adapt to the child,
+  making them more engaging) and what current research says about recommended limits.
+- If spoke is "how-to-use-ai-for-good": address the "is my kid cheating?" question directly. Explain
+  the difference between using AI to avoid thinking vs. using AI as a Socratic tutor.
+
 Target length: 1,200–1,800 words body."""
 
 

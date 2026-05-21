@@ -69,7 +69,7 @@ SEED_EXPLAINERS = [
     (
         "ai-art-theft",
         "Is AI Stealing Art? What Artists Are Fighting For and Why It Matters",
-        "is ai art theft stealing from artists copyright",
+        "is ai art theft stealing from artists copyright opt out of ai training have i been trained spawning",
     ),
     # New — labor/jobs cluster (compete with willrobotstakemyjob.com)
     (

@@ -657,6 +657,19 @@ def data_center_map():
                 total_mw=total_mw or 0,
                 site_name=settings.site_name,
                 canonical_url=f"{_base_url()}/data-center-map/",
+                seo={
+                    "title": "Find AI Data Centers Near Me — Interactive Map",
+                    "description": (
+                        f"Interactive map of {total or 'hundreds of'} AI data centers across the US — "
+                        "proposed, under construction, and operating. See water use, power capacity, "
+                        "and which communities are affected near you."
+                    ),
+                    "keywords": (
+                        "ai data centers near me, ai data center map, how much water do ai data centers use, "
+                        "ai data center power, ai data center environmental impact"
+                    ),
+                    "canonical": f"{_base_url()}/data-center-map/",
+                },
             )
             return Response(html, mimetype="text/html")
         finally:
@@ -690,6 +703,18 @@ def will_ai_replace_my_job():
             job_data=job_data,
             site_name=settings.site_name,
             canonical_url=f"{_base_url()}/will-ai-replace-my-job/",
+            seo={
+                "title": "Will AI Replace My Job? Check Any Job Title — Free Tool",
+                "description": (
+                    "Type in your job title and get a plain-English breakdown of what tasks AI can replace, "
+                    "what's resilient, and which skills to build. Covers 200+ occupations."
+                ),
+                "keywords": (
+                    "will ai replace my job, will ai take my job, jobs ai will replace, "
+                    "what jobs can ai not replace, ai proof jobs checker, is my job safe from ai"
+                ),
+                "canonical": f"{_base_url()}/will-ai-replace-my-job/",
+            },
         )
         return Response(html, mimetype="text/html")
     except Exception as exc:
@@ -767,6 +792,18 @@ def ai_layoffs_index():
                 years=years,
                 site_name=settings.site_name,
                 canonical_url=f"{_base_url()}/ai-layoffs/",
+                seo={
+                    "title": "AI Layoffs Tracker — Companies That Cut Jobs Because of AI",
+                    "description": (
+                        f"Track {total or 'every'} company that has cut jobs because of AI automation. "
+                        "Search by industry, state, and year. Updated regularly with verified layoff data."
+                    ),
+                    "keywords": (
+                        "ai taking jobs, ai layoffs, ai job loss, companies replacing workers with ai, "
+                        "ai automation layoffs, which companies are using ai to replace workers"
+                    ),
+                    "canonical": f"{_base_url()}/ai-layoffs/",
+                },
             )
             return Response(html, mimetype="text/html")
         finally:
@@ -837,6 +874,19 @@ def ai_lawsuits_index():
                 statuses=statuses,
                 site_name=settings.site_name,
                 canonical_url=f"{_base_url()}/ai-lawsuits/",
+                seo={
+                    "title": "AI Lawsuits Tracker — Who's Suing OpenAI, Stability AI & More",
+                    "description": (
+                        f"Every major lawsuit filed against AI companies — {total or 'dozens of'} cases "
+                        "covering copyright, privacy, and defamation. NYT vs OpenAI, Getty vs Stability AI, "
+                        "and more. Filter by claim type, defendant, and status."
+                    ),
+                    "keywords": (
+                        "ai copyright lawsuit, suing openai, openai lawsuit, stability ai lawsuit, "
+                        "ai stealing art lawsuit, is ai art theft, ai training data copyright"
+                    ),
+                    "canonical": f"{_base_url()}/ai-lawsuits/",
+                },
             )
             return Response(html, mimetype="text/html")
         finally:
@@ -911,6 +961,19 @@ def fighting_back_index():
                 industries=industries,
                 site_name=settings.site_name,
                 canonical_url=f"{_base_url()}/fighting-back/",
+                seo={
+                    "title": "Fighting Back Against AI — No-AI Policies, Worker Protections & Laws",
+                    "description": (
+                        f"{total or 'Dozens of'} unions, companies, and governments drawing the line on AI. "
+                        "Track no-AI policies, worker protection clauses, AI legislation, and collective "
+                        "actions from SAG-AFTRA to the EU AI Act."
+                    ),
+                    "keywords": (
+                        "anti ai, no ai policy, companies against ai, stop ai, ai boycott, "
+                        "union ai contract, ai worker protection, no ai movement"
+                    ),
+                    "canonical": f"{_base_url()}/fighting-back/",
+                },
             )
             return Response(html, mimetype="text/html")
         finally:
@@ -932,6 +995,18 @@ def parents_hub():
         html = tmpl.render(
             site_name=settings.site_name,
             canonical_url=f"{_base_url()}/parents/",
+            seo={
+                "title": "Parenting in the Age of AI — A Parent's Plain-English Guide",
+                "description": (
+                    "Screen time, what your kids should study, AI safety risks, social media algorithms, "
+                    "and how to use AI as a learning tool. A practical guide for parents — not tech experts."
+                ),
+                "keywords": (
+                    "parenting and ai, ai and children, how to talk to kids about ai, "
+                    "is character ai safe for kids, ai safety for kids, kids and artificial intelligence"
+                ),
+                "canonical": f"{_base_url()}/parents/",
+            },
         )
         return Response(html, mimetype="text/html")
     except Exception as exc:

@@ -351,19 +351,25 @@ This file maps every target keyword from the SEO audit to the page that should r
 
 ---
 
-## Coverage Gaps (Keywords Without a Strong Target Page)
+## Coverage Gaps — Status
 
-These audit keywords don't yet have a clearly optimized landing page and should be prioritized for content:
+All previously identified gaps have been addressed:
 
-| Keyword | Vol | KD | Recommended Action |
-|---|---|---|---|
-| is character ai safe for kids | — | — | Add to `/parents/ai-safety/` or create standalone |
-| ai cheating school | — | — | Add to `/parents/how-to-use-ai-for-good/` |
-| opt out of ai training | — | — | Section on `/explainers/ai-art-theft` |
-| have i been trained | — | — | Mention Spawning.ai in `/explainers/ai-art-theft` |
-| slop club ai | — | — | Monitor — platform-specific, low control |
-| anti ai reddit | — | — | Consider `/fighting-back/` FAQ or blog post |
-| ai data center near me | — | — | Map answers this; ensure meta tags mention "near me" |
+| Keyword | Status | Resolution |
+|---|---|---|
+| is character ai safe for kids | ✅ Fixed | Added explicit Character.AI / Garcia lawsuit guidance to `/parents/ai-safety/` spoke prompt |
+| ai cheating school | ✅ Fixed | Added explicit guidance to `/parents/how-to-use-ai-for-good/` spoke prompt |
+| opt out of ai training | ✅ Fixed | Added to `ai-art-theft` explainer seed search intent |
+| have i been trained | ✅ Fixed | Added to `ai-art-theft` explainer seed search intent (Spawning.ai) |
+| ai data center near me | ✅ Fixed | `/data-center-map/` `<title>` now reads "Find AI Data Centers Near Me" |
+| slop club ai | ⏳ Monitor | Platform-specific brand search — low control. Mention in `/explainers/ai-slop` when generated |
+| anti ai reddit | ⏳ Monitor | Discussion-intent query. Current `/fighting-back/` page is the best target |
+
+### SEO Metadata — Fixed
+
+All new tracker routes were missing `seo=` dicts (causing "Ban the Bots" as the Google title).
+Now resolved for: `/data-center-map/`, `/ai-layoffs/`, `/ai-lawsuits/`, `/fighting-back/`,
+`/parents/`, `/will-ai-replace-my-job/`
 
 ---
 
