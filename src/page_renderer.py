@@ -356,17 +356,15 @@ def render_blog_index(
 
     page_suffix = f" — Page {page}" if page > 1 else ""
     seo = {
-        "title": f"Venezuela News Today: Sanctions & Economy (2026){page_suffix}",
+        "title": f"AI Risk & Responsible AI: Daily Briefings (2026){page_suffix}",
         "description": (
-            "Venezuela news — OFAC sanctions, Asamblea Nacional, Gaceta "
-            "Oficial decrees, economic data, and capital flows. Published "
-            "twice daily."
+            "Daily briefings on AI backlash, AI regulation, labor displacement, "
+            "data center energy use, and AI incidents — plain English for business owners."
         ),
         "keywords": (
-            "Venezuela news, Venezuela news today, Venezuela latest news, "
-            "Venezuela sanctions news, Venezuela economy news, "
-            "invest in Venezuela, OFAC Venezuela analysis, "
-            "Caracas investment briefing, Venezuelan sectors"
+            "AI backlash, responsible AI, AI regulation, EU AI Act, "
+            "AI jobs, AI water use, AI incidents, no AI policy, "
+            "AI risk assessment, AI ethics business"
         ),
         "canonical": canonical,
         "site_name": settings.site_name,
@@ -387,7 +385,7 @@ def render_blog_index(
 
     item_list = {
         "@type": "ItemList",
-        "name": "Venezuelan investment briefings",
+        "name": "AI risk and responsible AI briefings",
         "itemListOrder": "https://schema.org/ItemListOrderDescending",
         "numberOfItems": len(posts_list),
         "itemListElement": [

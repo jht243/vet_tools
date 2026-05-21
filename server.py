@@ -142,7 +142,7 @@ def index():
                 .all()
             )
             incident_count = db.query(AIIncident).count()
-            html = render_blog_index(posts, page=1, total_pages=1, incident_count=incident_count)
+            html = render_blog_index(posts, page=1, total_pages=1)
             return Response(html, mimetype="text/html")
         finally:
             db.close()
