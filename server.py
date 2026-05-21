@@ -139,7 +139,7 @@ def _base_url() -> str:
 def index():
     try:
         from src.models import BlogPost, AIIncident, SessionLocal, init_db
-        from src.page_renderer import render_blog_index
+        from src.page_renderer import render_homepage
 
         init_db()
         db = SessionLocal()
@@ -147,11 +147,16 @@ def index():
             posts = (
                 db.query(BlogPost)
                 .order_by(BlogPost.published_date.desc(), BlogPost.id.desc())
-                .limit(10)
+                .limit(6)
                 .all()
             )
+            briefing_count = db.query(BlogPost).count()
             incident_count = db.query(AIIncident).count()
-            html = render_blog_index(posts, page=1, total_pages=1)
+            html = render_homepage(
+                posts,
+                briefing_count=briefing_count,
+                incident_count=incident_count,
+            )
             return Response(html, mimetype="text/html")
         finally:
             db.close()

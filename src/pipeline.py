@@ -35,6 +35,7 @@ from src.scraper.labor_ai import LaborAIScraper
 from src.scraper.energy_ai import EnergyAIScraper
 from src.scraper.arxiv_ai import ArxivAIScraper
 from src.scraper.sej_algo import SEJAlgoScraper
+from src.scraper.digg_ai import DiggAIScraper
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ def run_daily_scrape(target_date: Optional[date] = None) -> dict:
         EnergyAIScraper(),
         ArxivAIScraper(),
         SEJAlgoScraper(),
+        DiggAIScraper(),
     ]
 
     for scraper in scrapers:

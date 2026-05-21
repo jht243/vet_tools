@@ -29,7 +29,14 @@ _FTC_KEYWORDS = {
 # Congress search query — returns bills with AI-related policy area.
 _CONGRESS_SEARCH_QUERY = "artificial intelligence"
 
-_FTC_RSS = "https://www.ftc.gov/feeds/press-release-list.xml"
+# FTC blocks scrapers on their RSS endpoints; use Politico tech coverage instead
+# which captures FTC/regulatory AI actions as they happen.
+_REGULATORY_FEEDS: list[tuple[str, str, str]] = [
+    # Politico tech — covers FTC, White House AI policy, Congress actions
+    ("https://rss.politico.com/technology.xml", "Politico Tech", "tier1"),
+    # The Verge policy tag — AI regulation, FTC, EU AI Act coverage
+    ("https://www.theverge.com/rss/policy/index.xml", "The Verge", "tier1"),
+]
 _EU_AIACT_RSS = "https://eur-lex.europa.eu/legal-content/EN/rss.xml?type=OJ&ojYear=2024"
 _CONGRESS_API = "https://api.congress.gov/v3/bill"
 
@@ -47,7 +54,7 @@ class RegulatoryAIScraper(BaseScraper):
         lookback = timedelta(days=settings.scraper_lookback_days)
         cutoff = (target_date or date.today()) - lookback
 
-        articles += self._scrape_ftc(cutoff)
+        articles += self._scrape_regulatory_feeds(cutoff)
         articles += self._scrape_congress(cutoff)
         articles += self._scrape_eu_aiact(cutoff)
 
@@ -64,44 +71,46 @@ class RegulatoryAIScraper(BaseScraper):
             duration_seconds=elapsed,
         )
 
-    # ── FTC ───────────────────────────────────────────────────────────
+    # ── Regulatory news RSS feeds ─────────────────────────────────────
 
-    def _scrape_ftc(self, cutoff: date) -> list[ScrapedArticle]:
+    def _scrape_regulatory_feeds(self, cutoff: date) -> list[ScrapedArticle]:
         out: list[ScrapedArticle] = []
-        try:
-            resp = self._fetch(_FTC_RSS)
-            root = ET.fromstring(resp.text)
-        except Exception as exc:
-            logger.warning("FTC RSS fetch failed: %s", exc)
-            return out
-
-        ns = {"dc": "http://purl.org/dc/elements/1.1/"}
-        for item in root.iter("item"):
-            title = (item.findtext("title") or "").strip()
-            link = (item.findtext("link") or "").strip()
-            pub_date_raw = (item.findtext("pubDate") or "").strip()
-            desc = (item.findtext("description") or "").strip()
-
-            pub_date = _parse_rfc2822(pub_date_raw)
-            if pub_date and pub_date < cutoff:
+        for feed_url, source_name, credibility in _REGULATORY_FEEDS:
+            try:
+                resp = self._fetch(feed_url)
+                root = ET.fromstring(resp.text)
+            except Exception as exc:
+                logger.warning("%s RSS fetch failed: %s", source_name, exc)
                 continue
 
-            combined = (title + " " + desc).lower()
-            if not any(kw in combined for kw in _FTC_KEYWORDS):
-                continue
+            feed_count = 0
+            for item in root.iter("item"):
+                title = (item.findtext("title") or "").strip()
+                link = (item.findtext("link") or "").strip()
+                pub_date_raw = (item.findtext("pubDate") or "").strip()
+                desc = (item.findtext("description") or "").strip()
 
-            out.append(ScrapedArticle(
-                headline=title,
-                published_date=pub_date or date.today(),
-                source_url=link,
-                body_text=desc,
-                source_name="FTC",
-                source_credibility="official",
-                article_type="regulatory",
-                extra_metadata={"regulator": "FTC"},
-            ))
+                pub_date = _parse_rfc2822(pub_date_raw)
+                if pub_date and pub_date < cutoff:
+                    continue
 
-        logger.info("FTC: %d AI-related items", len(out))
+                combined = (title + " " + desc).lower()
+                if not any(kw in combined for kw in _FTC_KEYWORDS):
+                    continue
+
+                out.append(ScrapedArticle(
+                    headline=title,
+                    published_date=pub_date or date.today(),
+                    source_url=link,
+                    body_text=desc,
+                    source_name=source_name,
+                    source_credibility=credibility,
+                    article_type="regulatory",
+                    extra_metadata={"topic": "regulation_policy"},
+                ))
+                feed_count += 1
+
+            logger.info("%s: %d AI-regulatory items", source_name, feed_count)
         return out
 
     # ── Congress.gov API ──────────────────────────────────────────────

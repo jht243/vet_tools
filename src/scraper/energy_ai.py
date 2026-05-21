@@ -17,10 +17,14 @@ logger = logging.getLogger(__name__)
 
 _FEEDS: list[tuple[str, str, str]] = [
     # (url, source_name, credibility)
-    ("https://www.energy.gov/eere/articles/feed", "DOE EERE", "official"),
-    ("https://www.iea.org/news.xml", "IEA", "official"),
-    ("https://www.datacenterknowledge.com/feed", "Data Center Knowledge", "tier1"),
-    ("https://www.theregister.com/headlines/ai_and_ml/", "The Register", "tier2"),
+    # DOE main RSS (EERE-specific /eere/articles/feed returns 404)
+    ("https://www.energy.gov/rss.xml", "DOE", "official"),
+    # Data Center Dynamics — primary industry trade pub for DC energy/water
+    ("https://www.datacenterdynamics.com/rss/", "Data Center Dynamics", "tier1"),
+    # MIT Technology Review — strong AI energy/infrastructure coverage
+    ("https://www.technologyreview.com/feed/", "MIT Technology Review", "tier1"),
+    # The Register datacenter section (ai_and_ml path returns 404)
+    ("https://www.theregister.com/tag/datacenter/feed/", "The Register", "tier2"),
 ]
 
 _ENERGY_KEYWORDS = {
