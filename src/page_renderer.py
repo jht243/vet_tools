@@ -112,15 +112,10 @@ _env = Environment(
 )
 
 # Jinja filter that walks an HTML fragment and links the first mention
-# of each known Venezuelan power figure to /people/<slug>, opening in
-# a new tab. Registered globally so it composes with `| safe` on any
-# user-generated HTML field — primarily blog_posts.body_html on
-# /briefing/<slug> pages. See src/data/people.py for the algorithm.
+# No-op for BTB — Venezuela's people-linking module has been removed.
+# The filter is kept registered so templates using `| link_people` don't break.
 def _link_people_filter(html: str) -> str:
-    if not html:
-        return html
-    from src.data.people import link_people_in_html
-    return link_people_in_html(html)
+    return html or ""
 
 
 _env.filters["link_people"] = _link_people_filter
@@ -336,6 +331,59 @@ def render_blog_post(post, *, related: list | None = None) -> str:
         related=related or [],
         takeaways=takeaways,
         source_label=source_label,
+        seo=seo,
+        jsonld=jsonld,
+        current_year=date.today().year,
+    )
+
+
+def render_homepage(
+    posts: Iterable,
+    *,
+    briefing_count: int = 0,
+    incident_count: int = 0,
+) -> str:
+    base = _base_url()
+    seo = {
+        "title": "Ban the Bots — Human-First AI Risk Coverage",
+        "description": (
+            "Daily intelligence on AI regulation, labor disruption, environmental cost, "
+            "and real-world AI incidents. Plain English for business owners who need "
+            "facts, not hype."
+        ),
+        "keywords": (
+            "AI backlash, responsible AI, AI regulation, EU AI Act, "
+            "AI jobs, AI incidents, no AI policy, AI risk assessment, AI ethics business"
+        ),
+        "canonical": f"{base}/",
+        "site_name": settings.site_name,
+        "site_url": base,
+        "locale": settings.site_locale,
+        "og_image": f"{base}/static/og-image.png?v=3",
+        "og_type": "website",
+        "published_iso": _iso(datetime.utcnow()),
+        "modified_iso": _iso(datetime.utcnow()),
+    }
+    jsonld = json.dumps(
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": settings.site_name,
+            "url": f"{base}/",
+            "description": seo["description"],
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": f"{base}/briefing?q={{search_term_string}}",
+                "query-input": "required name=search_term_string",
+            },
+        },
+        ensure_ascii=False,
+    )
+    template = _env.get_template("homepage.html.j2")
+    return template.render(
+        posts=list(posts),
+        briefing_count=briefing_count,
+        incident_count=incident_count,
         seo=seo,
         jsonld=jsonld,
         current_year=date.today().year,
