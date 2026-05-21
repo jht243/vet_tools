@@ -1,5 +1,19 @@
 {% extends "_base.html.j2" %}
 
+{% block page_hero %}
+<div class="page-hero-strip">
+  <div class="page-hero-inner">
+    <div class="page-hero-eyebrow">Ban the Bots · Daily AI briefings</div>
+    <h1 class="page-hero-title">AI Risk &amp; Responsible AI: Daily Briefings</h1>
+    <p class="page-hero-subtitle">
+      Plain-English coverage of AI regulation, labor disruption, environmental impact,
+      content quality risks, and real-world AI incidents — for business owners who
+      need the facts without the hype.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <section class="container-wide">
 
@@ -7,20 +21,6 @@
     <a href="/">Home</a><span>/</span>
     <span>Analysis</span>
   </nav>
-
-  <header style="margin: 16px 0 32px;">
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      Ban the Bots · Daily AI briefings
-    </div>
-    <h1 style="font-family:var(--font-serif); font-size:36px; color:var(--sr-blue-dark); margin:8px 0 12px;">
-      AI Risk &amp; Responsible AI: Daily Briefings
-    </h1>
-    <p style="font-family:var(--font-serif); font-style:italic; color:var(--sr-gray-text); font-size:18px; max-width:680px;">
-      Plain-English coverage of AI regulation, labor disruption, environmental impact,
-      content quality risks, and real-world AI incidents — for business owners who
-      need the facts without the hype.
-    </p>
-  </header>
 
   {% if posts %}
   <div class="cr-search-panel" role="search" aria-label="Search analysis archive">

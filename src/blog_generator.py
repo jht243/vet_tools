@@ -35,18 +35,80 @@ from src.models import (
 logger = logging.getLogger(__name__)
 
 
-SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots." Voice: plain-English, journalistic, no buzzwords. Cite specific regulation names, companies, dollar figures, job counts. Stance: skeptical but constructive — not anti-AI, but human-first.
+SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots." Voice: plain-English, journalistic, no buzzwords. Cite specific regulation names, companies, dollar figures, job counts. Stance: skeptical but constructive — not anti-AI, but human-first. Audience: SMB owners, marketing directors, operations leads.
 
-You MUST return a single JSON object with these fields:
+You MUST return a single JSON object with these exact fields:
 - title (string, STRICT 45-58 chars, front-load topic/risk — Google SERPs cut around 60 chars)
 - subtitle (string, 80-130 chars, expands the title with second-most-important angle)
 - summary (string, STRICT 120-150 chars, plain text meta description — lead with the concrete fact)
-- body_html (string, 700-900 words — ONLY <h2>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <a href> tags)
-- keywords (array of 6-10 lowercase phrases, mix of head terms and long-tail)
+- body_html (string, 1000-1200 words minimum — ONLY <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <a href> tags. MUST include 2-3 internal links from the INTERNAL LINK TARGETS provided.)
+- keywords (array of 8-12 lowercase phrases, mix of head terms and long-tail — include year, "for business", "SMB" variants)
 - primary_angle (string, one of: jobs_labor, regulation_policy, environment_energy, content_quality, ai_incidents, responsible_ai, backlash_protest)
-- key_takeaways (array of 3-5 plain-text bullet sentences)
+- key_takeaways (array of 4-5 plain-text bullet sentences, each a concrete actionable insight)
+
+BODY STRUCTURE (use these <h2> sections in order):
+1. Lead paragraph — the news, the number, the company or regulator. No throat-clearing.
+2. <h2>What Happened</h2> — 2-3 paragraphs of context and background
+3. <h2>Why It Matters for Your Business</h2> — specific implications by business size/type; cite real costs, timelines, compliance deadlines
+4. <h2>The Broader Pattern</h2> — connect to wider trend; cite 1-2 related developments
+5. <h2>What to Do Now</h2> — 3-5 concrete action items as <ul><li> list
+6. <h2>The Bottom Line</h2> — 1 paragraph forward-looking close
+
+INTERNAL LINKS: Use 2-3 <a href="/path/"> links within body text. Use natural anchor text (not "click here"). Only link to paths provided in INTERNAL LINK TARGETS.
 
 Do NOT use markdown. Do NOT wrap output in code fences. Output only the JSON object."""
+
+
+# Angle → internal pages to link from body text.
+_ANGLE_INTERNAL_LINKS: dict[str, list[tuple[str, str]]] = {
+    "jobs_labor": [
+        ("/explainers/ai-jobs", "AI job displacement trends"),
+        ("/ai-incidents/", "real-world AI incident tracker"),
+        ("/responsible-ai/", "responsible AI adoption by industry"),
+        ("/ai-risk-assessment/", "AI risk assessment for your business"),
+    ],
+    "regulation_policy": [
+        ("/explainers/eu-ai-act", "EU AI Act compliance guide"),
+        ("/ai-incidents/", "AI incident database"),
+        ("/ai-backlash/", "the growing AI backlash"),
+        ("/ai-risk-assessment/", "AI risk assessment tool"),
+    ],
+    "environment_energy": [
+        ("/explainers/ai-water-use", "AI water and energy consumption"),
+        ("/ai-backlash/", "AI backlash and business risk"),
+        ("/responsible-ai/", "responsible AI adoption frameworks"),
+        ("/ai-incidents/", "AI incident tracker"),
+    ],
+    "content_quality": [
+        ("/no-ai-policy-template/", "no-AI policy template"),
+        ("/human-made-policy-template/", "human-made content policy"),
+        ("/ai-backlash/", "AI backlash explained"),
+        ("/explainers/", "AI explainers for business"),
+    ],
+    "ai_incidents": [
+        ("/ai-incidents/", "AI incident tracker"),
+        ("/ai-risk-assessment/", "AI risk assessment"),
+        ("/responsible-ai/", "responsible AI by industry"),
+        ("/ai-backlash/", "AI backlash and liability"),
+    ],
+    "responsible_ai": [
+        ("/ai-risk-assessment/", "AI risk assessment tool"),
+        ("/responsible-ai/", "responsible AI adoption guides"),
+        ("/explainers/eu-ai-act", "EU AI Act requirements"),
+        ("/ai-incidents/", "documented AI failures"),
+    ],
+    "backlash_protest": [
+        ("/ai-backlash/", "the AI backlash movement"),
+        ("/no-ai-policy-template/", "no-AI policy template"),
+        ("/human-made-policy-template/", "human-made certification"),
+        ("/responsible-ai/", "responsible AI frameworks"),
+    ],
+}
+_DEFAULT_INTERNAL_LINKS = [
+    ("/ai-backlash/", "AI backlash and business risk"),
+    ("/ai-incidents/", "AI incident tracker"),
+    ("/ai-risk-assessment/", "AI risk assessment"),
+]
 
 
 USER_PROMPT_TEMPLATE = """Write a long-form briefing post about the following AI business risk development.
@@ -67,11 +129,14 @@ RELEVANCE SCORE: {relevance}/10
 SOURCE BODY (truncated):
 {body_text}
 
-Open with the news in the lead paragraph (do not bury the lede), then provide context, then concrete business implications, then risk factors, then a forward-looking close. Use <h2> subheadings."""
+INTERNAL LINK TARGETS (use 2-3 of these as <a href="/path/"> in body text with natural anchor text):
+{internal_links}
+
+Follow the 6-section body structure from your instructions. Minimum 1000 words. Be specific: name the regulation, company, dollar figure, or job count — never be vague. The "What to Do Now" section must have at least 3 actionable bullet points a business owner could act on this week."""
 
 
 _ALLOWED_TAGS_RE = re.compile(
-    r"<\s*/?\s*(h2|h3|p|ul|ol|li|strong|em|b|i|blockquote|a)(\s+[^>]*)?\s*/?\s*>",
+    r"<\s*/?\s*(h2|h3|h4|p|ul|ol|li|strong|em|b|i|blockquote|a|dl|dt|dd)(\s+[^>]*)?\s*/?\s*>",
     re.IGNORECASE,
 )
 _ANY_TAG_RE = re.compile(r"<[^>]+>")
@@ -256,6 +321,11 @@ def _build_post_payload(
 ) -> tuple[dict, dict]:
     body_truncated = (body_text or "")[:6000] or "(no body text available)"
 
+    # Pick internal link targets based on primary angle
+    primary_angle = angles[0] if angles else ""
+    link_targets = _ANGLE_INTERNAL_LINKS.get(primary_angle, _DEFAULT_INTERNAL_LINKS)
+    internal_links_text = "\n".join(f"  {path}  ({label})" for path, label in link_targets)
+
     user_msg = USER_PROMPT_TEMPLATE.format(
         source_name=source_name,
         credibility=credibility,
@@ -268,6 +338,7 @@ def _build_post_payload(
         sentiment=sentiment or "mixed",
         relevance=relevance,
         body_text=body_truncated,
+        internal_links=internal_links_text,
     )
 
     response = client.chat.completions.create(
@@ -277,7 +348,7 @@ def _build_post_payload(
             {"role": "user", "content": user_msg},
         ],
         temperature=0.4,
-        max_tokens=2400,
+        max_tokens=3500,
         response_format={"type": "json_object"},
     )
 

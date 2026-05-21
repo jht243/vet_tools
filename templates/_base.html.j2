@@ -246,6 +246,65 @@
       .feedback-pill,
       .feedback-backdrop { display: none !important; }
     }
+
+    /* ── Page hero strip ────────────────────────────────────────────
+       Shared header band for all inner pages (indexes, detail pages,
+       etc.). Lighter/shorter than the homepage hero — same palette,
+       left-aligned, no CTAs. Templates opt in via the page_hero block.
+       Future pages: just fill the block and you get this for free.   */
+    .page-hero-strip {
+      background: var(--sr-blue);
+      color: var(--white);
+      padding: 40px 0 48px;
+    }
+    .page-hero-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .page-hero-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 10px;
+    }
+    .page-hero-eyebrow em {
+      color: #ff6b6b;
+      font-style: normal;
+    }
+    .page-hero-title {
+      font-family: var(--font-serif);
+      font-size: clamp(26px, 3.5vw, 38px);
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.15;
+      margin: 0 0 14px;
+    }
+    .page-hero-subtitle {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(15px, 1.8vw, 18px);
+      color: rgba(255,255,255,0.78);
+      line-height: 1.55;
+      max-width: 700px;
+      margin: 0;
+    }
+    .page-hero-subtitle a { color: rgba(255,255,255,0.9); }
+    .page-hero-subtitle a:hover { color: var(--white); }
+
+    /* Article-level eyebrow — used on briefing posts and incident
+       detail pages. Matches the page-hero-strip eyebrow style but
+       sits above the article h1 inside the white content area.     */
+    .article-eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+      color: var(--sr-red);
+      margin-bottom: 6px;
+    }
   </style>
 
   {# Topic-cluster nav styles — loaded on every page that extends
@@ -276,6 +335,11 @@
     </div>
   </div>
 </nav>
+
+{# Inner-page header band. Templates fill this to get the consistent
+   navy strip with eyebrow + title + subtitle. Leave empty for pages
+   that manage their own hero (e.g. the homepage). #}
+{% block page_hero %}{% endblock %}
 
 {# Reusable share button macro. Pages call {{ share_button(url, title) }}
    anywhere they want to render a Share affordance. The global script

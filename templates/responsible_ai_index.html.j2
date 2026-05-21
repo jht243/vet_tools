@@ -1,5 +1,19 @@
 {% extends "_base.html.j2" %}
 
+{% block page_hero %}
+<div class="page-hero-strip">
+  <div class="page-hero-inner">
+    <div class="page-hero-eyebrow">Ban the Bots · Industry guides</div>
+    <h1 class="page-hero-title">Responsible AI by Industry</h1>
+    <p class="page-hero-subtitle">
+      Every industry faces different AI risks. Select your sector for a plain-English breakdown
+      of applicable regulations, real incidents, and a responsible adoption framework you can
+      actually use.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <section class="container-wide">
 
@@ -7,20 +21,6 @@
     <a href="/">Home</a><span>/</span>
     <span>Responsible AI</span>
   </nav>
-
-  <header style="margin: 16px 0 32px;">
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      Ban the Bots · Industry guides
-    </div>
-    <h1 style="font-family:var(--font-serif); font-size:36px; color:var(--sr-blue-dark); margin:8px 0 12px;">
-      Responsible AI by Industry
-    </h1>
-    <p style="font-family:var(--font-serif); font-style:italic; color:var(--sr-gray-text); font-size:18px; max-width:680px;">
-      Every industry faces different AI risks. Select your sector for a plain-English breakdown
-      of applicable regulations, real incidents, and a responsible adoption framework you can
-      actually use.
-    </p>
-  </header>
 
   {% set _industries = industries if industries else [
     {"slug": "healthcare",     "label": "Healthcare & Medical",        "summary": "HIPAA, AI diagnostic tools, clinical liability, and patient safety risks."},

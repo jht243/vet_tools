@@ -47,24 +47,42 @@ _KNOWN_SOURCE_DOMAINS: dict[str, str] = {
     "aljazeera.com": "Al Jazeera",
     "cnbc.com": "CNBC",
     "forbes.com": "Forbes",
-    "caracaschronicles.com": "Caracas Chronicles",
-    "elpais.com": "El País",
-    "eluniversal.com": "El Universal",
-    "efe.com": "EFE",
-    "efecto-cocuyo.com": "Efecto Cocuyo",
-    "runrun.es": "Runrun.es",
-    "tal-cual.com": "Tal Cual",
-    "talcualdigital.com": "Tal Cual",
-    "bancaynegocios.com": "Banca y Negocios",
-    "elnacional.com": "El Nacional",
-    "lapatilla.com": "La Patilla",
-    "venezuelanalysis.com": "Venezuelanalysis",
-    "ansalatina.com": "ANSA Latina",
+    # AI / Tech publishers
+    "wired.com": "Wired",
+    "techcrunch.com": "TechCrunch",
+    "theverge.com": "The Verge",
+    "arstechnica.com": "Ars Technica",
+    "technologyreview.com": "MIT Technology Review",
+    "venturebeat.com": "VentureBeat",
+    "fortune.com": "Fortune",
+    "businessinsider.com": "Business Insider",
+    "theatlantic.com": "The Atlantic",
+    "vox.com": "Vox",
+    "axios.com": "Axios",
+    "politico.com": "Politico",
+    "thehill.com": "The Hill",
+    "theguardian.com": "The Guardian",
+    "searchengineland.com": "Search Engine Land",
+    "searchenginejournal.com": "Search Engine Journal",
+    "datacenterdynamics.com": "Data Center Dynamics",
+    "theregister.com": "The Register",
+    "digg.com": "Digg",
+    # Regulatory / government
+    "ftc.gov": "FTC",
+    "nist.gov": "NIST",
+    "congress.gov": "Congress.gov",
+    "bls.gov": "Bureau of Labor Statistics",
+    "energy.gov": "US Dept. of Energy",
+    "iea.org": "IEA",
+    "europarl.europa.eu": "European Parliament",
+    "artificialintelligenceact.eu": "EU AI Act",
+    # AI incident databases
+    "incidentdatabase.ai": "AI Incident Database",
+    "aiaaic.org": "AIAAIC",
+    # Leftover Venezuela domains (kept so old rows still resolve)
     "treasury.gov": "US Treasury",
-    "ofac.treasury.gov": "OFAC",
     "state.gov": "US State Department",
     "federalregister.gov": "US Federal Register",
-    "gdelt.org": "GDELT",
     "sec.gov": "SEC EDGAR",
 }
 
@@ -246,7 +264,7 @@ def render_blog_post(post, *, related: list | None = None) -> str:
         "og_type": "article",
         "published_iso": _iso(post.published_date),
         "modified_iso": _iso(post.updated_at or post.created_at or post.published_date),
-        "section": (post.primary_sector or "Venezuela investment").replace("_", " ").title(),
+        "section": (post.primary_sector or "AI Risk").replace("_", " ").title(),
         "article_tags": keywords[:10],
     }
 
@@ -291,8 +309,32 @@ def render_blog_post(post, *, related: list | None = None) -> str:
     if post.canonical_source_url:
         news_article["citation"] = post.canonical_source_url
 
+    # FAQPage JSON-LD — built from faq_json if the post has one.
+    graph: list[dict] = [breadcrumbs, news_article]
+    faq_items: list[dict] = []
+    raw_faq = getattr(post, "faq_json", None) or []
+    if isinstance(raw_faq, str):
+        try:
+            raw_faq = json.loads(raw_faq)
+        except Exception:
+            raw_faq = []
+    if isinstance(raw_faq, list) and len(raw_faq) >= 2:
+        faq_entities = []
+        for item in raw_faq:
+            q = (item.get("question") or item.get("q") or "").strip()
+            a = (item.get("answer") or item.get("a") or "").strip()
+            if q and a:
+                faq_entities.append({
+                    "@type": "Question",
+                    "name": q,
+                    "acceptedAnswer": {"@type": "Answer", "text": a},
+                })
+                faq_items.append({"question": q, "answer": a})
+        if faq_entities:
+            graph.append({"@type": "FAQPage", "mainEntity": faq_entities})
+
     jsonld = json.dumps(
-        {"@context": "https://schema.org", "@graph": [breadcrumbs, news_article]},
+        {"@context": "https://schema.org", "@graph": graph},
         ensure_ascii=False,
     )
 
@@ -330,6 +372,7 @@ def render_blog_post(post, *, related: list | None = None) -> str:
         post=post,
         related=related or [],
         takeaways=takeaways,
+        faq_items=faq_items,
         source_label=source_label,
         seo=seo,
         jsonld=jsonld,

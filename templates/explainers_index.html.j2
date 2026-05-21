@@ -1,5 +1,19 @@
 {% extends "_base.html.j2" %}
 
+{% block page_hero %}
+<div class="page-hero-strip">
+  <div class="page-hero-inner">
+    <div class="page-hero-eyebrow">Evergreen guides</div>
+    <h1 class="page-hero-title">AI Explainers for Business Owners</h1>
+    <p class="page-hero-subtitle">
+      Plain-English answers to the questions business owners most often ask
+      about AI regulation, liability, labor disruption, and how to make
+      defensible decisions when adopting AI tools.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <section class="container">
 
@@ -7,20 +21,6 @@
     <a href="/">Home</a><span>/</span>
     <span>Explainers</span>
   </nav>
-
-  <header style="margin: 16px 0 24px;">
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      Evergreen guides
-    </div>
-    <h1 style="font-family:var(--font-serif); font-size:36px; color:var(--sr-blue-dark); margin:8px 0 12px;">
-      AI Explainers for Business Owners
-    </h1>
-    <p style="font-family:var(--font-serif); font-style:italic; color:var(--sr-gray-text); font-size:18px;">
-      Plain-English answers to the questions business owners most often ask
-      about AI regulation, liability, labor disruption, and how to make
-      defensible decisions when adopting AI tools.
-    </p>
-  </header>
 
   <div class="cr-search-panel" role="search" aria-label="Search explainers">
     <label class="cr-search-label" for="explainer-search">Search explainers</label>

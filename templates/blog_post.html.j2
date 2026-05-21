@@ -13,9 +13,7 @@
 
   <header>
     {% if post.primary_sector %}
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      {{ post.primary_sector|replace('_',' ')|title }}
-    </div>
+    <div class="article-eyebrow">{{ post.primary_sector|replace('_',' ')|title }}</div>
     {% endif %}
     <h1>{{ post.title }}</h1>
     {% if post.subtitle %}<p class="subtitle">{{ post.subtitle }}</p>{% endif %}
@@ -24,6 +22,12 @@
       {% if post.reading_minutes %}<span><strong>Read</strong> {{ post.reading_minutes }} min</span>{% endif %}
       {% if post.word_count %}<span>{{ post.word_count }} words</span>{% endif %}
       <span><strong>By</strong> Ban the Bots</span>
+      {% if post.canonical_source_url %}
+      <a class="source-pill" href="{{ post.canonical_source_url }}" rel="nofollow noopener" target="_blank"
+         title="Read the original article at {{ source_label|default('source') }}">
+        Via {{ source_label|default('source') }} ↗
+      </a>
+      {% endif %}
       <span style="margin-left:auto;">{{ share_button('https://banthebots.org/briefing/' ~ post.slug, post.title) }}</span>
     </div>
   </header>
@@ -65,6 +69,18 @@
     <span style="font-size:13px; color: var(--sr-gray-text);">Found this useful?</span>
     {{ share_button('https://banthebots.org/briefing/' ~ post.slug, post.title, label='Share analysis') }}
   </div>
+
+  {% if faq_items %}
+  <section class="faq" aria-label="Frequently Asked Questions">
+    <h2>Frequently Asked Questions</h2>
+    {% for item in faq_items %}
+    <details>
+      <summary>{{ item.question }}</summary>
+      <p>{{ item.answer }}</p>
+    </details>
+    {% endfor %}
+  </section>
+  {% endif %}
 
   {#
     "More on this sector" — related briefings from the same primary

@@ -1,5 +1,20 @@
 {% extends "_base.html.j2" %}
 
+{% block page_hero %}
+<div class="page-hero-strip">
+  <div class="page-hero-inner">
+    <div class="page-hero-eyebrow">Ban the Bots · Live tracker</div>
+    <h1 class="page-hero-title">AI Incident Tracker</h1>
+    <p class="page-hero-subtitle">
+      Real-world failures, harms, and near-misses involving AI systems — sourced from
+      the <a href="https://incidentdatabase.ai" rel="noopener noreferrer" target="_blank">AI Incident Database</a>
+      and <a href="https://aiaaic.org" rel="noopener noreferrer" target="_blank">AIAAIC</a>.
+      Updated daily.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <section class="container-wide">
 
@@ -7,21 +22,6 @@
     <a href="/">Home</a><span>/</span>
     <span>AI Incidents</span>
   </nav>
-
-  <header style="margin: 16px 0 24px;">
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      Ban the Bots · Live tracker
-    </div>
-    <h1 style="font-family:var(--font-serif); font-size:36px; color:var(--sr-blue-dark); margin:8px 0 12px;">
-      AI Incident Tracker
-    </h1>
-    <p style="font-family:var(--font-serif); font-style:italic; color:var(--sr-gray-text); font-size:18px; max-width:700px;">
-      Real-world failures, harms, and near-misses involving AI systems — sourced from
-      the <a href="https://incidentdatabase.ai" rel="noopener noreferrer" target="_blank">AI Incident Database</a>
-      and <a href="https://aiaaic.org" rel="noopener noreferrer" target="_blank">AIAAIC</a>.
-      Updated daily.
-    </p>
-  </header>
 
   {# Filters #}
   <form method="get" action="/ai-incidents/" class="cr-search-panel" role="search" aria-label="Filter incidents">
