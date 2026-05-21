@@ -269,27 +269,32 @@ def _match_existing_headline(
 # settings.google_news_daily_cap of them, picking the highest-signal ones.
 
 _AI_RELEVANCE_KEYWORDS: dict[str, float] = {
-    # Regulation / policy — highest signal
-    "ai act": 3.0, "eu ai act": 3.5, "ftc": 2.5, "nist": 2.5,
-    "regulation": 2.0, "compliance": 2.0, "liability": 2.5,
-    "lawsuit": 2.5, "class action": 3.0, "fine": 2.0, "penalty": 2.0,
-    # AI incidents / harm
-    "hallucination": 3.0, "bias": 2.5, "ai incident": 3.0, "ai harm": 3.0,
-    "discrimination": 2.5, "deepfake": 2.5, "misinformation": 2.0,
-    # Labor / jobs
-    "layoffs": 2.5, "laid off": 2.5, "job displacement": 3.0,
-    "replacing workers": 3.0, "automation": 2.0, "workforce": 2.0,
-    # Environment / energy
-    "data center water": 3.0, "ai water": 3.0, "water use": 2.5,
-    "ai energy": 2.5, "energy consumption": 2.5, "carbon footprint": 2.5,
-    "electricity": 2.0, "data center": 2.0,
-    # Content / quality
-    "ai slop": 3.0, "ai-generated": 2.0, "human-made": 2.5,
-    "content quality": 2.0, "ai content": 2.0,
-    # Responsible AI / ethics
-    "responsible ai": 3.0, "ai ethics": 2.5, "ai safety": 2.5,
-    "ai risk": 2.5, "ai governance": 2.5, "ai backlash": 3.0,
-    "human-first": 2.5, "no-ai": 3.0, "no ai": 3.0,
+    # Jobs / labor — highest signal for our audience
+    "layoffs": 3.5, "laid off": 3.5, "job loss": 3.5, "job cut": 3.0,
+    "job displacement": 3.5, "replacing workers": 3.5, "replace human": 3.0,
+    "automation": 2.5, "workforce": 2.5, "unemployment": 3.0,
+    "gig worker": 3.0, "union": 2.5, "strike": 2.5, "wages": 2.5,
+    # Education / kids / parenting
+    "students": 3.0, "schools": 3.0, "teachers": 3.0, "cheating": 3.0,
+    "kids": 3.0, "children": 3.0, "parents": 2.5, "teens": 3.0,
+    "mental health": 3.0, "classroom": 3.0, "homework": 3.0,
+    # Regulation protecting people
+    "ai act": 3.0, "eu ai act": 3.5, "regulation": 2.0,
+    "lawsuit": 2.5, "class action": 3.0, "rights": 2.5, "ban": 2.5,
+    # Surveillance / civil rights
+    "facial recognition": 3.5, "surveillance": 3.0, "privacy": 2.5,
+    "wrongful arrest": 3.5, "discrimination": 3.0, "bias": 2.5,
+    "data collection": 2.5, "tracking": 2.0,
+    # Deepfakes / content harm
+    "deepfake": 3.0, "misinformation": 2.5, "disinformation": 2.5,
+    "ai slop": 3.0, "ai-generated": 2.0, "ai content": 2.0,
+    # Environment / community impact
+    "data center water": 3.0, "ai water": 3.0,
+    "ai energy": 2.5, "electricity": 2.0, "data center": 1.5,
+    # General AI backlash / human impact
+    "ai backlash": 3.0, "no ai": 3.0, "anti-ai": 3.0,
+    "ai ethics": 2.0, "ai safety": 2.0, "ai harm": 3.0,
+    "ai risk": 2.0, "human-first": 2.5,
 }
 
 _CREDIBILITY_WEIGHTS: dict[str, float] = {
@@ -336,7 +341,7 @@ def _count_google_news_persisted_today(db) -> int:
     )
 
 
-_CLUSTERING_SYSTEM_PROMPT = """You are an expert news editor for a site covering AI adoption risks for businesses.
+_CLUSTERING_SYSTEM_PROMPT = """You are an expert news editor for a citizen-first site covering how AI affects everyday people — workers, parents, students, and communities.
 
 You will receive a numbered list of news headlines with dates and publishers. Your job is to group headlines that report the SAME real-world event into clusters.
 

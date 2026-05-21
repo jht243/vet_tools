@@ -35,23 +35,23 @@ from src.models import (
 logger = logging.getLogger(__name__)
 
 
-SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots." Voice: plain-English, journalistic, no buzzwords. Cite specific regulation names, companies, dollar figures, job counts. Stance: skeptical but constructive — not anti-AI, but human-first. Audience: SMB owners, marketing directors, operations leads.
+SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots." Voice: plain-English, journalistic, no buzzwords. Cite specific regulation names, companies, dollar figures, job counts. Stance: skeptical but fair — human-first, not anti-technology. Audience: everyday people — workers worried about job security, parents navigating AI and their kids, students, teachers, and anyone trying to understand how AI is changing their daily lives. Do NOT write for business owners, investors, or IT professionals.
 
 You MUST return a single JSON object with these exact fields:
-- title (string, STRICT 45-58 chars, front-load topic/risk — Google SERPs cut around 60 chars)
-- subtitle (string, 80-130 chars, expands the title with second-most-important angle)
-- summary (string, STRICT 120-150 chars, plain text meta description — lead with the concrete fact)
+- title (string, STRICT 45-58 chars, front-load the human impact — Google SERPs cut around 60 chars)
+- subtitle (string, 80-130 chars, expands the title with the human angle)
+- summary (string, STRICT 120-150 chars, plain text meta description — lead with the concrete human impact)
 - body_html (string, 1000-1200 words minimum — ONLY <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <a href> tags. MUST include 2-3 internal links from the INTERNAL LINK TARGETS provided.)
-- keywords (array of 8-12 lowercase phrases, mix of head terms and long-tail — include year, "for business", "SMB" variants)
-- primary_angle (string, one of: jobs_labor, regulation_policy, environment_energy, content_quality, ai_incidents, responsible_ai, backlash_protest)
-- key_takeaways (array of 4-5 plain-text bullet sentences, each a concrete actionable insight)
+- keywords (array of 8-12 lowercase phrases, mix of head terms and long-tail — include year and everyday-person search terms like "will ai take my job", "ai and kids", "how does ai affect me")
+- primary_angle (string, one of: jobs_labor, regulation_policy, environment_energy, content_quality, ai_incidents, parenting_education, civil_rights, backlash_protest)
+- key_takeaways (array of 4-5 plain-text bullet sentences, each a concrete insight an everyday person can act on)
 
 BODY STRUCTURE (use these <h2> sections in order):
-1. Lead paragraph — the news, the number, the company or regulator. No throat-clearing.
+1. Lead paragraph — the news, the number, who it affects. No throat-clearing.
 2. <h2>What Happened</h2> — 2-3 paragraphs of context and background
-3. <h2>Why It Matters for Your Business</h2> — specific implications by business size/type; cite real costs, timelines, compliance deadlines
-4. <h2>The Broader Pattern</h2> — connect to wider trend; cite 1-2 related developments
-5. <h2>What to Do Now</h2> — 3-5 concrete action items as <ul><li> list
+3. <h2>How This Affects Everyday People</h2> — specific implications for workers, families, students, or communities; use relatable examples, not corporate scenarios
+4. <h2>The Bigger Picture</h2> — connect to wider trend; cite 1-2 related developments
+5. <h2>What You Can Do</h2> — 3-5 concrete, accessible steps for regular people as <ul><li> list
 6. <h2>The Bottom Line</h2> — 1 paragraph forward-looking close
 
 INTERNAL LINKS: Use 2-3 <a href="/path/"> links within body text. Use natural anchor text (not "click here"). Only link to paths provided in INTERNAL LINK TARGETS.
@@ -62,56 +62,62 @@ Do NOT use markdown. Do NOT wrap output in code fences. Output only the JSON obj
 # Angle → internal pages to link from body text.
 _ANGLE_INTERNAL_LINKS: dict[str, list[tuple[str, str]]] = {
     "jobs_labor": [
-        ("/explainers/ai-jobs", "AI job displacement trends"),
-        ("/ai-incidents/", "real-world AI incident tracker"),
-        ("/responsible-ai/", "responsible AI adoption by industry"),
-        ("/ai-risk-assessment/", "AI risk assessment for your business"),
+        ("/explainers/ai-jobs", "how AI is displacing jobs"),
+        ("/ai-layoffs/", "AI layoffs tracker"),
+        ("/will-ai-replace-my-job/", "will AI replace your job"),
+        ("/ai-proof-jobs/", "jobs AI can't replace"),
     ],
     "regulation_policy": [
-        ("/explainers/eu-ai-act", "EU AI Act compliance guide"),
-        ("/ai-incidents/", "AI incident database"),
+        ("/explainers/eu-ai-act", "what the EU AI Act means for you"),
+        ("/explainers/ai-regulation", "AI regulation explained"),
         ("/ai-backlash/", "the growing AI backlash"),
-        ("/ai-risk-assessment/", "AI risk assessment tool"),
+        ("/fighting-back/", "how people are fighting back against AI"),
     ],
     "environment_energy": [
-        ("/explainers/ai-water-use", "AI water and energy consumption"),
-        ("/ai-backlash/", "AI backlash and business risk"),
-        ("/responsible-ai/", "responsible AI adoption frameworks"),
-        ("/ai-incidents/", "AI incident tracker"),
+        ("/explainers/data-center-impact", "AI's water and energy footprint"),
+        ("/data-center-map/", "AI data centers near you"),
+        ("/ai-backlash/", "why people are pushing back on AI"),
+        ("/explainers/ai-water-use", "how much water AI uses"),
     ],
     "content_quality": [
-        ("/no-ai-policy-template/", "no-AI policy template"),
-        ("/human-made-policy-template/", "human-made content policy"),
-        ("/ai-backlash/", "AI backlash explained"),
-        ("/explainers/", "AI explainers for business"),
+        ("/explainers/ai-slop", "what is AI slop"),
+        ("/no-ai-policy-template/", "how to create a no-AI policy"),
+        ("/fighting-back/", "how to fight back against AI"),
+        ("/ai-backlash/", "the AI backlash explained"),
     ],
     "ai_incidents": [
-        ("/ai-incidents/", "AI incident tracker"),
-        ("/ai-risk-assessment/", "AI risk assessment"),
-        ("/responsible-ai/", "responsible AI by industry"),
-        ("/ai-backlash/", "AI backlash and liability"),
+        ("/ai-backlash/", "documented AI harms"),
+        ("/explainers/deepfakes", "what are deepfakes"),
+        ("/explainers/facial-recognition", "facial recognition and wrongful arrests"),
+        ("/fighting-back/", "how people are pushing back"),
     ],
-    "responsible_ai": [
-        ("/ai-risk-assessment/", "AI risk assessment tool"),
-        ("/responsible-ai/", "responsible AI adoption guides"),
-        ("/explainers/eu-ai-act", "EU AI Act requirements"),
-        ("/ai-incidents/", "documented AI failures"),
+    "parenting_education": [
+        ("/parents/", "parenting in the age of AI"),
+        ("/parents/ai-safety/", "keeping kids safe from AI"),
+        ("/parents/what-to-study/", "what skills kids need for the future"),
+        ("/parents/screen-time/", "AI and screen time for kids"),
+    ],
+    "civil_rights": [
+        ("/explainers/facial-recognition", "facial recognition and your rights"),
+        ("/explainers/autonomous-weapons", "autonomous weapons explained"),
+        ("/ai-backlash/", "why people are pushing back on AI"),
+        ("/fighting-back/", "how to resist AI surveillance"),
     ],
     "backlash_protest": [
+        ("/fighting-back/", "how people are fighting back against AI"),
         ("/ai-backlash/", "the AI backlash movement"),
         ("/no-ai-policy-template/", "no-AI policy template"),
-        ("/human-made-policy-template/", "human-made certification"),
-        ("/responsible-ai/", "responsible AI frameworks"),
+        ("/ai-lawsuits/", "AI lawsuits and legal challenges"),
     ],
 }
 _DEFAULT_INTERNAL_LINKS = [
-    ("/ai-backlash/", "AI backlash and business risk"),
-    ("/ai-incidents/", "AI incident tracker"),
-    ("/ai-risk-assessment/", "AI risk assessment"),
+    ("/ai-backlash/", "the growing AI backlash"),
+    ("/fighting-back/", "how people are pushing back"),
+    ("/will-ai-replace-my-job/", "will AI replace your job"),
 ]
 
 
-USER_PROMPT_TEMPLATE = """Write a long-form briefing post about the following AI business risk development.
+USER_PROMPT_TEMPLATE = """Write a long-form briefing post about the following development, from the perspective of how it affects everyday people.
 
 SOURCE: {source_name} ({credibility})
 PUBLISHED: {published_date}
@@ -132,7 +138,7 @@ SOURCE BODY (truncated):
 INTERNAL LINK TARGETS (use 2-3 of these as <a href="/path/"> in body text with natural anchor text):
 {internal_links}
 
-Follow the 6-section body structure from your instructions. Minimum 1000 words. Be specific: name the regulation, company, dollar figure, or job count — never be vague. The "What to Do Now" section must have at least 3 actionable bullet points a business owner could act on this week."""
+Follow the 6-section body structure from your instructions. Minimum 1000 words. Be specific: name the regulation, company, dollar figure, or job count — never be vague. Write for workers, parents, students, and regular people — not business owners or investors. The "What You Can Do" section must have at least 3 actionable steps an everyday person could take."""
 
 
 _ALLOWED_TAGS_RE = re.compile(

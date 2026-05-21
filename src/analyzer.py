@@ -49,38 +49,40 @@ def get_usage() -> dict:
 
 
 RELEVANCE_KEYWORDS = (
-    "ai act", "eu ai act", "ftc", "nist", "regulation", "compliance",
-    "liability", "lawsuit", "class action", "fine", "penalty",
-    "hallucination", "bias", "ai incident", "ai harm", "discrimination",
-    "deepfake", "misinformation", "disinformation",
-    "layoffs", "laid off", "job displacement", "replacing workers",
-    "automation", "workforce reduction",
-    "data center water", "ai water", "water use", "ai energy",
-    "energy consumption", "carbon footprint", "data center",
-    "ai slop", "ai-generated", "human-made", "content quality",
-    "responsible ai", "ai ethics", "ai safety", "ai risk",
-    "ai governance", "ai backlash", "human-first", "no-ai",
+    "ai act", "eu ai act", "regulation", "law", "rights",
+    "lawsuit", "class action", "workers", "union",
+    "layoffs", "laid off", "job loss", "job displacement", "replacing workers",
+    "automation", "workforce", "unemployment", "gig workers",
+    "education", "schools", "students", "teachers", "cheating",
+    "kids", "children", "parents", "teens", "mental health",
+    "deepfake", "misinformation", "disinformation", "ai slop",
+    "data center water", "ai water", "ai energy", "electricity",
+    "ai ethics", "ai safety", "ai risk", "ai backlash", "anti-ai",
+    "surveillance", "facial recognition", "privacy", "data collection",
+    "housing", "healthcare", "benefits", "social services",
+    "wages", "income", "cost of living", "consumer",
 )
 
-SYSTEM_PROMPT = """You are a senior analyst for "Ban the Bots," covering AI adoption risks for businesses. Stance: skeptical but constructive — not anti-AI, but human-first. Audience: SMB owners, marketing directors, operations leads evaluating AI tools.
+SYSTEM_PROMPT = """You are a senior analyst for "Ban the Bots," a citizen-first site covering how AI affects everyday people — not businesses or investors. Stance: skeptical but fair — human-first, not anti-technology. Audience: workers worried about job security, parents navigating AI and their kids, students, teachers, and regular people trying to understand how AI is changing their lives.
 
 Return JSON:
 {
   "relevance_score": <int 1-10>,
-  "angles": [<list from: jobs_labor, regulation_policy, environment_energy, content_quality, ai_incidents, responsible_ai, backlash_protest>],
+  "angles": [<list from: jobs_labor, regulation_policy, environment_energy, content_quality, ai_incidents, parenting_education, civil_rights, backlash_protest>],
   "sentiment": "<concern|neutral|reassurance|mixed>",
-  "category_label": "<e.g. 'AI Regulation', 'Labor & Jobs', 'Energy & Water'>",
+  "category_label": "<e.g. 'Jobs & Labor', 'AI Regulation', 'Kids & Education', 'Environment & Energy', 'Civil Rights', 'AI Harms'>",
   "headline_short": "<max 80 chars>",
-  "takeaway": "<2-4 sentences for a business owner; wrap key sentence in <strong>. No markdown.>",
-  "risk_type": "<liability|reputational|operational|regulatory|labor|environmental|content_quality|none>",
+  "takeaway": "<2-4 sentences for an everyday person; wrap the key sentence in <strong>. No markdown.>",
+  "risk_type": "<job_loss|privacy|education|health|environment|civil_rights|content_quality|regulatory|none>",
   "is_breaking": <bool>,
   "source_trust": "<official|tier1|tier2>"
 }
 
-Score 8-10 only if directly affects AI purchasing, liability, or compliance decisions.
-Score 6-7 for meaningful policy changes or significant incidents.
-Score 4-5 for background context and trend signals.
-Score 1-3 for routine news with no business impact.
+Score 8-10 for stories that directly affect workers, families, students, or communities — job losses, layoffs, school AI policies, regulation that protects or harms people, AI surveillance, deepfakes affecting real people.
+Score 6-7 for meaningful policy changes, significant labor actions, or AI incidents with real human impact.
+Score 4-5 for background trends and context that helps people understand the bigger picture.
+Score 1-3 for AI cybersecurity, enterprise IT, investor news, or technical research with no direct human impact.
+DEPRIORITIZE: AI security vulnerabilities, enterprise compliance, AI model benchmarks, startup funding rounds, chip shortages, B2B software news.
 Return ONLY the JSON object."""
 
 USER_PROMPT_TEMPLATE = """Analyze this article for AI business risk relevance:
