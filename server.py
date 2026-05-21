@@ -969,8 +969,8 @@ def fighting_back_index():
                         "actions from SAG-AFTRA to the EU AI Act."
                     ),
                     "keywords": (
-                        "anti ai, no ai policy, companies against ai, stop ai, ai boycott, "
-                        "union ai contract, ai worker protection, no ai movement"
+                        "anti ai, against machines, no ai policy, companies against ai, stop ai, "
+                        "ai boycott, union ai contract, ai worker protection, no ai movement, anti ai movement"
                     ),
                     "canonical": f"{_base_url()}/fighting-back/",
                 },

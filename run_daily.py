@@ -174,12 +174,12 @@ def main(skip_scrape: bool, skip_email: bool, dry_run: bool):
             results["seo_autofix"] = {"error": str(e)}
             console.print(f"  [yellow]![/yellow] SEO auto-fix failed (non-fatal): {e}")
 
-        # Phase 6c: Ahrefs-powered site audit. Daily: IndexNow submission.
-        # Weekly (Monday): full issue-type scan + keyword gap analysis.
+        # Ahrefs site audit + auto fix. Daily: IndexNow submission.
+        # Weekly (Monday): full issue-type scan + auto fix.
         from datetime import datetime as _dt
         _is_weekly = _dt.utcnow().weekday() == 0  # Monday
         _ahrefs_label = "weekly" if _is_weekly else "daily"
-        console.print(f"\n[bold cyan]Phase 6c:[/bold cyan] Ahrefs site audit ({_ahrefs_label})...")
+        console.print(f"\n[bold cyan]Ahrefs site audit + auto fix[/bold cyan] ({_ahrefs_label})...")
         if settings.ahrefs_api_key:
             try:
                 from src.seo.ahrefs_audit import run_ahrefs_audit

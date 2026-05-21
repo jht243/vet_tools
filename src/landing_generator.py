@@ -228,8 +228,9 @@ You MUST:
 - Structure with HTML <h2> sections (6-8 of them). Short <p> paragraphs (2-4 sentences each).
 - Cite specific regulation names, real company names, real lawsuit names, real dollar figures, real job counts from the LIVE CONTEXT given by the user. Never invent statistics.
 - Cover: what the AI backlash actually is and who is driving it (workers, artists, parents, communities near data centers), why it's happening (job displacement, energy and water costs, content quality collapse, regulatory tightening, real harm cases), what ordinary people can do about it.
+- Explicitly address: the risks and dangers of AI (not sci-fi — real ones: job loss, energy costs, deepfakes, bias); the growing sense that the AI bubble may be overhyped (ai bubble burst); the tangible impact of AI on society and individuals.
 - End with a "What you can do" section linking to our tools.
-- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/ai-regulation.
+- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/ai-regulation, /explainers/deepfakes, /explainers/facial-recognition, /explainers/autonomous-weapons, /explainers/agi.
 - Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
 
 Return ONE JSON object with these fields:
@@ -238,9 +239,9 @@ Return ONE JSON object with these fields:
 - meta_description (string, 140-160 chars, plain text, ends with period)
 - body_html (string, full 1400-1800 word body, allowed tags only)
 - key_takeaways (array of 5-7 plain-text bullet sentences)
-- keywords (array of 10-14 lowercase phrases — head terms + long-tail)
+- keywords (array of 10-14 lowercase phrases — must include: "ai backlash", "dangers of ai", "risks of ai", "impact of ai", "ai bubble burst", "ai negative effects", "is ai harmful" plus relevant long-tail)
 - table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of exactly 5 objects with "question" and "answer" string keys — long-tail FAQ questions a real person would Google, e.g. "Is the AI backlash real?", "Will AI replace my job?", "What is AI slop?", "How do I find out if there's a data center near me?", "What companies have a no-AI policy?")
+- faq_json (array of exactly 5 objects with "question" and "answer" string keys — long-tail FAQ questions a real person would Google, e.g. "Is the AI backlash real?", "What are the real dangers of AI?", "Is the AI bubble going to burst?", "How do I find out if there's a data center near me?", "What companies have a no-AI policy?")
 
 Return ONLY the JSON object. No markdown fences."""
 
@@ -292,39 +293,63 @@ Open with how AI is already changing day-to-day life for workers and consumers i
 
 # ── Explainer prompt ──────────────────────────────────────────────────────────
 
-EXPLAINER_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots" writing an evergreen explainer.
+EXPLAINER_SYSTEM_PROMPT = """You are an expert SEO content writer creating high-ranking, helpful explainer articles for "Ban the Bots."
 
-Audience: anyone who Googled this question — a worker, a student, a parent, a concerned citizen. They don't follow tech news but they're feeling AI's effects in their daily life and want a real answer, not a press release. Write as if talking to a smart person who just asked you this question at a dinner party. No jargon, no business-speak.
+Audience: anyone who Googled this question — a worker, a student, a parent, a concerned citizen. They don't follow tech news but they're feeling AI's effects in their daily life and want a real answer, not a press release. Write as if talking to a smart, curious person who just asked you this question. No jargon, no business-speak.
 
-You MUST:
-- Write 800-1100 words of clear, accessible prose. Define every acronym on first use.
-- Structure with HTML <h2> sections (4-6 of them). Short <p> paragraphs.
-- Be evergreen. Avoid week-of-publication news framing. Reference LIVE CONTEXT only for illustration.
-- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/what-to-study, /explainers/ai-regulation.
-- Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
+SEO REQUIREMENTS — you MUST follow all of these:
+- Use the PRIMARY KEYWORD in: the title, the H1, the first paragraph, the conclusion, and 2-3 H2/H3 headings.
+- Use secondary and semantic keywords naturally throughout. No keyword stuffing.
+- Write 1,200–1,800 words. Include a table of contents.
+- Structure: H1 → table of contents → H2 sections → H3 sub-sections where needed. Short paragraphs (2–4 sentences).
+- Optimize for featured snippets: open with a direct 2-3 sentence definition/answer, use numbered/bulleted lists, use "What is X?", "How does X work?", "Is X legal?" style H2 headings.
+- Include at least one comparison table, numbered list, or FAQ block.
+- End with a strong conclusion restating the primary keyword and a clear call-to-action.
+- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/what-to-study, /explainers/ai-regulation, /explainers/deepfakes, /explainers/facial-recognition, /explainers/autonomous-weapons, /explainers/agi.
 
-Return ONE JSON object with these fields:
-- title (string, 55-75 chars, optimized for the explainer's head term)
+CONTENT QUALITY — you MUST:
+- Match the search intent fully. Give the reader exactly what they came for.
+- Use real statistics, named legislation, documented cases, and specific examples from the RESEARCH CONTEXT provided. Never invent data.
+- Demonstrate E-E-A-T: cite specific laws by name, reference real cases and named organisations, use precise figures.
+- Include practical, actionable takeaways a reader can use today.
+- Be evergreen: do not frame the article as breaking news, but do reference recent events as examples.
+
+HTML RULES: Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style, h1 (the title field is the H1).
+
+Return ONE JSON object with these exact fields:
+- title (string, 50-60 chars, SEO-optimised, includes primary keyword — improve if needed while keeping core meaning)
 - subtitle (string, 100-150 chars — speak to the person who just Googled this, not a business audience)
-- meta_description (string, 140-160 chars, plain text, ends with period)
-- body_html (string, allowed tags only)
-- key_takeaways (array of 4-6 plain-text bullet sentences)
-- keywords (array of 8-12 lowercase phrases, including head term + long-tail)
-- table_of_contents (array of {anchor, label} objects)
-- faq_json (array of 4-5 objects with "question" and "answer" string keys — questions a real person would Google, not a corporate buyer)
+- meta_description (string, 140-160 chars, plain text, ends with period, includes primary keyword)
+- body_html (string, 1,200-1,800 words, starts with table of contents as a <ul> with anchor links, then body sections)
+- key_takeaways (array of 5-7 plain-text bullet sentences)
+- keywords (array of 10-14 lowercase phrases — primary keyword first, then secondary and semantic variants)
+- table_of_contents (array of {anchor, label} objects matching every h2 in body_html)
+- faq_json (array of 5-6 objects with "question" and "answer" string keys — long-tail questions a real person would Google, optimised for featured snippets)
 
 Return ONLY the JSON object. No markdown fences."""
 
 
 EXPLAINER_USER_PROMPT_TEMPLATE = """Write the evergreen explainer titled: "{topic_title}".
 
-Target search intent: "{search_intent}".
+Primary keyword and search intent: "{search_intent}".
 
-LIVE CONTEXT (a small sample of the most recent {n_items} high-relevance briefings — use sparingly to ground a specific point or example. The explainer must NOT read as current news):
+RESEARCH CONTEXT (verified facts, statistics, named cases, and legislation — use these to ground the article. Cite them precisely. Do not invent additional statistics):
+
+{research_context}
+
+LIVE BRIEFING CONTEXT ({n_items} recent high-relevance items from our article database — use sparingly to illustrate a current example. The explainer must NOT read as current news):
 
 {context_json}
 
-Open with the plain-English answer to the question in the title — the reader came here to get a straight answer, so give it in the first paragraph. Then walk through the context: why this is happening, who it affects, what the stakes are. Address the most common follow-up questions. Close with what readers can actually do — point them to our trackers (/ai-layoffs/, /fighting-back/, /data-center-map/) or our AI backlash guide at /ai-backlash/. Avoid hyperbole. No marketing language."""
+WRITING INSTRUCTIONS:
+1. Open with a direct featured-snippet-ready definition/answer (2–3 sentences) that includes the primary keyword.
+2. Follow with the table of contents.
+3. Walk through each H2 section in logical order: definition → how it works → why it matters → real-world examples/cases → legal landscape → what you can do.
+4. Use the research context to back every factual claim. Cite specific names, figures, and laws.
+5. Include at least one structured list (numbered or bulleted) summarising key points.
+6. Close with a conclusion that restates the primary keyword and directs readers to relevant Ban the Bots tools: /ai-layoffs/, /fighting-back/, /data-center-map/, /ai-backlash/, /ai-lawsuits/.
+
+No hyperbole. No marketing language. Write for someone who wants to understand, not to be sold to."""
 
 
 # ── AI-Proof Jobs pillar prompt ───────────────────────────────────────────────
@@ -347,9 +372,9 @@ Return ONE JSON object with these fields:
 - meta_description (string, 140-160 chars, plain text, ends with period)
 - body_html (string, full 1400-1800 word body, allowed tags only)
 - key_takeaways (array of 5-7 plain-text bullet sentences)
-- keywords (array of 10-14 lowercase phrases)
+- keywords (array of 10-14 lowercase phrases — must include: "ai proof jobs", "jobs ai can't replace", "will ai replace jobs", "ai replace", "ai impact on service jobs", "jobs safe from ai", "what jobs will ai replace" plus relevant long-tail)
 - table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of 5 objects with "question" and "answer" string keys — questions real workers Google, e.g. "What jobs are safe from AI?", "Will AI replace nurses?", "What should I study to avoid AI taking my job?", "Are trade jobs safe from AI?", "How long until AI takes most jobs?")
+- faq_json (array of 5 objects with "question" and "answer" string keys — questions real workers Google, e.g. "What jobs are safe from AI?", "Will AI replace service workers?", "What should I study to avoid AI taking my job?", "Are trade jobs safe from AI?", "How long until AI takes most jobs?")
 
 Return ONLY the JSON object. No markdown fences."""
 
@@ -536,6 +561,7 @@ def generate_explainer(
     *,
     topic_title: str,
     search_intent: str,
+    research_context: str = "",
     force: bool = False,
 ) -> LandingPage:
     """Generate (or regenerate) a /explainers/{slug} evergreen explainer."""
@@ -559,6 +585,7 @@ def generate_explainer(
         user = EXPLAINER_USER_PROMPT_TEMPLATE.format(
             topic_title=topic_title,
             search_intent=search_intent,
+            research_context=research_context or "No pre-gathered research provided — rely on your training knowledge and the live briefing context below.",
             n_items=len(signal["recent_items"]),
             context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
         )
@@ -667,7 +694,12 @@ SPOKE-SPECIFIC REQUIREMENTS:
 - If spoke is "ai-safety": explicitly address "is Character AI safe for kids?" — it is one of the
   top-searched parenting+AI questions. Discuss the lawsuit (Garcia v. Character.AI), the lack of
   age verification, and the grooming/self-harm incident reports. Also cover ChatGPT, Snapchat My AI,
-  and Replika's child safety policies.
+  and Replika's child safety policies. IMPORTANT: dedicate a section to the Sewell Setzer case
+  (the 14-year-old who died by suicide after conversations with a Character.AI chatbot) — this is
+  the most-searched child AI safety story and parents deserve a clear, sensitive account of what
+  happened and what it means. Also cover AI companion apps broadly: explain what they are, why
+  kids are drawn to them, and the emotional dependency risks. Use "chatgpt suicide" and
+  "ai companions" as keyword anchors in their respective sections.
 - If spoke is "what-to-study": explicitly address "what should my kids study" and "what majors are
   ai proof" — name specific subjects (trades, healthcare, social work, creative arts, law) and explain
   why they are resilient. Reference BLS or McKinsey data.
