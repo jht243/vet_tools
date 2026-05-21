@@ -104,18 +104,22 @@ SEED_EXPLAINERS = [
 @click.option("--skip-industry", is_flag=True, help="Skip the 8 industry pages")
 @click.option("--skip-explainers", is_flag=True, help="Skip the seed explainer pages")
 @click.option("--skip-ai-proof-jobs", is_flag=True, help="Skip the /ai-proof-jobs/ pillar page")
-def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: bool, skip_ai_proof_jobs: bool):
+@click.option("--skip-parents", is_flag=True, help="Skip the /parents/ hub and spoke pages")
+def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: bool, skip_ai_proof_jobs: bool, skip_parents: bool):
     """Ban the Bots — Generate / refresh all landing pages."""
 
     console.print(Panel("[bold]Ban the Bots — Landing Page Generator[/bold]", style="blue"))
 
     from src.landing_generator import (
         INDUSTRY_SLUGS,
+        PARENT_SPOKE_SLUGS,
         generate_pillar_page,
         generate_ai_proof_jobs_pillar,
         generate_industry_page,
         generate_all_industry_pages,
         generate_explainer,
+        generate_parent_hub,
+        generate_parent_spoke,
     )
 
     results: list[tuple[str, str, float | None]] = []  # (path, status, cost)
@@ -200,6 +204,35 @@ def main(force: bool, skip_pillar: bool, skip_industry: bool, skip_explainers: b
                 console.print(f"  [red]✗[/red] {slug}: {e}")
     else:
         console.print("\n[dim]Phase 3: Explainers — SKIPPED[/dim]")
+
+    # ── Parenting hub + spokes ────────────────────────────────────────────────
+    if not skip_parents:
+        console.print(f"\n[bold cyan]Phase 4:[/bold cyan] Parenting hub + {len(PARENT_SPOKE_SLUGS)} spoke pages ...")
+        # Hub first
+        try:
+            row = generate_parent_hub(force=force)
+            cost = row.llm_cost_usd or 0.0
+            total_cost += cost
+            results.append((row.canonical_path, "ok", cost))
+            console.print(f"  [green]✓[/green] {row.canonical_path} — {row.word_count} words, ${cost:.4f}")
+        except Exception as e:
+            logger.error("Parent hub failed: %s", e, exc_info=True)
+            results.append(("/parents/", f"error: {e}", None))
+            console.print(f"  [red]✗[/red] /parents/: {e}")
+        # Spoke pages
+        for slug in PARENT_SPOKE_SLUGS:
+            try:
+                row = generate_parent_spoke(slug, force=force)
+                cost = row.llm_cost_usd or 0.0
+                total_cost += cost
+                results.append((row.canonical_path, "ok", cost))
+                console.print(f"  [green]✓[/green] {row.canonical_path} — {row.word_count} words, ${cost:.4f}")
+            except Exception as e:
+                logger.error("Parent spoke %s failed: %s", slug, e, exc_info=True)
+                results.append((f"/parents/{slug}/", f"error: {e}", None))
+                console.print(f"  [red]✗[/red] /parents/{slug}/: {e}")
+    else:
+        console.print("\n[dim]Phase 4: Parenting hub — SKIPPED[/dim]")
 
     # ── Summary ───────────────────────────────────────────────────────────────
     elapsed = time.time() - start

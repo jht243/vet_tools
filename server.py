@@ -920,6 +920,38 @@ def fighting_back_index():
         abort(500)
 
 
+# ── Parenting Hub ────────────────────────────────────────────────────
+
+@app.route("/parents/")
+@app.route("/parents")
+def parents_hub():
+    try:
+        from src.page_renderer import _env as _pr_env
+
+        tmpl = _pr_env.get_template("parents_index.html.j2")
+        html = tmpl.render(
+            site_name=settings.site_name,
+            canonical_url=f"{_base_url()}/parents/",
+        )
+        return Response(html, mimetype="text/html")
+    except Exception as exc:
+        logger.exception("parents hub render failed: %s", exc)
+        abort(500)
+
+
+_VALID_PARENT_SPOKES = frozenset({
+    "screen-time", "what-to-study", "ai-safety", "how-to-use-ai-for-good", "social-media"
+})
+
+
+@app.route("/parents/<spoke>/")
+@app.route("/parents/<spoke>")
+def parent_spoke(spoke: str):
+    if spoke not in _VALID_PARENT_SPOKES:
+        abort(404)
+    return _serve_landing_page(f"parent:{spoke}")
+
+
 # ── Tool Placeholders ─────────────────────────────────────────────────
 
 _TOOL_PAGES = {
@@ -1219,6 +1251,15 @@ def sitemap_xml():
         {"loc": f"{base}/no-ai-policy-template/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
         {"loc": f"{base}/human-made-policy-template/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
     ]
+
+    # Parent spoke pages
+    for spoke in ["screen-time", "what-to-study", "ai-safety", "how-to-use-ai-for-good", "social-media"]:
+        static_urls.append({
+            "loc": f"{base}/parents/{spoke}/",
+            "lastmod": today_iso,
+            "changefreq": "biweekly",
+            "priority": "0.8",
+        })
 
     # Industry landing pages
     for slug in ["healthcare", "finance", "legal", "retail", "education", "manufacturing", "real-estate", "marketing"]:

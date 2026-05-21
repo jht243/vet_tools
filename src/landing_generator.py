@@ -585,6 +585,178 @@ def generate_explainer(
         db.close()
 
 
+PARENT_SPOKE_SLUGS: tuple[str, ...] = (
+    "screen-time",
+    "what-to-study",
+    "ai-safety",
+    "how-to-use-ai-for-good",
+    "social-media",
+)
+
+PARENT_SPOKE_LABELS: dict[str, str] = {
+    "screen-time": "AI & Screen Time",
+    "what-to-study": "What Should My Kids Study?",
+    "ai-safety": "AI Safety for Kids",
+    "how-to-use-ai-for-good": "Using AI for Good",
+    "social-media": "AI & Social Media",
+}
+
+PARENT_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing content for parents of school-age children (ages 6–18).
+
+Audience: parents who are worried about AI's effect on their kids — not from a tech perspective, but from a parenting one. They want to know: Is my kid safe? Are they falling behind or getting ahead? What do I actually say to them about AI? They use Google, not Hacker News. Write warmly but credibly. Use plain English. Avoid jargon.
+
+Tone: like a knowledgeable friend who happens to have read the research — not a tech blogger, not a consultant. Concerned, honest, practical.
+
+Cover real research. Name real platforms and products (TikTok, ChatGPT, Instagram, YouTube, Khan Academy, etc.). Give practical actions parents can take this week, not abstract advice.
+
+Valid internal URLs (use these naturally to connect content — do NOT use external links except for sources):
+/parents/ — parenting hub homepage
+/parents/screen-time/ — AI and kids' screen time
+/parents/what-to-study/ — what to encourage kids to study
+/parents/ai-safety/ — deepfakes, inappropriate content, AI safety
+/parents/how-to-use-ai-for-good/ — AI as homework helper vs crutch
+/parents/social-media/ — AI recommendation engines and children
+/ai-proof-jobs/ — AI-proof jobs guide
+/will-ai-replace-my-job/ — job risk checker
+/explainers/what-to-study — explainer on future-proof studies
+/explainers/ai-regulation — AI laws and regulations
+/briefing — daily AI briefings
+/ai-backlash/ — AI backlash explainer
+
+Return a JSON object with these exact keys:
+{
+  "title": "...",
+  "subtitle": "...",
+  "meta_description": "...",
+  "body_html": "...",
+  "key_takeaways": ["...", "...", "..."],
+  "keywords": ["...", "..."],
+  "table_of_contents": [{"id": "...", "text": "..."}, ...],
+  "faq_json": [{"question": "...", "answer": "..."}, ...]
+}"""
+
+PARENT_HUB_USER_PROMPT = """Write the hub/overview page for the "Parenting in the Age of AI" section of Ban the Bots.
+
+This hub page should:
+- Open with an honest, warm framing: AI is reshaping childhood fast, parents are right to have questions, and this section is here to help
+- Briefly introduce each of the 5 sub-topics: screen time, what to study, AI safety, using AI for good, social media
+- Give a 2–3 sentence preview of what each spoke covers and why it matters for parents
+- Link naturally to each spoke page: /parents/screen-time/, /parents/what-to-study/, /parents/ai-safety/, /parents/how-to-use-ai-for-good/, /parents/social-media/
+- Close with practical encouragement: the goal isn't to fear AI but to navigate it as a family
+
+Keep it relatively concise — this is a navigation hub, not a deep-dive article. ~600–900 words body."""
+
+PARENT_SPOKE_USER_PROMPT_TEMPLATE = """Write a deep-dive article for the "Parenting in the Age of AI" section of Ban the Bots.
+
+Topic: {spoke_label}
+URL: /parents/{spoke_slug}/
+
+LIVE CONTEXT ({n_items} recent high-relevance items from our article database — use these to ground your analysis in real, dated events):
+
+{context_json}
+
+This article should:
+- Open with a specific, relatable scenario a parent would recognize
+- Cite real research, studies, or expert recommendations (name the source)
+- Name real products and platforms parents and kids actually use
+- Give 5–7 concrete actions a parent can take (not vague advice)
+- Connect to other spoke pages where relevant
+- Avoid condescension — parents reading this are smart; they just need the information
+
+Target length: 1,200–1,800 words body."""
+
+
+def generate_parent_hub(*, force: bool = False) -> LandingPage:
+    """Generate (or regenerate) the /parents/ hub page."""
+    if not settings.openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY not set; cannot generate parent hub")
+
+    init_db()
+    db = SessionLocal()
+    try:
+        page_key = "parent:hub"
+        if not force:
+            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
+            if existing and existing.last_generated_at and (
+                datetime.utcnow() - existing.last_generated_at < timedelta(days=14)
+            ):
+                logger.info("parent hub is fresh (regenerated %s); skipping", existing.last_generated_at)
+                return existing
+
+        client = OpenAI(api_key=settings.openai_api_key)
+        raw, usage = _premium_call(
+            client, system=PARENT_SYSTEM_PROMPT, user=PARENT_HUB_USER_PROMPT, max_tokens=6000
+        )
+        payload = json.loads(raw)
+
+        fields = _payload_to_landing_row(
+            payload,
+            page_key=page_key,
+            page_type="pillar",
+            canonical_path="/parents/",
+            sector_slug=None,
+            usage=usage,
+        )
+        row = _upsert_landing(db, fields)
+        logger.info(
+            "parent hub generated: %d words, model=%s, cost=$%.4f",
+            row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
+        )
+        return row
+    finally:
+        db.close()
+
+
+def generate_parent_spoke(spoke_slug: str, *, force: bool = False) -> LandingPage:
+    """Generate (or regenerate) a /parents/{spoke_slug}/ article."""
+    if spoke_slug not in PARENT_SPOKE_SLUGS:
+        raise ValueError(f"Unknown parent spoke: {spoke_slug!r}. Valid slugs: {PARENT_SPOKE_SLUGS}")
+    if not settings.openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY not set; cannot generate parent spoke")
+
+    init_db()
+    db = SessionLocal()
+    try:
+        page_key = f"parent:{spoke_slug}"
+        if not force:
+            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
+            if existing and existing.last_generated_at and (
+                datetime.utcnow() - existing.last_generated_at < timedelta(days=14)
+            ):
+                logger.info("parent spoke %s is fresh; skipping", spoke_slug)
+                return existing
+
+        signal = _gather_recent_signal(db, limit=15, angles_filter=["jobs_labor", "ai_incidents", "regulation_policy"])
+        label = PARENT_SPOKE_LABELS[spoke_slug]
+        user = PARENT_SPOKE_USER_PROMPT_TEMPLATE.format(
+            spoke_label=label,
+            spoke_slug=spoke_slug,
+            n_items=len(signal["recent_items"]),
+            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
+        )
+
+        client = OpenAI(api_key=settings.openai_api_key)
+        raw, usage = _premium_call(client, system=PARENT_SYSTEM_PROMPT, user=user, max_tokens=10000)
+        payload = json.loads(raw)
+
+        fields = _payload_to_landing_row(
+            payload,
+            page_key=page_key,
+            page_type="pillar",
+            canonical_path=f"/parents/{spoke_slug}/",
+            sector_slug=None,
+            usage=usage,
+        )
+        row = _upsert_landing(db, fields)
+        logger.info(
+            "parent spoke %s generated: %d words, model=%s, cost=$%.4f",
+            spoke_slug, row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
+        )
+        return row
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(name)-30s  %(levelname)-8s  %(message)s")
     page = generate_pillar_page(force=True)
