@@ -24,6 +24,15 @@ from src.config import settings
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 _STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
+_ACRONYMS = {"ai", "eu", "ftc", "bls", "doe", "iea", "llm", "seo"}
+
+
+def _slug_to_label(slug: str) -> str:
+    return " ".join(
+        w.upper() if w.lower() in _ACRONYMS else w.title()
+        for w in slug.replace("-", " ").split()
+    )
+
 app = Flask(
     __name__,
     static_folder=str(_STATIC_DIR),
@@ -301,7 +310,7 @@ def briefing_post(slug: str):
 def explainers_index():
     try:
         from src.models import LandingPage, SessionLocal, init_db
-        from src.page_renderer import render_landing_page
+        from src.page_renderer import _env as _pr_env
 
         init_db()
         db = SessionLocal()
@@ -312,18 +321,14 @@ def explainers_index():
                 .order_by(LandingPage.last_generated_at.desc())
                 .all()
             )
-            # Render a simple listing page
-            from jinja2 import Environment, FileSystemLoader
-            env = Environment(loader=FileSystemLoader("templates"))
             try:
-                tmpl = env.get_template("explainers_index.html.j2")
+                tmpl = _pr_env.get_template("explainers_index.html.j2")
                 html = tmpl.render(
                     pages=pages,
                     site_name=settings.site_name,
                     canonical_url=f"{_base_url()}/explainers",
                 )
             except Exception:
-                # Fallback: redirect to briefing index if template missing
                 return redirect("/briefing", code=302)
             return Response(html, mimetype="text/html")
         finally:
@@ -339,7 +344,7 @@ def explainers_index():
 def explainer_page(slug: str):
     try:
         from src.models import LandingPage, BlogPost, SessionLocal, init_db
-        from src.page_renderer import render_landing_page
+        from src.page_renderer import render_landing_page, _env as _pr_env
 
         init_db()
         db = SessionLocal()
@@ -350,7 +355,23 @@ def explainer_page(slug: str):
                 .first()
             )
             if not page:
-                abort(404)
+                label = _slug_to_label(slug)
+                _tool = {
+                    "slug": slug,
+                    "title": label,
+                    "subtitle": "In-depth coverage for this topic is on the way.",
+                    "description": (
+                        "Our editorial team is preparing a plain-English explainer for this topic. "
+                        "Browse our daily briefings while you wait."
+                    ),
+                }
+                tmpl = _pr_env.get_template("tool_placeholder.html.j2")
+                stub_html = tmpl.render(
+                    tool=_tool,
+                    site_name=settings.site_name,
+                    canonical_url=f"{_base_url()}/explainers/{slug}",
+                )
+                return Response(stub_html, mimetype="text/html")
             recent = (
                 db.query(BlogPost)
                 .order_by(BlogPost.published_date.desc())
@@ -385,7 +406,6 @@ def responsible_ai_index():
     ]
     try:
         from src.models import LandingPage, SessionLocal, init_db
-        from jinja2 import Environment, FileSystemLoader
 
         init_db()
         db = SessionLocal()
@@ -401,13 +421,13 @@ def responsible_ai_index():
                 p = pages_by_slug.get(slug)
                 industries.append({
                     "slug": slug,
-                    "label": p.title if p else slug.replace("-", " ").title(),
+                    "label": p.title if p else _slug_to_label(slug),
                     "summary": p.summary if p else "",
                 })
 
-            env = Environment(loader=FileSystemLoader("templates"))
             try:
-                tmpl = env.get_template("responsible_ai_index.html.j2")
+                from src.page_renderer import _env as _pr_env
+                tmpl = _pr_env.get_template("responsible_ai_index.html.j2")
                 html = tmpl.render(
                     industries=industries,
                     site_name=settings.site_name,
@@ -441,7 +461,23 @@ def _serve_landing_page(page_key: str) -> Response:
         try:
             page = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
             if not page:
-                abort(404)
+                # Content not yet generated — render holding page via tool_placeholder template.
+                from src.page_renderer import _env as _pr_env
+                slug = page_key.split(":", 1)[-1]
+                label = _slug_to_label(slug)
+                _tool = {
+                    "slug": slug,
+                    "title": label,
+                    "subtitle": "In-depth coverage for this topic is on the way.",
+                    "description": (
+                        "Our editorial team is preparing detailed analysis for this page. "
+                        "It will be available shortly. Browse our daily briefings or explore "
+                        "the AI Incident Tracker in the meantime."
+                    ),
+                }
+                tmpl = _pr_env.get_template("tool_placeholder.html.j2")
+                stub_html = tmpl.render(tool=_tool, site_name=settings.site_name, canonical_url=f"{_base_url()}/{slug}/")
+                return Response(stub_html, mimetype="text/html")
             recent = (
                 db.query(BlogPost)
                 .order_by(BlogPost.published_date.desc())
