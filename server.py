@@ -602,6 +602,70 @@ def ai_incident_detail(incident_id: int):
         abort(500)
 
 
+# ── Data Center Map ───────────────────────────────────────────────────
+
+@app.route("/data-center-map/")
+@app.route("/data-center-map")
+def data_center_map():
+    try:
+        from src.models import DataCenter, SessionLocal, init_db
+        from src.page_renderer import _env as _pr_env
+
+        init_db()
+        db = SessionLocal()
+        try:
+            data_centers = (
+                db.query(DataCenter)
+                .order_by(DataCenter.state, DataCenter.name)
+                .all()
+            )
+
+            total = len(data_centers)
+            proposed_count = sum(
+                1 for dc in data_centers
+                if dc.status in ("proposed", "under_construction")
+            )
+            total_mw = sum(dc.capacity_mw for dc in data_centers if dc.capacity_mw)
+
+            map_data = []
+            for dc in data_centers:
+                if dc.lat is None or dc.lng is None:
+                    continue
+                map_data.append({
+                    "name": dc.name,
+                    "operator": dc.operator,
+                    "status": dc.status,
+                    "city": dc.city,
+                    "state": dc.state,
+                    "county": dc.county,
+                    "country": dc.country,
+                    "lat": dc.lat,
+                    "lng": dc.lng,
+                    "capacity_mw": dc.capacity_mw,
+                    "water_source": dc.water_source,
+                    "announced_date": dc.announced_date.isoformat() if dc.announced_date else None,
+                    "notes": dc.notes,
+                    "source_url": dc.source_url,
+                })
+
+            tmpl = _pr_env.get_template("data_center_map.html.j2")
+            html = tmpl.render(
+                data_centers=data_centers,
+                map_data=map_data,
+                total=total,
+                proposed_count=proposed_count,
+                total_mw=total_mw or 0,
+                site_name=settings.site_name,
+                canonical_url=f"{_base_url()}/data-center-map/",
+            )
+            return Response(html, mimetype="text/html")
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.exception("data-center-map render failed: %s", exc)
+        abort(500)
+
+
 # ── AI Layoffs ────────────────────────────────────────────────────────
 
 _LAYOFFS_PER_PAGE = 30
