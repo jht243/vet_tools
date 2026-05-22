@@ -163,7 +163,7 @@ class Settings(BaseSettings):
     # The IndexNow key — generated in Bing Webmaster Tools. Not a secret: it's
     # publicly hosted at /{key}.txt to prove domain ownership. Override via
     # INDEXNOW_KEY env var in production.
-    indexnow_key: str = ""
+    indexnow_key: str = "dc557f6bfced447aa1a71771d8a0d24a"
 
     # ── Distribution: Google Indexing API ─────────────────────────────────────
     # Service-account JSON pasted as a single env var (the entire JSON blob,
