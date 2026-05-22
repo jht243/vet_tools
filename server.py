@@ -70,6 +70,19 @@ _NAV_CACHE_PATHS = frozenset({
 })
 
 
+@app.before_request
+def _redirect_www_to_apex():
+    """301-redirect www.banthebots.org → banthebots.org so the canonical domain
+    is always the apex. Without this, both versions serve 200 and Ahrefs sees
+    the canonical tag pointing to a URL that 301s back to www — a canonical loop."""
+    host = request.host or ""
+    if host.startswith("www."):
+        apex = host[4:]
+        url = request.url.replace(f"://{host}", f"://{apex}", 1)
+        return redirect(url, code=301)
+    return None
+
+
 @app.after_request
 def _gzip_response(response: Response) -> Response:
     try:
