@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     # SEO / canonical URL — base URL of the deployed site. Used for canonical
     # <link>, sitemap entries, JSON-LD identifiers, and OG share URLs. Override
     # via SITE_URL env var when a custom domain is added.
-    site_url: str = "https://rankandpay.org"
+    site_url: str = "https://www.rankandpay.org"
     site_name: str = "Rank and Pay"
     site_owner_org: str = "Rank and Pay"
     site_locale: str = "en_US"
@@ -110,25 +110,20 @@ class Settings(BaseSettings):
     def canonical_site_url(self) -> str:
         """Customer-facing base URL (emails, canonical links, sitemap).
 
-        Render and other hosts may set SITE_URL to a *.onrender.com hostname
-        or the legacy www hostname. We always prefer the live bare domain
-        because www currently redirects there, and sitemap URLs must share the
-        final sitemap host.
+        Always returns https://www.rankandpay.org unless a different custom
+        domain is explicitly set via SITE_URL env var. Render hostnames
+        (*.onrender.com) are ignored and fall back to the www canonical.
         """
         u = (self.site_url or "").strip().rstrip("/")
         if not u.startswith(("http://", "https://")):
             u = "https://" + u
         lower = u.lower()
-        if (
-            not u
-            or "onrender.com" in lower
-            or lower
-            in {
-                "https://www.rankandpay.org",
-                "http://www.rankandpay.org",
-            }
-        ):
-            return "https://rankandpay.org"
+        # Fall back to www canonical for Render preview URLs or missing config
+        if not u or "onrender.com" in lower:
+            return "https://www.rankandpay.org"
+        # Normalise bare domain → www
+        if lower in {"https://rankandpay.org", "http://rankandpay.org"}:
+            return "https://www.rankandpay.org"
         return u
 
     # Long-form blog post generator. Each post is roughly 700-900 words and uses

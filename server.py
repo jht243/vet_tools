@@ -304,31 +304,42 @@ def _build_breadcrumbs(page: LandingPage) -> list[dict]:
 def _serve_landing_page(
     page_key: str, template: str = "landing.html.j2", **extra_ctx
 ) -> Response:
-    db = SessionLocal()
-    try:
-        page = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-        if not page:
-            abort(404)
-        seo = build_landing_page_seo(page)
-        faq = page.faq_json or []
-        jsonld = build_landing_page_jsonld(page, seo, faq_block=faq)
-        cluster_ctx = _build_cluster_ctx(page)
-        recent = _get_recent_briefings(limit=3, sector_filter=page.sector_slug)
-        breadcrumbs = _build_breadcrumbs(page)
-        html = render_template(
-            template,
-            page=page,
-            seo=seo,
-            jsonld=jsonld,
-            faq=faq,
-            breadcrumbs=breadcrumbs,
-            cluster_ctx=cluster_ctx,
-            recent_briefings=recent,
-            **extra_ctx,
-        )
-        return _gzip_response(html)
-    finally:
-        db.close()
+    # Use in-memory cache for landing pages to avoid repeated DB round-trips on
+    # every request. Cache key includes the template name so different templates
+    # for the same page_key don't collide. extra_ctx is intentionally not part
+    # of the key — it's only used for tool pages where content is client-side.
+    cache_key = f"lp:{page_key}:{template}"
+
+    def _render() -> str:
+        db = SessionLocal()
+        try:
+            page = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
+            if not page:
+                return ""
+            seo = build_landing_page_seo(page)
+            faq = page.faq_json or []
+            jsonld = build_landing_page_jsonld(page, seo, faq_block=faq)
+            cluster_ctx = _build_cluster_ctx(page)
+            recent = _get_recent_briefings(limit=3, sector_filter=page.sector_slug)
+            breadcrumbs = _build_breadcrumbs(page)
+            return render_template(
+                template,
+                page=page,
+                seo=seo,
+                jsonld=jsonld,
+                faq=faq,
+                breadcrumbs=breadcrumbs,
+                cluster_ctx=cluster_ctx,
+                recent_briefings=recent,
+                **extra_ctx,
+            )
+        finally:
+            db.close()
+
+    html = _cached_page(cache_key, _render)
+    if not html:
+        abort(404)
+    return _gzip_response(html)
 
 
 # ---------------------------------------------------------------------------
@@ -777,8 +788,10 @@ def sitemap():
         urls.append((f"{base}/tools/{tool}/", now, "monthly"))
     for state in sorted(US_STATES):
         urls.append((f"{base}/state-benefits/{state}/", now, "monthly"))
-    for slug in sorted(EXPLAINER_SLUGS):
-        urls.append((f"{base}/explainers/{slug}", now, "monthly"))
+    # Note: explainer pages are included via the DB landing-page query below,
+    # which uses canonical_path (already includes trailing slash). The hardcoded
+    # EXPLAINER_SLUGS loop is intentionally omitted here to avoid duplicate sitemap
+    # entries. The EXPLAINER_SLUGS set is still used for 404-gating the route.
 
     db = SessionLocal()
     try:
@@ -794,7 +807,7 @@ def sitemap():
                 )
             else:
                 lastmod = now
-            urls.append((f"{base}/briefing/{row.slug}", lastmod, "weekly"))
+            urls.append((f"{base}/briefing/{row.slug}/", lastmod, "weekly"))
 
         lp_rows = db.query(LandingPage.canonical_path, LandingPage.updated_at).all()
         for row in lp_rows:
@@ -926,7 +939,7 @@ def about_page():
 def privacy_page():
     seo = build_seo_base(
         title="Privacy Policy | Rank and Pay",
-        description="Privacy policy for Rank and Pay — how we collect, use, and protect your information.",
+        description="Rank and Pay Privacy Policy — learn how we collect, use, and protect your personal information when you use our free military pay and VA benefits tools.",
         path="/privacy/",
     )
     html = render_template("privacy.html.j2", seo=seo)

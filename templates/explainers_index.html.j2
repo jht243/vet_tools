@@ -21,7 +21,7 @@
   {% if pages %}
   <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
     {% for page in pages %}
-    <a href="/explainers/{{ page.slug }}/" class="cluster-card" style="text-decoration:none;color:inherit;">
+    <a href="{{ page.canonical_path }}" class="cluster-card" style="text-decoration:none;color:inherit;">
       <h2 style="font-size:1rem;color:var(--sr-blue);margin-bottom:0.3rem;">{{ page.title }}</h2>
       {% if page.subtitle %}
       <p style="font-size:0.875rem;color:var(--sr-gray-text);">{{ page.subtitle }}</p>
