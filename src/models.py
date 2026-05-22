@@ -361,7 +361,12 @@ class EmailCapture(Base):
 
 # ── DB engine / session ────────────────────────────────────────────────────────
 
-engine = create_engine(settings.database_url, echo=False)
+engine = create_engine(
+    settings.database_url,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=280,
+)
 SessionLocal = sessionmaker(bind=engine)
 _init_lock = Lock()
 _db_initialized = False
