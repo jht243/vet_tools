@@ -1,0 +1,281 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>CRSC vs CRDP Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">CRSC vs CRDP Calculator: Which Pays More?</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Compare Combat-Related Special Compensation (CRSC) and Concurrent Retirement and Disability Pay (CRDP) side by side to find which option maximizes your monthly income.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Enter Your Information</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Monthly Gross Military Retirement Pay</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);color:var(--sr-gray-text);">$</span>
+          <input type="number" id="retire-pay" value="2500" oninput="calcConcurrent()"
+            style="width:100%;padding:0.5rem 0.65rem 0.5rem 1.5rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        </div>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">VA Combined Disability Rating</label>
+        <select id="va-rating" onchange="calcConcurrent()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
+          <option value="40">40%</option><option value="50" selected>50%</option><option value="60">60%</option>
+          <option value="70">70%</option><option value="80">80%</option><option value="90">90%</option>
+          <option value="100">100%</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Is your disability combat-related?</label>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;padding-top:0.25rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="combat" value="yes" checked onchange="calcConcurrent()" style="accent-color:var(--sr-blue);"> Yes — combat, training, or hazardous service
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="combat" value="no" onchange="calcConcurrent()" style="accent-color:var(--sr-blue);"> No — not combat-related
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Results -->
+    <div id="cc-results" style="padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.25rem;">
+
+        <div id="crdp-card" style="background:#fff;border:2px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;text-align:center;">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.5rem;">CRDP — Monthly Total</div>
+          <div id="crdp-total" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">—</div>
+          <div id="crdp-note" style="font-size:0.8rem;color:var(--sr-gray-text);margin-top:0.5rem;"></div>
+        </div>
+
+        <div id="crsc-card" style="background:#fff;border:2px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;text-align:center;">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.5rem;">CRSC — Monthly Total</div>
+          <div id="crsc-total" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">—</div>
+          <div id="crsc-note" style="font-size:0.8rem;color:var(--sr-gray-text);margin-top:0.5rem;"></div>
+        </div>
+
+        <div id="winner-card" style="background:var(--sr-blue);color:#fff;border-radius:var(--radius);padding:1.25rem;text-align:center;">
+          <div style="font-size:0.8rem;opacity:0.8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.5rem;">Recommended</div>
+          <div id="winner-label" style="font-size:1.4rem;font-weight:700;">—</div>
+          <div id="winner-delta" style="font-size:0.85rem;opacity:0.85;margin-top:0.5rem;"></div>
+        </div>
+
+      </div>
+
+      <div id="cc-breakdown" style="font-size:0.85rem;color:var(--sr-gray-text);font-family:monospace;background:#fff;padding:0.75rem;border-radius:var(--radius);border:1px solid var(--sr-gray-light);white-space:pre-wrap;"></div>
+
+    </div>
+  </div>
+
+  <!-- Explanation -->
+  <section style="margin-bottom:2rem;">
+    <h2>What Is Concurrent Receipt?</h2>
+    <p>Historically, military retirees who also received VA disability compensation had their retirement pay reduced dollar-for-dollar by the amount of VA compensation. This was known as the "VA offset." Concurrent receipt programs were created to eliminate or reduce this offset, letting eligible veterans receive both benefits simultaneously.</p>
+    <p>There are two concurrent receipt programs, and a veteran can only use one at a time:</p>
+    <ul>
+      <li><strong>CRDP (Concurrent Retirement and Disability Pay):</strong> Gradually restored the VA offset for retirees with 20+ years of service and a VA rating of 50% or higher. At 50%+, retirement pay is fully restored — no offset. Available for all qualifying disabilities, not just combat-related.</li>
+      <li><strong>CRSC (Combat-Related Special Compensation):</strong> A separate tax-free payment for retirees whose disability was caused by combat, combat training, or instrumentalities of war. CRSC can pay more than CRDP in certain situations, especially at lower VA ratings, because it is not affected by the phase-in rules and is tax-free.</li>
+    </ul>
+  </section>
+
+  <!-- CRDP vs CRSC difference -->
+  <section style="margin-bottom:2rem;">
+    <h2>Key Differences: CRDP vs CRSC</h2>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <thead>
+          <tr style="background:var(--sr-blue);color:#fff;">
+            <th style="padding:0.6rem 0.75rem;text-align:left;">Feature</th>
+            <th style="padding:0.6rem 0.75rem;text-align:center;">CRDP</th>
+            <th style="padding:0.6rem 0.75rem;text-align:center;">CRSC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Taxable?</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">Yes (same as retirement pay)</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">No — tax-free</td></tr>
+          <tr style="background:var(--sr-gray-bg);"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Minimum VA rating</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">50% (full); 40% (phased)</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">10%+ (combat-related)</td></tr>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Combat requirement?</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">No</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">Yes</td></tr>
+          <tr style="background:var(--sr-gray-bg);"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Affects SBP base?</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">No</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">No</td></tr>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;">Applied automatically?</td><td style="padding:0.5rem;text-align:center;">Yes (if eligible)</td><td style="padding:0.5rem;text-align:center;">Must apply (DD Form 2860)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What qualifies as "combat-related" for CRSC?</summary>
+      <p style="margin-top:0.75rem;">CRSC covers disabilities caused by: (1) armed conflict, (2) hazardous duty such as parachute jumps, demolitions, or flight duty, (3) conditions caused by an instrumentality of war (e.g., exposure to Agent Orange, Gulf War illness from military equipment), or (4) combat training. Simply having a service-connected disability is not enough — the disability must have a direct link to one of these categories.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I switch between CRSC and CRDP each year?</summary>
+      <p style="margin-top:0.75rem;">Yes. You can elect to switch between CRSC and CRDP annually during the open season, or at any time if your circumstances change (e.g., a new VA rating decision). <a href="https://www.dfas.mil/RetiredMilitary/disability/" target="_blank" rel="noopener noreferrer">DFAS</a> will apply whichever program you are enrolled in. Use this calculator each year to verify which pays more as your VA rating or retirement pay changes.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How do I apply for CRSC?</summary>
+      <p style="margin-top:0.75rem;">You apply to your branch of service (Army, Navy, Air Force, Marines, or Coast Guard) using DD Form 2860. Include evidence linking your disability to a qualifying combat or hazardous activity. Your branch reviews the claim — not the VA. If approved, DFAS processes the payments. The process can take several months, and you may receive back pay from your effective date.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Do Chapter 61 (disability retirement) veterans qualify for CRDP?</summary>
+      <p style="margin-top:0.75rem;">No. CRDP is only for retirees who served 20+ years (longevity retirement). Chapter 61 (medical/disability retirement) veterans are generally not eligible for CRDP. However, Chapter 61 retirees may qualify for CRSC if their disability is combat-related and they meet the other requirements.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/military-retirement/concurrent-receipt-crsc-crdp/">Concurrent Receipt: CRSC vs CRDP Full Guide</a></li>
+      <li><a href="/tools/military-retirement-calculator/">Military Retirement Pay Calculator</a></li>
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This calculator provides estimates only. CRSC and CRDP calculations involve branch-specific rules, phase-in provisions, SBP interactions, and other factors not captured here. CRSC determinations are made by your branch of service, not the VA. See <a href="https://www.dfas.mil/RetiredMilitary/disability/" target="_blank" rel="noopener noreferrer">DFAS disability pay information</a> for official guidance. Consult a VSO or accredited VA claims agent for personalized advice.
+  </div>
+
+</main>
+
+<script>
+const VA_RATES = {0:0,10:175.51,20:346.95,30:537.42,40:774.16,50:1102.04,60:1395.93,70:1759.19,80:2044.89,90:2297.96,100:3831.30};
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function calcConcurrent() {
+  const retirePay   = parseFloat(document.getElementById('retire-pay').value) || 0;
+  const vaRating    = parseInt(document.getElementById('va-rating').value, 10);
+  const combatEl    = document.querySelector('input[name="combat"]:checked');
+  const combatRelated = combatEl ? combatEl.value === 'yes' : true;
+  const vaComp      = VA_RATES[vaRating] || 0;
+
+  let lines = [];
+
+  // CRDP calculation
+  let crdpTotal, crdpNote;
+  if (vaRating >= 50) {
+    // Full concurrent receipt — get full retirement + full VA
+    crdpTotal = retirePay + vaComp;
+    crdpNote = 'Full concurrent receipt at 50%+ rating';
+    lines.push('CRDP (50%+ — full concurrent receipt):');
+    lines.push(`  Retirement pay:       ${fmt(retirePay)}`);
+    lines.push(`  VA compensation:    + ${fmt(vaComp)}`);
+    lines.push(`  Total:                ${fmt(crdpTotal)}`);
+  } else if (vaRating === 40) {
+    // 40% is in phase-in — partial
+    const phaseInPct = 0.50; // approximately 50% phased in at 40%
+    const restored   = retirePay * phaseInPct * (vaRating / 50);
+    crdpTotal = retirePay + restored;
+    crdpNote  = '40% rating — partial phase-in only';
+    lines.push('CRDP (40% — partial phase-in):');
+    lines.push(`  Retirement pay (base):  ${fmt(retirePay)}`);
+    lines.push(`  Partially restored:   + ${fmt(restored)}`);
+    lines.push(`  Total:                  ${fmt(crdpTotal)}`);
+    lines.push('  Note: CRDP phase-in at 40% is partial.');
+  } else {
+    // Below 40% — no CRDP
+    crdpTotal = retirePay;
+    crdpNote  = 'Rating below 40% — no CRDP benefit';
+    lines.push('CRDP: Not available below 40% VA rating.');
+    lines.push(`  Retirement pay only:  ${fmt(retirePay)}`);
+  }
+
+  lines.push('');
+
+  // CRSC calculation
+  let crscTotal, crscNote;
+  if (!combatRelated) {
+    crscTotal = null;
+    crscNote  = 'Not combat-related — CRSC not available';
+    lines.push('CRSC: Not available (disability not combat-related).');
+  } else {
+    // CRSC pays LESSER of (a) VA compensation or (b) retirement pay
+    const crscPayment = Math.min(vaComp, retirePay);
+    crscTotal = retirePay + crscPayment;
+    crscNote  = 'Tax-free CRSC payment added to retirement pay';
+    lines.push('CRSC (combat-related):');
+    lines.push(`  Retirement pay:         ${fmt(retirePay)}`);
+    lines.push(`  CRSC payment (lesser of VA comp or retire pay):`);
+    lines.push(`    VA comp:  ${fmt(vaComp)}`);
+    lines.push(`    Retire:   ${fmt(retirePay)}`);
+    lines.push(`    CRSC:   + ${fmt(crscPayment)}  (TAX-FREE)`);
+    lines.push(`  Total:                  ${fmt(crscTotal)}`);
+    lines.push('  CRSC payment is tax-free; adds meaningful value vs. CRDP.');
+  }
+
+  // Display
+  const crdpCard = document.getElementById('crdp-card');
+  document.getElementById('crdp-total').textContent = fmt(crdpTotal);
+  document.getElementById('crdp-note').textContent  = crdpNote;
+
+  if (crscTotal !== null) {
+    document.getElementById('crsc-total').textContent = fmt(crscTotal);
+    document.getElementById('crsc-note').textContent  = crscNote;
+    document.getElementById('crsc-card').style.opacity = '1';
+    document.getElementById('crsc-card').style.pointerEvents = '';
+  } else {
+    document.getElementById('crsc-total').textContent = 'N/A';
+    document.getElementById('crsc-note').textContent  = crscNote;
+    document.getElementById('crsc-card').style.opacity = '0.5';
+  }
+
+  // Winner
+  let winner, delta;
+  if (crscTotal === null) {
+    winner = 'CRDP';
+    delta  = '(Only option available)';
+    highlightWinner('crdp');
+  } else if (Math.abs(crscTotal - crdpTotal) < 1) {
+    winner = 'Tie';
+    delta  = 'Nearly identical — CRSC may still be better (tax-free)';
+    highlightWinner('tie');
+  } else if (crscTotal > crdpTotal) {
+    winner = 'CRSC';
+    delta  = `+${fmt(crscTotal - crdpTotal)}/mo more than CRDP`;
+    highlightWinner('crsc');
+  } else {
+    winner = 'CRDP';
+    delta  = `+${fmt(crdpTotal - crscTotal)}/mo more than CRSC`;
+    highlightWinner('crdp');
+  }
+
+  document.getElementById('winner-label').textContent = winner;
+  document.getElementById('winner-delta').textContent = delta;
+  document.getElementById('cc-breakdown').textContent = lines.join('\n');
+}
+
+function highlightWinner(which) {
+  const crdpCard = document.getElementById('crdp-card');
+  const crscCard = document.getElementById('crsc-card');
+  crdpCard.style.borderColor = which === 'crdp' ? 'var(--sr-blue)' : 'var(--sr-gray-light)';
+  crscCard.style.borderColor = which === 'crsc' ? 'var(--sr-blue)' : 'var(--sr-gray-light)';
+}
+
+calcConcurrent();
+</script>
+{% endblock %}

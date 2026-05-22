@@ -1,0 +1,133 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>Contact Us</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0.5rem auto 0;">We're a small team — we read every message but may take a few days to respond.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:960px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start;">
+
+    <!-- Left: contact info -->
+    <div>
+      <h2 style="font-size:1.1rem;margin-bottom:1rem;">Get in Touch</h2>
+      <p style="line-height:1.75;">Have a question, spotted an error, or want to share feedback? Reach out — we appreciate hearing from veterans and military families.</p>
+
+      <p style="margin-top:1.25rem;">
+        <strong>General inquiries:</strong><br>
+        <a href="mailto:contact@rankandpay.org">contact@rankandpay.org</a>
+      </p>
+
+      <h3 style="font-size:0.95rem;margin-top:1.75rem;margin-bottom:0.75rem;">Reasons to reach out</h3>
+      <ul style="padding-left:1.25rem;line-height:1.9;">
+        <li>General feedback or site suggestions</li>
+        <li>Data corrections or outdated information</li>
+        <li>Press inquiries</li>
+        <li>Partnership or affiliate inquiries</li>
+      </ul>
+
+      <p style="font-size:0.82rem;color:var(--sr-gray-text);margin-top:1.5rem;line-height:1.6;">
+        Rank and Pay is not a VA benefits hotline and cannot provide individual benefits advice. For official benefits help, contact the <a href="https://www.va.gov" rel="noopener noreferrer" target="_blank">VA</a> or an accredited VSO.
+      </p>
+    </div>
+
+    <!-- Right: contact form -->
+    <div>
+      <h2 style="font-size:1.1rem;margin-bottom:1rem;">Send a Message</h2>
+
+      <form id="contact-form" style="display:flex;flex-direction:column;gap:1rem;">
+        <div>
+          <label for="contact-name" style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.3rem;">Name <span style="font-weight:400;color:var(--sr-gray-text);">(optional)</span></label>
+          <input type="text" id="contact-name" name="name" autocomplete="name"
+                 style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.9rem;box-sizing:border-box;">
+        </div>
+
+        <div>
+          <label for="contact-email" style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.3rem;">Email <span style="font-weight:400;color:var(--sr-gray-text);">(optional)</span></label>
+          <input type="email" id="contact-email" name="email" autocomplete="email"
+                 style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.9rem;box-sizing:border-box;">
+        </div>
+
+        <div>
+          <label for="contact-message" style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.3rem;">Message <span style="color:var(--sr-red);">*</span></label>
+          <textarea id="contact-message" name="message" rows="5" required
+                    style="width:100%;padding:0.55rem 0.75rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.9rem;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+        </div>
+
+        <!-- Honeypot -->
+        <input type="text" name="website" style="display:none;" tabindex="-1" autocomplete="off">
+
+        <button type="submit" class="btn btn--primary" style="align-self:flex-start;padding:0.6rem 1.5rem;">
+          Send Message
+        </button>
+
+        <p id="contact-success" style="display:none;color:#155724;font-weight:600;background:#d4edda;border:1px solid #c3e6cb;border-radius:var(--radius);padding:0.75rem 1rem;margin:0;">
+          Thanks! Your message has been sent.
+        </p>
+        <p id="contact-error" style="display:none;color:#721c24;font-weight:600;background:#f8d7da;border:1px solid #f5c6cb;border-radius:var(--radius);padding:0.75rem 1rem;margin:0;">
+          Something went wrong — please try again or email us directly.
+        </p>
+      </form>
+
+      <p style="font-size:0.78rem;color:var(--sr-gray-text);margin-top:1rem;line-height:1.6;">
+        Your message will be sent to our team. We do not store contact form submissions in a database.
+      </p>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById('contact-form');
+  var successMsg = document.getElementById('contact-success');
+  var errorMsg = document.getElementById('contact-error');
+
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    // Honeypot check
+    var honeypot = form.querySelector('[name="website"]');
+    if (honeypot && honeypot.value) return;
+
+    var submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    var payload = {
+      name: (form.querySelector('[name="name"]') || {}).value || '',
+      email: (form.querySelector('[name="email"]') || {}).value || '',
+      message: (form.querySelector('[name="message"]') || {}).value || '',
+      page_url: window.location.href
+    };
+
+    fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) {
+        if (res.ok) {
+          form.reset();
+          if (successMsg) successMsg.style.display = 'block';
+          if (errorMsg) errorMsg.style.display = 'none';
+        } else {
+          throw new Error('non-ok response');
+        }
+      })
+      .catch(function () {
+        if (errorMsg) errorMsg.style.display = 'block';
+        if (successMsg) successMsg.style.display = 'none';
+        if (submitBtn) submitBtn.disabled = false;
+      });
+  });
+})();
+</script>
+{% endblock %}

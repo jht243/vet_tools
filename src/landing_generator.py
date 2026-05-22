@@ -2,7 +2,7 @@
 from __future__ import annotations
 import json
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -49,7 +49,7 @@ CONDITIONS = [
     "burn-pit-exposure", "agent-orange-exposure", "mst-military-sexual-trauma",
     "chronic-fatigue-syndrome", "fibromyalgia", "cervical-spine-strain",
     "plantar-fasciitis", "pes-planus-flat-feet", "bilateral-knee",
-    "bilateral-hearing-loss", "Gulf-war-illness", "radiculopathy-lower",
+    "bilateral-hearing-loss", "gulf-war-illness", "radiculopathy-lower",
     "radiculopathy-upper", "degenerative-disc-disease", "hemorrhoids",
     "irritable-bowel-syndrome", "gerd", "rhinitis", "sinusitis",
     "skin-conditions-dermatitis",
@@ -173,12 +173,12 @@ def _llm_generate(prompt: str, settings, max_tokens: int = 1200) -> Optional[str
 
         client = OpenAI(api_key=settings.openai_api_key)
         resp = client.chat.completions.create(
-            model=settings.fast_model,
+            model=settings.openai_narrative_model,
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "You are an SEO content writer for VA Claims Workspace. "
+                        "You are an SEO content writer for Rank and Pay. "
                         "Write factual, helpful content for veterans. "
                         "Use plain HTML (h2, h3, p, ul/li only). No markdown. No disclaimers."
                     ),
@@ -209,34 +209,44 @@ def _upsert_page(
     key_takeaways: Optional[list] = None,
     cache_ttl_hours: Optional[int] = None,
 ) -> LandingPage:
-    existing = session.query(LandingPage).filter_by(slug=slug).first()
+    """Insert or update a LandingPage row.
+
+    Maps the generator's logical fields to the actual model columns:
+      slug            → page_key
+      h1 / subtitle   → subtitle (stored as "h1 | subtitle")
+      seo_description → summary
+      key_takeaways   → sections_json
+    """
+    import json as _json
+
+    # Store h1 in subtitle (the primary display heading for the page).
+    # seo_description goes to summary. Both are rendered by the template.
+    stored_subtitle = h1  # templates use page.subtitle as the page H1
+    stored_sections = _json.dumps(key_takeaways or [])
+
+    existing = session.query(LandingPage).filter_by(page_key=slug).first()
     if existing:
         existing.title = title
-        existing.h1 = h1
-        existing.subtitle = subtitle
-        existing.seo_description = seo_description
+        existing.subtitle = stored_subtitle
+        existing.summary = seo_description
         existing.body_html = body_html
         if faq_json is not None:
-            existing.faq_json = json.dumps(faq_json)
-        if key_takeaways is not None:
-            existing.key_takeaways_json = json.dumps(key_takeaways)
-        if cache_ttl_hours is not None:
-            existing.cache_ttl_hours = cache_ttl_hours
+            existing.faq_json = faq_json  # model stores as JSON natively
+        existing.sections_json = stored_sections
+        existing.last_generated_at = datetime.utcnow()
         session.add(existing)
         return existing
 
     page = LandingPage(
-        slug=slug,
+        page_key=slug,
         canonical_path=canonical_path,
         page_type=page_type,
         title=title,
-        h1=h1,
-        subtitle=subtitle,
-        seo_description=seo_description,
+        subtitle=stored_subtitle,
+        summary=seo_description,
         body_html=body_html,
-        faq_json=json.dumps(faq_json or []),
-        key_takeaways_json=json.dumps(key_takeaways or []),
-        cache_ttl_hours=cache_ttl_hours or PAGE_TTLS.get(page_type, 24) * 24,
+        faq_json=faq_json or [],
+        sections_json=stored_sections,
     )
     session.add(page)
     return page
@@ -265,13 +275,14 @@ def generate_pillar_page(slug: str, dry_run: bool = False) -> Optional[LandingPa
     )
     body = "" if dry_run else (_llm_generate(prompt, settings) or "")
 
+    page_key = f"pillar:{slug}"
     with Session(engine) as session:
         page = _upsert_page(
             session,
-            slug=slug,
+            slug=page_key,
             canonical_path=f"/{slug}/",
             page_type="pillar",
-            title=f"{title} | VA Claims Workspace",
+            title=f"{title} | Rank and Pay",
             h1=h1,
             subtitle=subtitle,
             seo_description=subtitle,
@@ -294,14 +305,14 @@ def generate_spoke_page(pillar: str, spoke_slug: str, dry_run: bool = False) -> 
     )
     body = "" if dry_run else (_llm_generate(prompt, settings) or "")
 
-    slug = f"{pillar}-{spoke_slug}"
+    page_key = f"spoke:{pillar}:{spoke_slug}"
     with Session(engine) as session:
         page = _upsert_page(
             session,
-            slug=slug,
+            slug=page_key,
             canonical_path=f"/{pillar}/{spoke_slug}/",
             page_type="spoke",
-            title=f"{display} | VA Claims Workspace",
+            title=f"{display} | Rank and Pay",
             h1=display,
             subtitle=f"A complete guide to {display.lower()} for veterans.",
             seo_description=f"Learn everything about {display.lower()} for your VA claim.",
@@ -331,14 +342,14 @@ def generate_condition_page(condition_slug: str, dry_run: bool = False) -> Optio
         {"question": f"How do I service-connect {display_name}?", "answer": f"You need medical evidence and a nexus letter linking {display_name} to an in-service event or condition."},
     ]
 
-    slug = f"condition-{condition_slug}"
+    page_key = f"condition:{condition_slug}"
     with Session(engine) as session:
         page = _upsert_page(
             session,
-            slug=slug,
+            slug=page_key,
             canonical_path=f"/va-disability/{condition_slug}/",
             page_type="condition",
-            title=f"VA Disability for {display_name} | VA Claims Workspace",
+            title=f"VA Disability for {display_name} | Rank and Pay",
             h1=f"VA Disability: {display_name}",
             subtitle=research.get("short_description", ""),
             seo_description=f"How VA rates {display_name}, what evidence you need, and tips to maximize your rating.",
@@ -368,14 +379,14 @@ def generate_state_page(state_slug: str, dry_run: bool = False) -> Optional[Land
     headline = research.get("headline_benefit", f"{display_name} offers several property tax and income tax exemptions for qualifying veterans.")
     key_takeaways = [headline]
 
-    slug = f"state-{state_slug}"
+    page_key = f"state:{state_slug}"
     with Session(engine) as session:
         page = _upsert_page(
             session,
-            slug=slug,
+            slug=page_key,
             canonical_path=f"/state-benefits/{state_slug}/",
             page_type="state",
-            title=f"{display_name} Veterans Benefits | VA Claims Workspace",
+            title=f"{display_name} Veterans Benefits | Rank and Pay",
             h1=f"Veterans Benefits in {display_name}",
             subtitle=f"Property tax exemptions, education benefits, and more for {display_name} veterans.",
             seo_description=f"Complete guide to {display_name} state veterans benefits: property taxes, education, vehicle registration, and more.",
@@ -402,14 +413,14 @@ def generate_explainer_page(explainer_slug: str, dry_run: bool = False) -> Optio
     )
     body = "" if dry_run else (_llm_generate(prompt, settings) or "")
 
-    slug = f"explainer-{explainer_slug}"
+    page_key = f"explainer:{explainer_slug}"
     with Session(engine) as session:
         page = _upsert_page(
             session,
-            slug=slug,
+            slug=page_key,
             canonical_path=f"/explainers/{explainer_slug}/",
             page_type="explainer",
-            title=f"{title} | VA Claims Workspace",
+            title=f"{title} | Rank and Pay",
             h1=title,
             subtitle=research.get("subtitle", ""),
             seo_description=f"{title} — plain-English guide for veterans and military families.",

@@ -12,22 +12,22 @@
 {% block content %}
 <section class="hero" style="padding:2.5rem 0 2rem;">
   <div class="container">
-    <h1>{{ tool.title }}</h1>
-    <p>{{ tool.description }}</p>
+    <h1>{{ tool_name }}</h1>
+    <p>Free calculator for veterans — no signup required.</p>
   </div>
 </section>
 
 <main class="container" style="max-width:680px;margin:2rem auto;padding:0 1.25rem;text-align:center;">
 
   <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:2.5rem 2rem;margin-bottom:2rem;">
-    <span style="font-size:3rem;display:block;margin-bottom:1rem;">{{ tool.icon }}</span>
-    <h2 style="font-size:1.2rem;margin-bottom:0.5rem;">{{ tool.title }} — Coming Soon</h2>
+    <span style="font-size:3rem;display:block;margin-bottom:1rem;">🛠️</span>
+    <h2 style="font-size:1.2rem;margin-bottom:0.5rem;">{{ tool_name }} — Coming Soon</h2>
     <p style="color:var(--sr-gray-text);margin-bottom:1.5rem;line-height:1.6;">
       We're building this tool now. Enter your email and we'll notify you the moment it goes live — free, no spam.
     </p>
 
     <form action="/api/email-capture" method="POST" id="waitlist-form" style="max-width:380px;margin:0 auto;">
-      <input type="hidden" name="tool_slug" value="{{ tool.slug }}">
+      <input type="hidden" name="tool_slug" value="{{ tool_slug }}">
       <input type="hidden" name="source" value="tool_waitlist">
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">
         <input type="email" name="email" placeholder="your@email.com" required
@@ -39,32 +39,19 @@
     </form>
 
     <p id="waitlist-success" style="display:none;color:#155724;font-weight:600;margin-top:1rem;">
-      You're on the list! We'll email you when {{ tool.title }} is live.
+      You're on the list! We'll email you when {{ tool_name }} is live.
     </p>
   </div>
 
   <!-- Why this tool matters -->
-  {% if tool.why_matters %}
   <div style="text-align:left;margin-bottom:2rem;">
     <h3 style="font-size:1rem;margin-bottom:0.5rem;">Why this tool matters</h3>
-    <p style="color:var(--sr-gray-text);line-height:1.6;">{{ tool.why_matters }}</p>
+    <p style="color:var(--sr-gray-text);line-height:1.6;">
+      Veterans deserve free, accurate tools to understand their pay, benefits, and claims — without paying for a consultant.
+    </p>
   </div>
-  {% endif %}
 
-  <!-- Related tools -->
-  {% if related_tools %}
-  <div style="text-align:left;margin-bottom:2rem;">
-    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Other tools</h3>
-    <ul style="list-style:none;padding:0;margin:0;">
-      {% for rt in related_tools %}
-      <li style="margin-bottom:0.4rem;">
-        <a href="/tools/{{ rt.slug }}/" style="color:var(--sr-blue);">{{ rt.title }}</a>
-        <span class="status-pill" style="margin-left:0.4rem;">{{ 'Live' if rt.live else 'Soon' }}</span>
-      </li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
+  <p style="color:var(--sr-gray-text);font-size:0.82rem;">See all our <a href="/tools/">free VA &amp; military tools &rarr;</a></p>
 
   <p style="font-size:0.875rem;"><a href="/tools/">&larr; All tools</a></p>
 

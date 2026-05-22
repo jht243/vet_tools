@@ -1,0 +1,281 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>Military Pay Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">2026 Military Pay Calculator</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">See your complete pay breakdown: base pay, BAH, BAS, and estimated monthly take-home after federal taxes. Based on 2025 pay tables.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Enter Your Information</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Pay Grade</label>
+        <select id="mp-grade" onchange="calcPay()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <optgroup label="Enlisted">
+            <option value="E-1">E-1</option><option value="E-2">E-2</option><option value="E-3">E-3</option>
+            <option value="E-4">E-4</option><option value="E-5" selected>E-5</option><option value="E-6">E-6</option>
+            <option value="E-7">E-7</option><option value="E-8">E-8</option><option value="E-9">E-9</option>
+          </optgroup>
+          <optgroup label="Warrant Officer">
+            <option value="W-1">W-1</option><option value="W-2">W-2</option><option value="W-3">W-3</option>
+            <option value="W-4">W-4</option><option value="W-5">W-5</option>
+          </optgroup>
+          <optgroup label="Officer">
+            <option value="O-1">O-1</option><option value="O-2">O-2</option><option value="O-3">O-3</option>
+            <option value="O-4">O-4</option><option value="O-5">O-5</option><option value="O-6">O-6</option>
+            <option value="O-7">O-7</option><option value="O-8">O-8</option><option value="O-9">O-9</option>
+            <option value="O-10">O-10</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Years of Service: <span id="mp-yos-disp">4</span></label>
+        <input type="range" id="mp-yos" min="0" max="30" value="4"
+          oninput="document.getElementById('mp-yos-disp').textContent=this.value;calcPay();"
+          style="width:100%;accent-color:var(--sr-blue);">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--sr-gray-text);"><span>&lt;2 yrs</span><span>30 yrs</span></div>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Dependents</label>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;padding-top:0.25rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="mp-dep" value="with" checked onchange="calcPay()" style="accent-color:var(--sr-blue);"> With dependents
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="mp-dep" value="no" onchange="calcPay()" style="accent-color:var(--sr-blue);"> Without dependents
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Results Table -->
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.95rem;">
+        <thead>
+          <tr style="background:var(--sr-blue);color:#fff;">
+            <th style="padding:0.65rem 0.75rem;text-align:left;">Pay Component</th>
+            <th style="padding:0.65rem 0.75rem;text-align:right;">Monthly</th>
+            <th style="padding:0.65rem 0.75rem;text-align:right;">Annual</th>
+            <th style="padding:0.65rem 0.75rem;text-align:left;">Taxable?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#fff;">
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Basic Pay</td>
+            <td id="row-bp-mo" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">—</td>
+            <td id="row-bp-yr" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">—</td>
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Yes</td>
+          </tr>
+          <tr style="background:var(--sr-gray-bg);">
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">BAH (national avg)</td>
+            <td id="row-bah-mo" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">—</td>
+            <td id="row-bah-yr" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">—</td>
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">No</td>
+          </tr>
+          <tr style="background:#fff;">
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">BAS</td>
+            <td id="row-bas-mo" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">—</td>
+            <td id="row-bas-yr" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">—</td>
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">No</td>
+          </tr>
+          <tr style="background:var(--sr-gray-bg);font-weight:600;">
+            <td style="padding:0.55rem 0.75rem;border-bottom:2px solid var(--sr-blue);">Total Gross Pay</td>
+            <td id="row-gross-mo" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:2px solid var(--sr-blue);">—</td>
+            <td id="row-gross-yr" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:2px solid var(--sr-blue);">—</td>
+            <td style="padding:0.55rem 0.75rem;border-bottom:2px solid var(--sr-blue);"></td>
+          </tr>
+          <tr style="background:#fff;">
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Est. Federal Tax (22%)</td>
+            <td id="row-tax-mo" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);color:var(--sr-red);">—</td>
+            <td id="row-tax-yr" style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);color:var(--sr-red);">—</td>
+            <td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">—</td>
+          </tr>
+          <tr style="background:var(--sr-gray-bg);font-weight:700;font-size:1.05rem;">
+            <td style="padding:0.65rem 0.75rem;">Est. Take-Home Pay</td>
+            <td id="row-net-mo" style="padding:0.65rem 0.75rem;text-align:right;color:var(--sr-blue);">—</td>
+            <td id="row-net-yr" style="padding:0.65rem 0.75rem;text-align:right;color:var(--sr-blue);">—</td>
+            <td style="padding:0.65rem 0.75rem;"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size:0.8rem;color:var(--sr-gray-text);margin-top:0.75rem;">
+      BAH shown is an approximate national average. Actual BAH varies by duty station. Tax estimate uses a flat 22% bracket on basic pay only; actual taxes depend on filing status, deductions, and other income.
+    </p>
+  </div>
+
+  <!-- What each component is -->
+  <section style="margin-bottom:2rem;">
+    <h2>Understanding Your Military Pay Components</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1rem;">
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">Basic Pay</h3>
+        <p style="font-size:0.9rem;">The foundation of military compensation. Taxable, and set by Congress annually. Increases with grade and years of service. Used as the base for retirement calculations.</p>
+      </div>
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">BAH — Basic Allowance for Housing</h3>
+        <p style="font-size:0.9rem;">Tax-free housing allowance for service members living off base. Set by duty station location and grade. Covers estimated median local rental costs. Not received if living in government quarters.</p>
+      </div>
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">BAS — Basic Allowance for Subsistence</h3>
+        <p style="font-size:0.9rem;">Tax-free food allowance. Enlisted: $460.01/mo. Officers: $316.76/mo (2025). All service members receive BAS regardless of living arrangements. Not a full food budget — it supplements meal costs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tax advantages -->
+  <section style="margin-bottom:2rem;">
+    <h2>Military Pay Tax Advantages</h2>
+    <p>The tax-free nature of BAH and BAS is a major but often overlooked benefit. Here is why it matters:</p>
+    <ul>
+      <li>If an E-5 earns $3,098 basic pay + $1,400 BAH + $460 BAS = $4,958 total, only the $3,098 basic pay is taxable.</li>
+      <li>At a 22% bracket, that saves roughly $408/month in taxes — or about $4,900/year — compared to a civilian earning the same gross pay entirely as wages.</li>
+      <li>Combat zone pay exclusion: all pay earned during a designated combat zone deployment is entirely tax-free.</li>
+      <li>TSP contributions reduce your taxable basic pay further. With BRS, the government matches up to 5% of basic pay in your TSP — free money not reflected in your LES.</li>
+    </ul>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">When does my basic pay increase?</summary>
+      <p style="margin-top:0.75rem;">Basic pay increases in two ways: (1) annual COLA (cost-of-living adjustment) set by Congress, typically effective January 1, and (2) longevity steps as your years of service cross the bracket thresholds (2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30 years). Promotion to a higher grade also increases your pay immediately.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What other pays might I receive beyond basic pay, BAH, and BAS?</summary>
+      <p style="margin-top:0.75rem;">Many service members receive additional pays: hazardous duty incentive pay, flight pay, dive pay, submarine pay, special duty assignment pay, foreign language proficiency pay, enlistment/reenlistment bonuses, and more. These vary by military occupational specialty and assignment.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does military pay affect Social Security benefits?</summary>
+      <p style="margin-top:0.75rem;">Yes — basic pay is subject to FICA (Social Security and Medicare taxes), so your active duty service earns Social Security credits. This is why military retirees can receive both military retirement pay and Social Security at the same time. BAH and BAS do not count toward Social Security earnings.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How does the TSP work for military members?</summary>
+      <p style="margin-top:0.75rem;">The Thrift Savings Plan (TSP) is the federal government's 401(k) equivalent. All active duty members can contribute. Those under BRS receive automatic 1% government contribution and matching up to 4% additional (for 5% total match). Traditional TSP contributions lower your taxable basic pay each month. The 2025 contribution limit is $23,500/year.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/military-pay/basic-pay/">2026 Military Basic Pay Charts by Grade</a></li>
+      <li><a href="/military-pay/basic-allowance-housing/">BAH In-Depth Guide</a></li>
+      <li><a href="/tools/bah-calculator/">BAH Calculator</a></li>
+      <li><a href="/tools/military-retirement-calculator/">Military Retirement Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> Pay figures use 2025 tables. Federal tax estimate (22% flat rate on basic pay) is a rough approximation for illustration only. Actual take-home pay depends on your filing status, deductions, state taxes, TSP contributions, and other withholdings. Consult your LES or a financial counselor for exact figures.
+  </div>
+
+</main>
+
+<script>
+const PAY_TABLE_2025 = {
+  "E-1":[1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917],
+  "E-2":[2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149],
+  "E-3":[2259,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425],
+  "E-4":[2509,2644,2726,2726,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053],
+  "E-5":[2728,2872,2987,3187,3098,3098,3268,3268,3268,3268,3268,3268,3268,3268,3268,3268,3268],
+  "E-6":[2977,3271,3401,3550,3757,3757,3898,3958,4049,4049,4049,4049,4049,4049,4049,4049,4049],
+  "E-7":[3443,3730,3858,3981,4109,4234,4371,4437,4534,4690,4817,4904,5008,5008,5008,5008,5008],
+  "E-8":[4954,5081,5176,5361,5502,5596,5696,5822,5822,5822,5822,5895,6012,6012,6012,6012,6012],
+  "E-9":[6052,6367,6524,6619,6831,6958,6958,7119,7274,7274,7274,7530,7598,7598,7598,7598,7598],
+  "W-1":[3447,3814,3945,4148,4302,4517,4679,4833,5020,5196,5305,5411,5411,5411,5411,5411,5411],
+  "W-2":[3980,4374,4484,4621,4829,4979,5218,5379,5556,5718,5879,6036,6095,6095,6095,6095,6095],
+  "W-3":[4605,4929,5062,5187,5395,5572,5731,5960,6119,6369,6498,6635,6770,6888,6888,6888,6888],
+  "W-4":[5149,5534,5688,5825,5968,6200,6459,6655,6888,7122,7341,7567,7793,8022,8247,8247,8247],
+  "W-5":[0,0,0,0,0,0,0,7699,7699,7922,8208,8499,8787,9075,9356,9610,9610],
+  "O-1":[3803,3961,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962],
+  "O-2":[4382,4983,5698,5900,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004],
+  "O-3":[5079,5754,6215,6735,7068,7263,7398,7530,7530,7530,7530,7530,7530,7530,7530,7530,7530],
+  "O-4":[5784,6699,7144,7630,7989,8321,8534,8767,8983,9085,9127,9127,9127,9127,9127,9127,9127],
+  "O-5":[6737,7591,8103,8420,8774,9015,9344,9677,9947,10237,10433,10497,10497,10497,10497,10497,10497],
+  "O-6":[8093,8891,9481,9481,9538,9945,10051,10311,10622,11029,11317,11605,11605,11605,11605,11605,11605],
+  "O-7":[10225,10688,10847,11123,11308,11598,11851,12087,12432,12798,12798,13120,13120,13120,13120,13120,13120],
+  "O-8":[12406,12821,13119,13265,13360,13613,14029,14392,14674,15046,15339,15556,15697,15697,15697,15697,15697],
+  "O-9":[14714,15207,15323,15474,15699,16040,16296,16296,16776,16776,17286,17286,17286,17286,17286,17286,17286],
+  "O-10":[0,0,0,0,0,0,17675,17675,17675,17675,18491,18491,18491,18491,18491,18491,18491]
+};
+const YOS_BRACKETS = [0,2,3,4,6,8,10,12,14,16,18,20,22,24,26,28,30];
+
+const BAH_RANGES = {
+  "E-1":{no:900,with:1150},"E-2":{no:950,with:1200},"E-3":{no:1000,with:1250},
+  "E-4":{no:1050,with:1300},"E-5":{no:1150,with:1400},"E-6":{no:1300,with:1550},
+  "E-7":{no:1450,with:1700},"E-8":{no:1600,with:1850},"E-9":{no:1750,with:2000},
+  "W-1":{no:1400,with:1650},"W-2":{no:1550,with:1800},"W-3":{no:1700,with:1950},
+  "W-4":{no:1850,with:2100},"W-5":{no:2050,with:2300},
+  "O-1":{no:1400,with:1700},"O-2":{no:1550,with:1850},"O-3":{no:1750,with:2050},
+  "O-4":{no:1950,with:2250},"O-5":{no:2200,with:2500},"O-6":{no:2450,with:2750},
+  "O-7":{no:2650,with:3000},"O-8":{no:2800,with:3150},
+  "O-9":{no:2900,with:3250},"O-10":{no:3000,with:3350}
+};
+
+const BAS = {"enlisted": 460.01, "officer": 316.76};
+
+function getBasePay(grade, yos) {
+  const row = PAY_TABLE_2025[grade];
+  if (!row) return 0;
+  let idx = 0;
+  for (let i = 0; i < YOS_BRACKETS.length; i++) {
+    if (yos >= YOS_BRACKETS[i]) idx = i;
+  }
+  return row[idx];
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function set(id, val) { document.getElementById(id).textContent = val; }
+
+function calcPay() {
+  const grade = document.getElementById('mp-grade').value;
+  const yos   = parseInt(document.getElementById('mp-yos').value, 10);
+  const dep   = document.querySelector('input[name="mp-dep"]:checked').value;
+
+  const bp  = getBasePay(grade, yos);
+  const bah = (BAH_RANGES[grade] || {no:0,with:0})[dep === 'with' ? 'with' : 'no'];
+  const bas = grade.startsWith('O') || grade.startsWith('W') ? BAS.officer : BAS.enlisted;
+
+  const gross = bp + bah + bas;
+  const tax   = bp * 0.22;  // only basic pay taxable
+  const net   = gross - tax;
+
+  set('row-bp-mo',    fmt(bp));    set('row-bp-yr',    fmt(bp*12));
+  set('row-bah-mo',   fmt(bah));   set('row-bah-yr',   fmt(bah*12));
+  set('row-bas-mo',   fmt(bas));   set('row-bas-yr',   fmt(bas*12));
+  set('row-gross-mo', fmt(gross)); set('row-gross-yr', fmt(gross*12));
+  set('row-tax-mo',   '-'+fmt(tax)); set('row-tax-yr', '-'+fmt(tax*12));
+  set('row-net-mo',   fmt(net));   set('row-net-yr',   fmt(net*12));
+}
+
+calcPay();
+</script>
+{% endblock %}

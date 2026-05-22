@@ -70,7 +70,7 @@ def main(
     if dry_run:
         console.print("[yellow]Dry-run mode — no changes will be written.[/yellow]")
 
-    console.rule("[bold blue]VA Claims Workspace — Backfill Runner[/bold blue]")
+    console.rule("[bold blue]Rank and Pay — Backfill Runner[/bold blue]")
     results: dict[str, tuple[str, str]] = {}
 
     # ── Blog Posts ────────────────────────────────────────────────────────────

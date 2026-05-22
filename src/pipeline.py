@@ -121,7 +121,7 @@ def _apply_google_news_daily_cap(
     after subtracting how many were already persisted today.
     """
     if cap <= 0:
-        return []
+        return articles  # 0 means disabled — pass everything through
 
     # How many Google News articles already persisted today?
     already_today = (

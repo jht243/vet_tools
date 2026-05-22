@@ -25,14 +25,14 @@ def _build_html(audit_issues: list, post_count: int, pub_date) -> str:
         audit_section = "<p>No issues found.</p>"
 
     return f"""
-<h1>VA Claims Workspace — Daily SEO Digest</h1>
+<h1>Rank and Pay — Daily SEO Digest</h1>
 <p><strong>Date:</strong> {pub_date}</p>
 <p><strong>Posts published today:</strong> {post_count}</p>
 <hr>
 <h2>SEO Audit Issues ({len(audit_issues)} pages)</h2>
 {audit_section}
 <hr>
-<p style="font-size:11px;color:#888;">VA Claims Workspace internal report — vaclaimsworkspace.com</p>
+<p style="font-size:11px;color:#888;">Rank and Pay internal report — rankandpay.org</p>
 """
 
 
@@ -81,14 +81,14 @@ def main(dry_run, skip_audit):
 
     if settings.resend_api_key:
         import httpx
-        from_email = getattr(settings, "resend_from_email", "noreply@vaclaimsworkspace.com")
+        from_email = getattr(settings, "resend_from_email", "noreply@rankandpay.org")
         resp = httpx.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {settings.resend_api_key}"},
             json={
                 "from": from_email,
                 "to": [to_email],
-                "subject": f"VA Claims Workspace SEO Digest — {pub_date}",
+                "subject": f"Rank and Pay SEO Digest — {pub_date}",
                 "html": html,
             },
             timeout=20,

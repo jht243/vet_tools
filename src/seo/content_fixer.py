@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 MAX_FIXES_PER_RUN = 5
 
 SYSTEM_PROMPT = """\
-You are an SEO copywriter for VA Claims Workspace, a site about VA disability claims and \
+You are an SEO copywriter for Rank and Pay, a site about VA disability claims and \
 military benefits. Given a page title and body excerpt, rewrite the meta description to be \
 compelling, accurate, and under 155 characters. Return only the meta description text — \
 no quotes, no labels, no extra commentary.

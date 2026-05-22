@@ -1,0 +1,303 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>Secondary Conditions Lookup</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">VA Secondary Conditions Lookup Tool</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Select a primary service-connected condition to see common secondary conditions and the medical nexus rationale for each — to help you identify additional ratings you may be entitled to.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Select Your Primary Condition</h2>
+
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
+      <select id="primary-select" onchange="showSecondaries()" style="flex:1;min-width:220px;max-width:400px;padding:0.55rem 0.75rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        <option value="">— Select a primary condition —</option>
+      </select>
+      <input type="text" id="condition-search" placeholder="Search conditions..." oninput="filterOptions()"
+        style="flex:1;min-width:180px;max-width:280px;padding:0.55rem 0.75rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+    </div>
+
+    <div id="secondaries-panel" style="display:none;"></div>
+    <div id="no-selection" style="color:var(--sr-gray-text);font-size:0.9rem;padding:1rem 0;">
+      Choose a primary condition above to see secondary conditions commonly linked to it.
+    </div>
+  </div>
+
+  <!-- What are secondary conditions -->
+  <section style="margin-bottom:2rem;">
+    <h2>What Are Secondary Service-Connected Conditions?</h2>
+    <p>A secondary service-connected condition is a disability that was <em>caused by or aggravated by</em> a condition that is already service-connected. The VA calls this "secondary service connection" under 38 C.F.R. § 3.310.</p>
+    <p>For example, if you have service-connected <a href="/va-disability/ptsd/">PTSD</a> and you develop <a href="/va-disability/sleep-apnea/">sleep apnea</a> as a result of PTSD-related hyperarousal, you may be able to claim the sleep apnea as secondary to your PTSD. If approved, you receive a separate disability rating and additional compensation for the sleep apnea.</p>
+    <p><strong>Three things you need to establish a secondary claim:</strong></p>
+    <ol>
+      <li>An existing service-connected primary condition (rated or pending rating)</li>
+      <li>A current diagnosis of the secondary condition</li>
+      <li>A medical nexus letter from a physician linking the secondary condition to the primary</li>
+    </ol>
+  </section>
+
+  <!-- How to file -->
+  <section style="margin-bottom:2rem;">
+    <h2>How to File a Secondary Condition Claim</h2>
+    <p>Filing a secondary claim is the same process as filing any VA disability claim, but your <a href="/explainers/what-is-a-nexus-letter/">nexus letter</a> must specifically state that the secondary condition was "caused by or aggravated by" your primary service-connected condition. Use <a href="https://www.va.gov/find-forms/about-form-21-526ez/" target="_blank" rel="noopener noreferrer">VA Form 21-526EZ</a> and identify the condition as a secondary claim on the form.</p>
+    <p>The strongest secondary claims include:</p>
+    <ul>
+      <li>A nexus letter from a treating physician or specialist who knows your medical history</li>
+      <li>Medical records showing the treatment timeline — demonstrating that the secondary condition appeared or worsened after the primary condition</li>
+      <li>Peer-reviewed medical literature supporting the biological or physiological link (optional but powerful)</li>
+    </ul>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How many secondary conditions can I claim?</summary>
+      <p style="margin-top:0.75rem;">There is no limit. You can claim any condition that a physician can link to a service-connected primary condition. Some veterans have 10 or more service-connected conditions, many of which are secondary to one or two primary conditions. Each one contributes to your combined disability rating and increases your monthly compensation.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can a secondary condition become a primary condition?</summary>
+      <p style="margin-top:0.75rem;">Once a condition is service-connected — whether as primary or secondary — it remains service-connected regardless of what happens to the primary. If the primary condition's rating is reduced or removed, the secondary condition keeps its rating. It does not "fall off" because the primary was modified.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What does "aggravation" mean for secondary claims?</summary>
+      <p style="margin-top:0.75rem;">If you already had a condition before service or before your primary service-connected disability was established, you may still be eligible if the service-connected condition has worsened (aggravated) the pre-existing condition beyond its natural progression. The standard is whether the primary disability materially worsened the secondary condition — not just temporarily.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does the medical literature support the nexus link?</summary>
+      <p style="margin-top:0.75rem;">For the most common relationships (e.g., <a href="/va-disability/ptsd/">PTSD</a>-to-<a href="/va-disability/sleep-apnea/">sleep apnea</a>, back pain-to-radiculopathy, <a href="/va-disability/tinnitus/">tinnitus</a>-to-hearing loss, <a href="/va-disability/traumatic-brain-injury/">TBI</a>-to-migraines), there is substantial peer-reviewed research. A good <a href="/explainers/what-is-a-nexus-letter/">nexus letter</a> will cite relevant studies. Your physician can reference resources like PubMed to find supporting literature. This significantly strengthens a secondary claim.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/va-claims/secondary-conditions/">Secondary Conditions: Complete VA Claims Guide</a></li>
+      <li><a href="/va-claims/nexus-letter-guide/">How to Get a Nexus Letter</a></li>
+      <li><a href="/tools/va-claim-checklist/">VA Claim Checklist</a></li>
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> The secondary condition relationships shown are general medical relationships recognized in VA claims practice. They do not guarantee service connection — each claim is evaluated on its individual merits and evidence. Consult an accredited VSO or VA claims agent for advice specific to your case.
+  </div>
+
+</main>
+
+<style>
+.secondary-card {
+  background: #fff;
+  border: 1px solid var(--sr-gray-light);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.secondary-card-title {
+  font-weight: 700;
+  color: var(--sr-blue);
+  font-size: 0.95rem;
+}
+.secondary-card-nexus {
+  font-size: 0.85rem;
+  color: var(--sr-gray-text);
+  line-height: 1.55;
+}
+.secondary-card-link {
+  font-size: 0.82rem;
+}
+.primary-label {
+  display: inline-block;
+  background: var(--sr-blue);
+  color: #fff;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+</style>
+
+<script>
+const SECONDARY_MAP = {
+  "ptsd": {
+    display: "PTSD",
+    secondaries: [
+      {name:"Sleep Apnea",link:"/va-disability/sleep-apnea/",nexus:"PTSD-related hyperarousal disrupts sleep architecture, contributing to obstructive sleep apnea. Studies show veterans with PTSD have significantly higher rates of OSA."},
+      {name:"Hypertension",link:"/va-disability/hypertension/",nexus:"Chronic stress and hyperarousal from PTSD are associated with elevated blood pressure through dysregulation of the autonomic nervous system and HPA axis."},
+      {name:"GERD",link:"/va-disability/gerd/",nexus:"Anxiety and chronic stress from PTSD can exacerbate gastroesophageal reflux disease through increased acid secretion and esophageal hypersensitivity."},
+      {name:"Depression",link:"/va-disability/depression/",nexus:"PTSD and major depressive disorder are closely comorbid; PTSD is a recognized risk factor for developing clinical depression and vice versa."},
+      {name:"Irritable Bowel Syndrome",link:"/va-disability/irritable-bowel-syndrome/",nexus:"The gut-brain connection links chronic stress and trauma exposure to IBS symptoms through neurobiological pathways affecting intestinal motility and sensation."},
+      {name:"Migraines",link:"/va-disability/migraines/",nexus:"PTSD-related sleep disruption, hyperarousal, and autonomic nervous system dysregulation are associated with increased migraine frequency and severity."},
+    ]
+  },
+  "lumbar-spine-strain": {
+    display: "Lumbar Spine Strain (Lower Back)",
+    secondaries: [
+      {name:"Radiculopathy (Lower Extremity)",link:"/va-disability/radiculopathy-lower/",nexus:"Nerve compression from lumbar disc disease, degenerative changes, or spinal stenosis causes radiating pain, weakness, or numbness in the legs (sciatica)."},
+      {name:"Knee Conditions",link:"/va-disability/knee-pain/",nexus:"Altered gait and weight distribution from chronic back pain places additional biomechanical stress on the knee joints, accelerating degeneration."},
+      {name:"Hip Conditions",link:"#",nexus:"Hip compensation for back pain and altered gait can cause secondary hip bursitis, hip osteoarthritis, or hip flexor pathology over time."},
+      {name:"Depression/Anxiety",link:"/va-disability/depression/",nexus:"Chronic pain from lumbar conditions is a well-established cause of secondary depression and anxiety disorders, supported by extensive clinical literature."},
+      {name:"Erectile Dysfunction",link:"#",nexus:"Lumbar spine conditions causing nerve impingement at L1-S3 levels can directly affect the nerves responsible for sexual function.",optional:true},
+    ]
+  },
+  "sleep-apnea": {
+    display: "Sleep Apnea",
+    secondaries: [
+      {name:"Hypertension",link:"/va-disability/hypertension/",nexus:"Untreated sleep apnea causes repeated episodes of oxygen desaturation and sympathetic nervous system activation, directly elevating blood pressure."},
+      {name:"Depression",link:"/va-disability/depression/",nexus:"Sleep deprivation and intermittent hypoxia from sleep apnea contribute to neurochemical changes associated with depressive disorders."},
+      {name:"Diabetes Type 2",link:"/va-disability/diabetes-mellitus-type-2/",nexus:"Sleep apnea disrupts insulin sensitivity and glucose metabolism through hypoxia-induced metabolic dysregulation, worsening diabetes risk and control."},
+      {name:"Ischemic Heart Disease",link:"#",nexus:"Chronic sleep apnea-induced hypoxia, hypertension, and oxidative stress are independent risk factors for coronary artery disease."},
+    ]
+  },
+  "tinnitus": {
+    display: "Tinnitus",
+    secondaries: [
+      {name:"Hearing Loss",link:"/va-disability/hearing-loss/",nexus:"Tinnitus and sensorineural hearing loss often arise from the same noise-induced cochlear hair cell damage; they are frequently bilateral and comorbid."},
+      {name:"Depression",link:"/va-disability/depression/",nexus:"Chronic tinnitus causes significant psychological distress, sleep disruption, and cognitive impacts with strong associations with major depressive disorder."},
+      {name:"Sleep Apnea",link:"/va-disability/sleep-apnea/",nexus:"Tinnitus-related sleep disruption and arousal can contribute to or aggravate sleep apnea severity."},
+      {name:"Anxiety",link:"/va-disability/anxiety-disorders/",nexus:"The chronic, inescapable nature of tinnitus is a recognized cause of generalized anxiety disorder and hypervigilance."},
+    ]
+  },
+  "knee-pain": {
+    display: "Knee Conditions",
+    secondaries: [
+      {name:"Lumbar Spine Strain",link:"/va-disability/lumbar-spine-strain/",nexus:"Knee instability and pain cause compensatory gait changes that shift mechanical load to the lumbar spine, accelerating degenerative changes."},
+      {name:"Hip Conditions",link:"#",nexus:"Altered biomechanics and gait pattern from knee conditions shifts mechanical stress to the hip joint, contributing to bursitis or osteoarthritis."},
+      {name:"Plantar Fasciitis",link:"/va-disability/plantar-fasciitis/",nexus:"Changes in gait resulting from knee pain and instability increase tension and strain on the plantar fascia during ambulation."},
+      {name:"Depression",link:"/va-disability/depression/",nexus:"Chronic joint pain, functional limitation, and reduced mobility from knee conditions have well-established links to secondary depressive disorders."},
+    ]
+  },
+  "hypertension": {
+    display: "Hypertension",
+    secondaries: [
+      {name:"Ischemic Heart Disease",link:"#",nexus:"Chronic hypertension is the leading modifiable risk factor for coronary artery disease; sustained elevated pressure damages coronary vessel walls."},
+      {name:"Chronic Kidney Disease",link:"#",nexus:"Sustained high blood pressure damages the glomerular filtration apparatus and renal arteries, progressively impairing kidney function."},
+      {name:"Stroke",link:"#",nexus:"Hypertension is the single most important risk factor for both ischemic and hemorrhagic stroke, causing damage to cerebral blood vessels over time."},
+    ]
+  },
+  "diabetes-mellitus-type-2": {
+    display: "Diabetes Type 2",
+    secondaries: [
+      {name:"Hypertension",link:"/va-disability/hypertension/",nexus:"Diabetes and hypertension are strongly comorbid through shared mechanisms of insulin resistance, vascular inflammation, and fluid dysregulation."},
+      {name:"Radiculopathy / Peripheral Neuropathy",link:"/va-disability/radiculopathy-lower/",nexus:"Diabetic peripheral neuropathy damages nerve fibers throughout the extremities, causing pain, numbness, and weakness in the hands and feet."},
+      {name:"Skin Conditions",link:"/va-disability/skin-conditions-dermatitis/",nexus:"Diabetes impairs wound healing, immune response, and peripheral circulation, significantly worsening skin infections and ulcer formation."},
+      {name:"Erectile Dysfunction",link:"#",nexus:"Diabetes-related vascular damage and neuropathy directly affect the vascular and neural mechanisms required for erectile function."},
+      {name:"Sleep Apnea",link:"/va-disability/sleep-apnea/",nexus:"Obesity associated with Type 2 diabetes is a primary risk factor for obstructive sleep apnea; the conditions often co-occur and worsen each other."},
+    ]
+  },
+  "tbi": {
+    display: "TBI (Traumatic Brain Injury)",
+    secondaries: [
+      {name:"PTSD",link:"/va-disability/ptsd/",nexus:"TBI and PTSD frequently co-occur from the same traumatic event; TBI increases neurological vulnerability to PTSD and shares overlapping symptoms."},
+      {name:"Migraines",link:"/va-disability/migraines/",nexus:"Post-traumatic headaches and migraines are among the most common long-term sequelae of TBI, caused by neurological and vascular changes from the injury."},
+      {name:"Depression",link:"/va-disability/depression/",nexus:"Neurological damage, neurotransmitter disruption, and functional limitations from TBI directly contribute to depressive disorders."},
+      {name:"Sleep Disorders",link:"/va-disability/sleep-apnea/",nexus:"TBI commonly disrupts sleep-wake regulation in the brain, contributing to insomnia, hypersomnia, and sleep apnea."},
+      {name:"Seizure Disorder",link:"#",nexus:"Brain trauma can create epileptogenic foci, leading to post-traumatic epilepsy or seizure disorders that manifest months to years after injury."},
+    ]
+  },
+  "hearing-loss": {
+    display: "Hearing Loss",
+    secondaries: [
+      {name:"Tinnitus",link:"/va-disability/tinnitus/",nexus:"Noise-induced sensorineural hearing loss and tinnitus share the same cochlear hair cell damage mechanism and frequently occur together."},
+      {name:"Depression",link:"/va-disability/depression/",nexus:"Hearing loss leads to social isolation, communication difficulties, and cognitive strain — all recognized contributors to depressive disorders."},
+      {name:"Anxiety",link:"/va-disability/anxiety-disorders/",nexus:"The effort and frustration of managing significant hearing loss in daily life is associated with elevated anxiety and psychological distress."},
+    ]
+  },
+  "cervical-spine-strain": {
+    display: "Cervical Spine Strain (Neck)",
+    secondaries: [
+      {name:"Radiculopathy (Upper Extremity)",link:"/va-disability/radiculopathy-upper/",nexus:"Cervical disc herniation or foraminal stenosis compresses nerve roots, causing radiating pain, weakness, or numbness into the arms and hands."},
+      {name:"Migraines / Headaches",link:"/va-disability/migraines/",nexus:"Cervicogenic headaches are caused by referred pain from the cervical spine structures, often presenting as occipital or frontal headaches."},
+      {name:"Depression/Anxiety",link:"/va-disability/depression/",nexus:"Chronic neck pain and associated functional limitations are recognized contributors to secondary depressive and anxiety disorders."},
+    ]
+  },
+};
+
+// Build the dropdown
+const select = document.getElementById('primary-select');
+Object.entries(SECONDARY_MAP).forEach(([key, data]) => {
+  const opt = document.createElement('option');
+  opt.value = key;
+  opt.textContent = data.display;
+  select.appendChild(opt);
+});
+
+function filterOptions() {
+  const query = document.getElementById('condition-search').value.toLowerCase();
+  const opts   = select.querySelectorAll('option');
+  let firstMatch = null;
+  opts.forEach(opt => {
+    if (!opt.value) return;
+    const matches = opt.textContent.toLowerCase().includes(query);
+    opt.style.display = matches ? '' : 'none';
+    if (matches && !firstMatch) firstMatch = opt.value;
+  });
+  // Auto-select first visible match if search is specific enough
+  if (query.length >= 3 && firstMatch && firstMatch !== select.value) {
+    select.value = firstMatch;
+    showSecondaries();
+  }
+}
+
+function showSecondaries() {
+  const key    = select.value;
+  const panel  = document.getElementById('secondaries-panel');
+  const noSel  = document.getElementById('no-selection');
+
+  if (!key || !SECONDARY_MAP[key]) {
+    panel.style.display  = 'none';
+    noSel.style.display  = 'block';
+    return;
+  }
+
+  const data = SECONDARY_MAP[key];
+  panel.style.display  = 'block';
+  noSel.style.display  = 'none';
+
+  panel.innerHTML = `
+    <div style="margin-bottom:1rem;">
+      <span class="primary-label">Primary: ${data.display}</span>
+      <p style="font-size:0.9rem;color:var(--sr-gray-text);margin:0;">
+        ${data.secondaries.length} secondary conditions commonly linked to ${data.display}.
+        Each requires a current diagnosis and a nexus letter from a physician.
+      </p>
+    </div>
+    <div id="secondary-cards"></div>
+  `;
+
+  const cardsDiv = panel.querySelector('#secondary-cards');
+  data.secondaries.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'secondary-card';
+    card.innerHTML = `
+      <div class="secondary-card-title">${s.name}</div>
+      <div class="secondary-card-nexus"><strong>Nexus rationale:</strong> ${s.nexus}</div>
+      ${s.link && s.link !== '#' ? `<div class="secondary-card-link"><a href="${s.link}">VA disability guide for ${s.name} &rarr;</a></div>` : ''}
+    `;
+    cardsDiv.appendChild(card);
+  });
+}
+</script>
+{% endblock %}

@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 def _build_digest_html(posts: list[BlogPost], pub_date: date) -> str:
     lines = [
-        f"<h1>VA Claims Workspace — {pub_date.strftime('%B %d, %Y')}</h1>",
+        f"<h1>Rank and Pay — {pub_date.strftime('%B %d, %Y')}</h1>",
         "<p>Today's top VA &amp; military benefits briefings:</p>",
         "<hr>",
     ]
     for post in posts[:6]:
-        url = f"https://vaclaimsworkspace.com/briefing/{post.slug}/"
+        url = f"https://rankandpay.org/briefing/{post.slug}/"
         lines.append(f'<h2><a href="{url}">{post.title}</a></h2>')
         if post.summary:
             lines.append(f"<p>{post.summary[:200]}…</p>")
@@ -26,7 +26,7 @@ def _build_digest_html(posts: list[BlogPost], pub_date: date) -> str:
         lines.append("<hr>")
     lines.append(
         '<p style="font-size:12px;color:#666;">'
-        "VA Claims Workspace — vaclaimsworkspace.com<br>"
+        "Rank and Pay — rankandpay.org<br>"
         "For informational purposes only; not legal or benefits advice.<br>"
         '<a href="{{ unsubscribe_url }}">Unsubscribe</a>'
         "</p>"
@@ -36,18 +36,18 @@ def _build_digest_html(posts: list[BlogPost], pub_date: date) -> str:
 
 def _build_digest_text(posts: list[BlogPost], pub_date: date) -> str:
     lines = [
-        f"VA Claims Workspace — {pub_date.strftime('%B %d, %Y')}",
+        f"Rank and Pay — {pub_date.strftime('%B %d, %Y')}",
         "=" * 50,
         "",
     ]
     for post in posts[:6]:
-        url = f"https://vaclaimsworkspace.com/briefing/{post.slug}/"
+        url = f"https://rankandpay.org/briefing/{post.slug}/"
         lines.append(post.title)
         if post.summary:
             lines.append(post.summary[:200] + "…")
         lines.append(url)
         lines.append("")
-    lines.append("VA Claims Workspace — vaclaimsworkspace.com")
+    lines.append("Rank and Pay — rankandpay.org")
     lines.append("For informational purposes only; not legal or benefits advice.")
     return "\n".join(lines)
 
@@ -113,7 +113,7 @@ def _get_provider(settings):
     if settings.buttondown_api_key:
         return ButtondownProvider(settings.buttondown_api_key)
     if settings.resend_api_key:
-        from_email = getattr(settings, "resend_from_email", "briefings@vaclaimsworkspace.com")
+        from_email = getattr(settings, "resend_from_email", "briefings@rankandpay.org")
         to_email = getattr(settings, "resend_to_email", "")
         return ResendProvider(settings.resend_api_key, from_email, to_email)
     return ConsoleProvider()

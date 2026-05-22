@@ -1,0 +1,274 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>VA Disability Rating Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">VA Disability Rating Calculator 2026</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Calculate your combined VA disability rating using the official whole-person method and see your estimated 2026 monthly compensation.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <!-- Calculator Card -->
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Your Disability Ratings</h2>
+
+    <div id="ratings-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1rem;"></div>
+
+    <button id="add-btn" onclick="addRating()" style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--sr-blue);color:#fff;border:none;padding:0.55rem 1.1rem;border-radius:var(--radius);cursor:pointer;font-size:0.9rem;font-weight:600;">
+      + Add Condition
+    </button>
+
+    <div id="results" style="display:none;margin-top:1.75rem;padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1rem;">
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Combined (raw)</div>
+          <div id="res-raw" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">0%</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">VA Final Rating</div>
+          <div id="res-rounded" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">0%</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Est. Monthly Pay</div>
+          <div id="res-pay" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">$0</div>
+        </div>
+      </div>
+      <div id="step-math" style="font-size:0.85rem;color:var(--sr-gray-text);font-family:monospace;background:#fff;padding:0.75rem;border-radius:var(--radius);border:1px solid var(--sr-gray-light);white-space:pre-wrap;margin-bottom:0.75rem;"></div>
+      <div id="tdiu-banner" style="display:none;background:#fff3cd;border:1px solid #ffc107;padding:0.75rem 1rem;border-radius:var(--radius);font-size:0.9rem;">
+        <strong>TDIU Eligibility:</strong> Based on your ratings, you may qualify for Total Disability Individual Unemployability (TDIU) — which pays at the 100% rate even if your combined rating is less than 100%. <a href="/explainers/tdiu-explained/">Learn more about TDIU &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <section style="margin-bottom:2rem;">
+    <h2>How VA Calculates Your Combined Disability Rating</h2>
+    <p>The VA does not simply add your disability percentages together. Instead, it uses a "whole-person" method that prevents your total rating from exceeding 100%.</p>
+    <p>Here is how it works step by step:</p>
+    <ol>
+      <li><strong>Sort ratings from highest to lowest.</strong> The VA starts with your highest-rated condition first.</li>
+      <li><strong>Apply the first rating to your whole person.</strong> If your highest rating is 50%, you are 50% disabled, leaving 50% of a "whole" person.</li>
+      <li><strong>Apply each subsequent rating to the remaining whole person.</strong> A 30% rating applied to the remaining 50% adds another 15% (30% × 50%), bringing you to 65% combined.</li>
+      <li><strong>Round to the nearest 10%.</strong> The VA rounds raw combined ratings to the nearest 10%. Anything ending in 1–4 rounds down; 5–9 rounds up.</li>
+    </ol>
+    <p>This calculator mirrors that exact method so you see the same math the VA sees. When you are ready, <a href="https://www.va.gov/disability/how-to-file-claim/" target="_blank" rel="noopener noreferrer">apply for VA disability compensation</a> on VA.gov.</p>
+  </section>
+
+  <!-- Rate table -->
+  <section style="margin-bottom:2rem;">
+    <h2>2026 VA Disability Compensation Rates (Veteran Alone)</h2>
+    <p>These are the 2026 monthly tax-free compensation rates for a veteran with no dependents. Rates increase with a spouse, children, or dependent parents.</p>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <thead>
+          <tr style="background:var(--sr-blue);color:#fff;">
+            <th style="padding:0.6rem 0.75rem;text-align:left;">Rating</th>
+            <th style="padding:0.6rem 0.75rem;text-align:right;">Monthly (Veteran Alone)</th>
+          </tr>
+        </thead>
+        <tbody id="rate-table-body"></tbody>
+      </table>
+    </div>
+    <p style="font-size:0.8rem;color:var(--sr-gray-text);margin-top:0.5rem;">Source: VA.gov 2025 compensation rates (2026 rates pending annual COLA adjustment).</p>
+  </section>
+
+  <!-- TDIU -->
+  <section style="margin-bottom:2rem;">
+    <h2>What Is TDIU?</h2>
+    <p>Total Disability Individual Unemployability (TDIU) allows veterans who cannot maintain substantially gainful employment due to their service-connected conditions to receive compensation at the 100% rate, even if their combined rating falls below 100%.</p>
+    <p><strong>Eligibility thresholds:</strong></p>
+    <ul>
+      <li>Single condition rated at 60%+ with a combined rating of 60%+, <em>or</em></li>
+      <li>Two or more conditions, one rated at least 40%, with a combined rating of 70%+</li>
+    </ul>
+    <p>TDIU must be claimed separately using <a href="https://www.va.gov/find-forms/about-form-21-8940/" target="_blank" rel="noopener noreferrer">VA Form 21-8940</a>. <a href="/explainers/tdiu-explained/">Read the full TDIU guide &rarr;</a></p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Why doesn't the VA just add my percentages?</summary>
+      <p style="margin-top:0.75rem;">The VA uses the whole-person method to reflect that conditions interact — two 50% disabilities do not mean a person is 100% incapacitated in every sense. The combined rating formula prevents the total from exceeding 100% mathematically.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the bilateral factor and how does it affect my rating?</summary>
+      <p style="margin-top:0.75rem;">If you have service-connected disabilities affecting both arms, both legs, or paired skeletal muscles, the VA adds a 10% bilateral factor before combining. For example, a 20% right knee and 20% left knee are combined first (yielding 36%) and then multiplied by 1.10, giving a bilateral combined of ~39.6%, before rounding. This calculator does not yet account for the bilateral factor — if you have bilateral conditions, your actual VA rating may be slightly higher.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the difference between 100% and Permanent and Total (P&T)?</summary>
+      <p style="margin-top:0.75rem;">A 100% rating means you receive the highest compensation rate, but the VA can still reduce it if your condition improves. Permanent and Total (P&T) means the VA has determined your disability is both 100% disabling and not expected to improve. P&T veterans receive additional benefits including CHAMPVA for dependents and protection from future rating reductions.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I add dependents to increase my compensation?</summary>
+      <p style="margin-top:0.75rem;">Yes. Veterans rated 30% or higher receive additional compensation for a spouse, dependent children, and dependent parents. The additional amounts vary by rating — for example, at 70%, a veteran with a spouse and one child receives roughly $200/month more than the veteran-alone rate.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Should I combine all conditions or is it better to file separately?</summary>
+      <p style="margin-top:0.75rem;">File all service-connected conditions. Each new condition adds to your combined rating using the whole-person method. Even a 10% condition can shift a 45% combined rating to 50%+ and unlock significantly higher compensation. There is no downside to claiming all conditions you are entitled to.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/va-disability/">VA Disability Benefits Overview</a></li>
+      <li><a href="/explainers/va-disability-rating-explained/">How VA Disability Ratings Work — Full Guide</a></li>
+      <li><a href="/explainers/tdiu-explained/">TDIU Explained: Getting Paid at the 100% Rate</a></li>
+      <li><a href="/va-claims/">How to File a Strong VA Disability Claim</a></li>
+      <li><a href="/tools/secondary-conditions-lookup/">Secondary Conditions Lookup Tool</a></li>
+      <li><a href="/tools/va-claim-checklist/">VA Claim Checklist</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This calculator provides estimates only. The VA applies additional factors (bilateral factor, dependents, special monthly compensation) not reflected here. Actual ratings are determined by the VA. Verify all results at <a href="https://www.va.gov" rel="noopener">VA.gov</a>.
+  </div>
+
+</main>
+
+<script>
+const VA_RATES = {0:0,10:175.51,20:346.95,30:537.42,40:774.16,50:1102.04,60:1395.93,70:1759.19,80:2044.89,90:2297.96,100:3831.30};
+
+let ratingCount = 0;
+
+function addRating(defaultVal = 0) {
+  ratingCount++;
+  const id = 'rating-' + ratingCount;
+  const div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;';
+  div.innerHTML = `
+    <label style="font-size:0.9rem;min-width:110px;color:var(--sr-gray-text);">Condition ${ratingCount}</label>
+    <select onchange="recalculate()" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;flex:1;min-width:140px;">
+      <option value="0">0% (Not rated)</option>
+      <option value="10">10%</option>
+      <option value="20">20%</option>
+      <option value="30">30%</option>
+      <option value="40">40%</option>
+      <option value="50" ${defaultVal===50?'selected':''}>50%</option>
+      <option value="60">60%</option>
+      <option value="70">70%</option>
+      <option value="80">80%</option>
+      <option value="90">90%</option>
+      <option value="100">100%</option>
+    </select>
+    <button onclick="removeRating('${id}')" style="background:none;border:1px solid #ccc;border-radius:var(--radius);padding:0.35rem 0.65rem;cursor:pointer;color:var(--sr-gray-text);font-size:0.85rem;">Remove</button>
+  `;
+  if (defaultVal) div.querySelector('select').value = String(defaultVal);
+  document.getElementById('ratings-list').appendChild(div);
+  recalculate();
+}
+
+function removeRating(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  recalculate();
+}
+
+function getRatings() {
+  const selects = document.querySelectorAll('#ratings-list select');
+  return Array.from(selects).map(s => parseInt(s.value, 10)).filter(v => v > 0);
+}
+
+function combinedRating(ratings) {
+  const sorted = [...ratings].sort((a, b) => b - a);
+  let combined = 0;
+  for (const r of sorted) {
+    combined = combined + (r / 100) * (100 - combined);
+  }
+  return combined;
+}
+
+function roundRating(raw) {
+  const r = Math.round(raw / 10) * 10;
+  return Math.min(100, Math.max(0, r));
+}
+
+function buildStepMath(ratings) {
+  const sorted = [...ratings].sort((a, b) => b - a);
+  let lines = ['Step-by-step whole-person calculation:'];
+  let remaining = 100;
+  let combined = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const r = sorted[i];
+    const added = (r / 100) * remaining;
+    combined += added;
+    lines.push(`  Condition ${i+1} (${r}%): ${r}% × ${remaining.toFixed(1)}% remaining = +${added.toFixed(2)}%  →  combined: ${combined.toFixed(2)}%`);
+    remaining = 100 - combined;
+  }
+  lines.push('');
+  lines.push(`  Raw combined: ${combined.toFixed(2)}%`);
+  lines.push(`  Rounded to nearest 10%: ${roundRating(combined)}%`);
+  return lines.join('\n');
+}
+
+function checkTDIU(ratings, rawCombined) {
+  const maxSingle = Math.max(...ratings, 0);
+  const combined = roundRating(rawCombined);
+  // Rule 1: single 60%+, combined >= 60%
+  if (maxSingle >= 60 && combined >= 60) return true;
+  // Rule 2: combined >= 70%, one condition >= 40%
+  if (combined >= 70 && maxSingle >= 40) return true;
+  return false;
+}
+
+function recalculate() {
+  const ratings = getRatings();
+  const resultsEl = document.getElementById('results');
+
+  if (ratings.length === 0) {
+    resultsEl.style.display = 'none';
+    return;
+  }
+
+  resultsEl.style.display = 'block';
+
+  const raw = combinedRating(ratings);
+  const rounded = roundRating(raw);
+  const monthlyPay = VA_RATES[rounded] || 0;
+
+  document.getElementById('res-raw').textContent = raw.toFixed(1) + '%';
+  document.getElementById('res-rounded').textContent = rounded + '%';
+  document.getElementById('res-pay').textContent = '$' + monthlyPay.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('step-math').textContent = buildStepMath(ratings);
+
+  const tdiuBanner = document.getElementById('tdiu-banner');
+  tdiuBanner.style.display = checkTDIU(ratings, raw) ? 'block' : 'none';
+}
+
+// Build rate table
+(function() {
+  const tbody = document.getElementById('rate-table-body');
+  const rates = [10,20,30,40,50,60,70,80,90,100];
+  rates.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.style.background = i % 2 === 0 ? '#fff' : 'var(--sr-gray-bg)';
+    tr.innerHTML = `<td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">${r}%</td>
+                    <td style="padding:0.5rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">$${VA_RATES[r].toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
+    tbody.appendChild(tr);
+  });
+})();
+
+// Start with 2 conditions
+addRating(50);
+addRating(30);
+</script>
+{% endblock %}

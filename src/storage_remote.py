@@ -1,7 +1,7 @@
 """
 Supabase Storage helpers — used so the cron job and the web service (which
 run in different Render containers) can share the generated report HTML for
-VA Claims Workspace.
+Rank and Pay.
 """
 
 from __future__ import annotations

@@ -1,0 +1,293 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>VA Claim Checklist</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">VA Disability Claim Checklist 2026</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Everything you need to file a strong VA disability claim. Check items off as you gather them — your progress saves automatically.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+
+    <!-- Progress bar -->
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+        <span style="font-size:0.9rem;font-weight:600;color:var(--sr-blue);">Progress</span>
+        <span id="progress-text" style="font-size:0.9rem;color:var(--sr-gray-text);">0 of 0 items complete</span>
+      </div>
+      <div style="background:var(--sr-gray-light);border-radius:999px;height:12px;overflow:hidden;">
+        <div id="progress-bar" style="height:100%;width:0%;background:var(--sr-blue);border-radius:999px;transition:width 0.3s ease;"></div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.75rem;">
+      <button onclick="markAll(true)" style="padding:0.5rem 1rem;background:var(--sr-blue);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Mark All Complete</button>
+      <button onclick="markAll(false)" style="padding:0.5rem 1rem;background:none;color:var(--sr-blue);border:1px solid var(--sr-blue);border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Clear All</button>
+      <button onclick="window.print()" style="padding:0.5rem 1rem;background:none;color:var(--sr-gray-text);border:1px solid var(--sr-gray-light);border-radius:var(--radius);cursor:pointer;font-size:0.85rem;">Print Checklist</button>
+    </div>
+
+    <!-- Checklist sections -->
+    <div id="checklist-container"></div>
+
+  </div>
+
+  <!-- Why each item matters -->
+  <section style="margin-bottom:2rem;">
+    <h2>Why Each Item Matters</h2>
+
+    <h3 style="font-size:1rem;margin-top:1.25rem;">Service Records</h3>
+    <p>Your DD-214 is the foundation of every VA claim — it proves your service dates, character of discharge, and military occupational specialty. Service treatment records (STRs) document injuries and illnesses treated on active duty and establish an in-service event. Without STRs, the VA must rely on your testimony and secondary evidence alone.</p>
+
+    <h3 style="font-size:1rem;margin-top:1.25rem;">Medical Evidence</h3>
+    <p>The VA requires three elements for service connection: (1) a current diagnosis, (2) an in-service event or disease, and (3) a medical nexus linking them. A <a href="/explainers/what-is-a-nexus-letter/">nexus letter</a> from a private doctor or specialist explicitly connecting your condition to service can be the single most important piece of evidence in a claim.</p>
+
+    <h3 style="font-size:1rem;margin-top:1.25rem;">Personal Statements and Buddy Statements</h3>
+    <p>Your personal statement (lay statement) describes how your condition affects your daily life and work. Buddy statements from fellow service members who witnessed your injury or its effects provide crucial corroboration the VA is required to consider.</p>
+
+    <h3 style="font-size:1rem;margin-top:1.25rem;">VA Forms</h3>
+    <p><a href="https://www.va.gov/find-forms/about-form-21-526ez/" target="_blank" rel="noopener noreferrer">Form 21-526EZ</a> is the primary application for disability compensation. Special forms like <a href="https://www.va.gov/find-forms/about-form-21-0781/" target="_blank" rel="noopener noreferrer">21-0781</a> (PTSD stressor statement) and <a href="https://www.va.gov/find-forms/about-form-21-8940/" target="_blank" rel="noopener noreferrer">21-8940</a> (<a href="/explainers/tdiu-explained/">TDIU</a> application) must be filed separately when applicable. Submitting these proactively — before the VA asks — speeds up processing and demonstrates a complete, organized claim.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Do I need a VSO to file a VA claim?</summary>
+      <p style="margin-top:0.75rem;">No — you can file a claim on your own through VA.gov. However, Veterans Service Organizations (VSOs) like the DAV, VFW, American Legion, and others provide free accredited representation and can significantly improve the quality and outcome of your claim. Consider using one, especially for complex claims.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is a C&P exam and can I prepare for it?</summary>
+      <p style="margin-top:0.75rem;">A Compensation and Pension (C&P) exam is a medical evaluation ordered by the VA to assess your claimed condition. The examiner rates the severity of your disability and may address the nexus. You can absolutely prepare — bring all your medical records, describe your worst days (not your average), and be specific about functional limitations. <a href="/va-claims/c-and-p-exam-tips/">See our C&P exam preparation guide &rarr;</a></p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How long does a VA claim take?</summary>
+      <p style="margin-top:0.75rem;">Average processing times vary but often range from 100 to 200+ days for initial claims. Claims with complete, well-organized evidence tend to process faster. The PACT Act has created a large backlog for presumptive conditions. You can track your claim status on VA.gov or through eBenefits.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is an Intent to File and why does it matter?</summary>
+      <p style="margin-top:0.75rem;">An Intent to File (ITF) locks in an effective date for up to one year before you submit your completed claim. If your claim is approved, your benefits are backdated to the ITF date — potentially worth thousands of dollars in retroactive pay. File an ITF as soon as you decide to pursue a claim.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What if my claim is denied?</summary>
+      <p style="margin-top:0.75rem;">A denial is not the end. You have three appeal options under the AMA (Appeals Modernization Act): (1) Supplemental Claim — submit new and relevant evidence; (2) Higher-Level Review — request a senior rater review without new evidence; (3) Board of Veterans' Appeals — appeal to a Veterans Law Judge. Most successful appeals involve either a Supplemental Claim with a strong nexus letter or a Board appeal with a hearing.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/va-claims/">How to File a VA Disability Claim</a></li>
+      <li><a href="/va-claims/nexus-letter-guide/">How to Get a Nexus Letter</a></li>
+      <li><a href="/va-claims/c-and-p-exam-tips/">C&P Exam Preparation Tips</a></li>
+      <li><a href="/va-claims/buddy-statement-guide/">How to Write a Buddy Statement</a></li>
+      <li><a href="/tools/secondary-conditions-lookup/">Secondary Conditions Lookup</a></li>
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This checklist is for informational purposes only. VA claim requirements may vary by condition and individual circumstances. Consult an accredited VSO, claims agent, or VA-accredited attorney for advice specific to your case.
+  </div>
+
+</main>
+
+<style>
+.checklist-section { margin-bottom: 1.5rem; }
+.checklist-section-title {
+  font-family: var(--font-serif);
+  color: var(--sr-blue);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.6rem 0.75rem;
+  background: var(--sr-gray-bg);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--sr-gray-light);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+.checklist-item:hover { background: var(--sr-gray-bg); }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-item input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--sr-blue);
+  cursor: pointer;
+}
+.checklist-item-content { flex: 1; }
+.checklist-item-label { font-weight: 600; font-size: 0.9rem; line-height: 1.4; }
+.checklist-item-desc { font-size: 0.82rem; color: var(--sr-gray-text); margin-top: 0.2rem; line-height: 1.5; }
+.checklist-item.checked .checklist-item-label { text-decoration: line-through; color: var(--sr-gray-text); }
+.optional-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  background: var(--sr-gray-light);
+  color: var(--sr-gray-text);
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-weight: 600;
+  margin-left: 0.4rem;
+  text-decoration: none;
+}
+
+@media print {
+  nav.breadcrumbs, section:not(.checklist-section), .page-disclaimer, .site-header, .site-footer { display: none; }
+  .checklist-section { break-inside: avoid; }
+}
+</style>
+
+<script>
+const CHECKLIST = [
+  {
+    id: "service-records",
+    title: "1. Service Records",
+    items: [
+      { id: "dd214", label: "DD-214 (Certificate of Release or Discharge)", desc: "Proves dates of service, character of discharge, and military occupational specialty. Obtain from the National Archives (archives.gov/veterans) if you do not have a copy." },
+      { id: "str", label: "Service Treatment Records (STRs)", desc: "Medical records from active duty documenting in-service injuries and illnesses. Request through the VA's Records Management Center or MyHealtheVet." },
+      { id: "deployment-orders", label: "Deployment Orders / TDY Orders", desc: "Documents time in combat zones or hazardous locations, supporting claims for combat-related or exposure-related conditions." },
+      { id: "personnel-records", label: "Personnel Records (ERB/ORB/OMPF)", desc: "Useful for corroborating duties, awards, and assignments that support the in-service event. Request via milConnect or National Personnel Records Center." },
+    ],
+  },
+  {
+    id: "medical-evidence",
+    title: "2. Medical Evidence",
+    items: [
+      { id: "current-diagnosis", label: "Current Diagnosis from a Licensed Physician", desc: "The VA requires proof that the condition currently exists. A diagnosis from your primary care provider or specialist is essential." },
+      { id: "private-records", label: "Private Medical Records (post-service treatment)", desc: "All records of treatment since leaving service. Gather from each doctor, specialist, and hospital you have seen for your claimed conditions." },
+      { id: "nexus-letter", label: "Nexus Letter from a Physician", desc: "A letter from a doctor explicitly linking your current diagnosis to your military service. This is often the most important piece of evidence in a claim. The letter should use language like 'at least as likely as not.'" },
+      { id: "dbq", label: "Disability Benefits Questionnaire (DBQ)", desc: "The VA's standardized exam forms, which private doctors can complete. A completed DBQ from your own doctor can reduce your reliance on the VA's C&P exam." },
+      { id: "mental-health", label: "Mental Health Treatment Records", desc: "Required for PTSD, depression, anxiety, and MST claims. Include records from therapists, psychiatrists, and counselors.", optional: true },
+    ],
+  },
+  {
+    id: "personal-statements",
+    title: "3. Personal Statements & Lay Evidence",
+    items: [
+      { id: "personal-statement", label: "Personal Statement (21-10182 / lay statement)", desc: "Your written account of how the condition occurred in service, how it has progressed, and how it affects your daily life and ability to work." },
+      { id: "buddy-statements", label: "Buddy Statements from Fellow Service Members", desc: "Written statements from fellow veterans who witnessed your injury or can corroborate your account. Even statements about your post-service symptoms can help.", optional: true },
+      { id: "family-statements", label: "Family or Employer Statements", desc: "Lay statements from spouses, family members, or employers describing observable symptoms and functional limitations.", optional: true },
+    ],
+  },
+  {
+    id: "va-forms",
+    title: "4. VA Forms",
+    items: [
+      { id: "526ez", label: "VA Form 21-526EZ — Application for Disability Compensation", desc: "The primary application form. <a href=\"https://www.va.gov/find-forms/about-form-21-526ez/\" target=\"_blank\" rel=\"noopener noreferrer\">Download VA Form 21-526EZ</a> or file online at VA.gov through an accredited VSO. Include all conditions in this single filing." },
+      { id: "itf", label: "Intent to File (VA Form 21-0966)", desc: "File this FIRST to lock in an effective date up to one year before you submit your full claim. Do this the day you decide to file. <a href=\"https://www.va.gov/find-forms/about-form-21-0966/\" target=\"_blank\" rel=\"noopener noreferrer\">Download VA Form 21-0966 &rarr;</a>" },
+      { id: "0781", label: "VA Form 21-0781 — PTSD Stressor Statement", desc: "Required when claiming PTSD. Describes the traumatic events that caused your PTSD. <a href=\"https://www.va.gov/find-forms/about-form-21-0781/\" target=\"_blank\" rel=\"noopener noreferrer\">Download VA Form 21-0781 &rarr;</a>", optional: true },
+      { id: "0781a", label: "VA Form 21-0781a — MST Stressor Statement", desc: "Required when claiming PTSD related to Military Sexual Trauma (MST). Separate from the standard 0781.", optional: true },
+      { id: "8940", label: "VA Form 21-8940 — Individual Unemployability (TDIU)", desc: "File this if your service-connected disabilities prevent you from maintaining substantially gainful employment. <a href=\"https://www.va.gov/find-forms/about-form-21-8940/\" target=\"_blank\" rel=\"noopener noreferrer\">Download VA Form 21-8940 &rarr;</a> | <a href=\"/explainers/tdiu-explained/\">TDIU explained &rarr;</a>", optional: true },
+      { id: "4142", label: "VA Form 21-4142 — Authorization to Release Medical Records", desc: "Authorizes the VA to request records directly from private providers. Attach for every private provider you list. <a href=\"https://www.va.gov/find-forms/about-form-21-4142/\" target=\"_blank\" rel=\"noopener noreferrer\">Download VA Form 21-4142 &rarr;</a>" },
+    ],
+  },
+  {
+    id: "optional-enhancements",
+    title: "5. Optional Enhancements",
+    items: [
+      { id: "private-cpe", label: "Independent Medical Examination (IME / Private C&P)", desc: "A C&P exam from a private examiner (not VA). Can counter an inadequate or unfavorable VA exam. Useful when the VA's examiner reaches an incorrect nexus conclusion.", optional: true },
+      { id: "vocational", label: "Vocational Assessment (for TDIU claims)", desc: "An assessment from a vocational expert documenting how your disabilities prevent substantial gainful employment. Useful for TDIU claims.", optional: true },
+      { id: "photos", label: "Photographs or Video of Symptoms", desc: "Visual documentation of visible symptoms (skin conditions, amputations, mobility limitations). Can supplement medical records.", optional: true },
+    ],
+  },
+];
+
+const STORAGE_KEY = 'rnp_va_checklist_v1';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveState(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+let checkState = loadState();
+
+function buildChecklist() {
+  const container = document.getElementById('checklist-container');
+  container.innerHTML = '';
+  CHECKLIST.forEach(section => {
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'checklist-section';
+    const completedCount = section.items.filter(i => checkState[i.id]).length;
+    sectionDiv.innerHTML = `
+      <div class="checklist-section-title">
+        <span>${section.title}</span>
+        <span style="font-size:0.8rem;font-weight:400;color:var(--sr-gray-text);">${completedCount}/${section.items.length}</span>
+      </div>
+    `;
+    section.items.forEach(item => {
+      const isChecked = !!checkState[item.id];
+      const row = document.createElement('label');
+      row.className = 'checklist-item' + (isChecked ? ' checked' : '');
+      row.setAttribute('for', 'chk-' + item.id);
+      row.innerHTML = `
+        <input type="checkbox" id="chk-${item.id}" data-item="${item.id}" ${isChecked ? 'checked' : ''}>
+        <div class="checklist-item-content">
+          <div class="checklist-item-label">${item.label}${item.optional ? '<span class="optional-badge">Optional</span>' : ''}</div>
+          <div class="checklist-item-desc">${item.desc}</div>
+        </div>
+      `;
+      row.addEventListener('change', e => {
+        if (e.target.type === 'checkbox') {
+          checkState[e.target.dataset.item] = e.target.checked;
+          saveState(checkState);
+          buildChecklist();
+          updateProgress();
+        }
+      });
+      sectionDiv.appendChild(row);
+    });
+    container.appendChild(sectionDiv);
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  const allItems = CHECKLIST.flatMap(s => s.items);
+  const total = allItems.length;
+  const done  = allItems.filter(i => checkState[i.id]).length;
+  const pct   = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${done} of ${total} items complete (${pct}%)`;
+}
+
+function markAll(checked) {
+  CHECKLIST.flatMap(s => s.items).forEach(i => { checkState[i.id] = checked; });
+  saveState(checkState);
+  buildChecklist();
+}
+
+buildChecklist();
+</script>
+{% endblock %}

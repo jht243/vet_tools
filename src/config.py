@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     # Newsletter
     newsletter_provider: str = "console"
-    newsletter_from_email: str = "briefing@vaclaimsworkspace.com"
+    newsletter_from_email: str = "briefing@rankandpay.org"
     newsletter_api_key: str = ""
     subscriber_list_path: str = "subscribers.json"
     seo_email_provider: str = "resend"
@@ -97,13 +97,13 @@ class Settings(BaseSettings):
     # SEO / canonical URL — base URL of the deployed site. Used for canonical
     # <link>, sitemap entries, JSON-LD identifiers, and OG share URLs. Override
     # via SITE_URL env var when a custom domain is added.
-    site_url: str = "https://vaclaimsworkspace.com"
-    site_name: str = "VA Claims Workspace"
-    site_owner_org: str = "VA Claims Workspace"
+    site_url: str = "https://rankandpay.org"
+    site_name: str = "Rank and Pay"
+    site_owner_org: str = "Rank and Pay"
     site_locale: str = "en_US"
     site_description: str = (
-        "Free tools and guides for veterans navigating VA disability claims, "
-        "military retirement, and benefits."
+        "Free tools and daily briefings covering military pay tables, BAH rates, "
+        "VA disability ratings, retirement calculators, and benefits guides."
     )
 
     @property
@@ -124,11 +124,11 @@ class Settings(BaseSettings):
             or "onrender.com" in lower
             or lower
             in {
-                "https://www.vaclaimsworkspace.com",
-                "http://www.vaclaimsworkspace.com",
+                "https://www.rankandpay.org",
+                "http://www.rankandpay.org",
             }
         ):
-            return "https://vaclaimsworkspace.com"
+            return "https://rankandpay.org"
         return u
 
     # Long-form blog post generator. Each post is roughly 700-900 words and uses
@@ -151,6 +151,12 @@ class Settings(BaseSettings):
     # API key from https://www.semrush.com/accounts/subscription-info/api-units/
     semrush_api_key: str = ""
     semrush_database: str = "us"
+
+    # ── Congress.gov API ──────────────────────────────────────────────────────
+    # Free API key — sign up at https://api.congress.gov/sign-up/
+    # Enables the CongressVAScraper to pull recent bills and committee activity.
+    # Leave blank to disable; scraper will fall back to committee RSS only.
+    congress_api_key: str = ""
 
     # ── Press-Release Radar ───────────────────────────────────────────────────
     # Recipient for the daily press-radar digest (qualifying findings only).

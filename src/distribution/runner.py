@@ -6,16 +6,16 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 _STATIC_URLS_TO_PING_DAILY = [
-    "https://vaclaimsworkspace.com/",
-    "https://vaclaimsworkspace.com/briefing/",
-    "https://vaclaimsworkspace.com/tools/",
-    "https://vaclaimsworkspace.com/va-claims/",
-    "https://vaclaimsworkspace.com/va-disability/",
-    "https://vaclaimsworkspace.com/military-retirement/",
-    "https://vaclaimsworkspace.com/military-pay/",
-    "https://vaclaimsworkspace.com/state-benefits/",
-    "https://vaclaimsworkspace.com/explainers/",
-    "https://vaclaimsworkspace.com/sitemap.xml",
+    "https://rankandpay.org/",
+    "https://rankandpay.org/briefing/",
+    "https://rankandpay.org/tools/",
+    "https://rankandpay.org/va-claims/",
+    "https://rankandpay.org/va-disability/",
+    "https://rankandpay.org/military-retirement/",
+    "https://rankandpay.org/military-pay/",
+    "https://rankandpay.org/state-benefits/",
+    "https://rankandpay.org/explainers/",
+    "https://rankandpay.org/sitemap.xml",
 ]
 
 

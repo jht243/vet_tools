@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Daily orchestrator for VA Claims Workspace.
+Daily orchestrator for Rank and Pay.
 
 Chains: scrape -> analyze -> blog generation -> press radar ->
         Google Indexing API -> newsletter -> IndexNow/archive/Zenodo/OSF ->
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 
 def _print_header() -> None:
-    console.rule("[bold blue]VA Claims Workspace — Daily Pipeline[/bold blue]")
+    console.rule("[bold blue]Rank and Pay — Daily Pipeline[/bold blue]")
     console.print(
         f"  [dim]{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}[/dim]\n"
     )
@@ -157,9 +157,22 @@ def main(
     phase = "Phase 3: Google Indexing API"
     console.rule(f"[cyan]{phase}[/cyan]")
     try:
-        from src.distribution.runner import run_google_indexing
+        from src.distribution.runner import run_indexnow
 
-        result = run_google_indexing(dry_run=dry_run)
+        # Collect new blog post URLs to ping
+        from src.models import BlogPost, SessionLocal as _SL
+        from datetime import datetime, timedelta
+        _db = _SL()
+        try:
+            _cutoff = datetime.utcnow() - timedelta(days=1)
+            _new_posts = _db.query(BlogPost).filter(BlogPost.created_at >= _cutoff).all()
+            _post_urls = [f"{settings.canonical_site_url}/briefing/{p.slug}/" for p in _new_posts]
+        finally:
+            _db.close()
+        if not dry_run:
+            result = run_indexnow(_post_urls)
+        else:
+            result = {"dry_run": True, "urls": _post_urls}
         console.print(f"[green]✓ {phase} complete[/green]: {result}")
         results[phase] = ("ok", str(result))
     except Exception as exc:
@@ -191,7 +204,7 @@ def main(
     try:
         from src.distribution.runner import run_all as run_distribution_all
 
-        result = run_distribution_all(dry_run=dry_run)
+        result = run_distribution_all()
         console.print(f"[green]✓ {phase} complete[/green]: {result}")
         results[phase] = ("ok", str(result))
     except Exception as exc:

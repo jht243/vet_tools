@@ -1,0 +1,269 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>Military Retirement Pay Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">Military Retirement Pay Calculator 2026</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Estimate your monthly retirement pay under Final Pay, High-36, or the Blended Retirement System (BRS) using 2025 pay tables.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Calculator Inputs</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Retirement System</label>
+        <select id="ret-system" onchange="recalculate()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="high36">High-36 (most common)</option>
+          <option value="finalpay">Final Pay (entered before 1980)</option>
+          <option value="brs">Blended Retirement System (BRS)</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Pay Grade</label>
+        <select id="pay-grade" onchange="recalculate()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <optgroup label="Enlisted">
+            <option value="E-1">E-1</option><option value="E-2">E-2</option><option value="E-3">E-3</option>
+            <option value="E-4">E-4</option><option value="E-5">E-5</option><option value="E-6">E-6</option>
+            <option value="E-7" selected>E-7</option><option value="E-8">E-8</option><option value="E-9">E-9</option>
+          </optgroup>
+          <optgroup label="Warrant Officer">
+            <option value="W-1">W-1</option><option value="W-2">W-2</option><option value="W-3">W-3</option>
+            <option value="W-4">W-4</option><option value="W-5">W-5</option>
+          </optgroup>
+          <optgroup label="Officer">
+            <option value="O-1">O-1</option><option value="O-2">O-2</option><option value="O-3">O-3</option>
+            <option value="O-4">O-4</option><option value="O-5">O-5</option><option value="O-6">O-6</option>
+            <option value="O-7">O-7</option><option value="O-8">O-8</option><option value="O-9">O-9</option>
+            <option value="O-10">O-10</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Years of Service: <span id="yos-display">20</span></label>
+        <input type="range" id="yos-slider" min="20" max="40" value="20" oninput="document.getElementById('yos-display').textContent=this.value;recalculate();"
+          style="width:100%;accent-color:var(--sr-blue);">
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--sr-gray-text);"><span>20 yrs</span><span>40 yrs</span></div>
+      </div>
+
+    </div>
+
+    <div id="avg-pay-row" style="margin-bottom:1.5rem;">
+      <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Average Monthly Base Pay (last 36 months) <span style="font-weight:400;color:var(--sr-gray-text);">(auto-filled, editable)</span></label>
+      <input type="number" id="avg-pay" oninput="recalculate()" style="width:100%;max-width:280px;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;" placeholder="e.g. 4500">
+    </div>
+
+    <div id="ret-results" style="padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem;">
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Multiplier</div>
+          <div id="res-mult" style="font-size:1.6rem;font-weight:700;color:var(--sr-blue);">50%</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Monthly Retirement</div>
+          <div id="res-monthly" style="font-size:1.6rem;font-weight:700;color:var(--sr-blue);">$0</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Annual Retirement</div>
+          <div id="res-annual" style="font-size:1.6rem;font-weight:700;color:var(--sr-blue);">$0</div>
+        </div>
+      </div>
+      <div id="ret-formula" style="font-size:0.85rem;color:var(--sr-gray-text);font-family:monospace;background:#fff;padding:0.75rem;border-radius:var(--radius);border:1px solid var(--sr-gray-light);"></div>
+    </div>
+  </div>
+
+  <!-- How each system works -->
+  <section style="margin-bottom:2rem;">
+    <h2>The Three Military Retirement Systems</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:1rem;">
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">Final Pay</h3>
+        <p style="font-size:0.9rem;">For members who entered before September 8, 1980. Retirement pay equals 2.5% × years of service × final month's basic pay. A 20-year retiree receives 50% of final pay.</p>
+      </div>
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">High-36</h3>
+        <p style="font-size:0.9rem;">For members who entered between September 8, 1980 and December 31, 2017 (and did not opt into BRS). Uses 2.5% × years × average of the highest 36 months of basic pay. A 20-year retiree gets 50% of their average.</p>
+      </div>
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;"><a href="/explainers/blended-retirement-system/">Blended Retirement System (BRS)</a></h3>
+        <p style="font-size:0.9rem;">For members who entered on or after January 1, 2018, or who opted in. Uses 2.0% × years × average of highest 36 months. The lower multiplier is offset by government TSP matching (up to 5% of basic pay) and continuation pay.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison table -->
+  <section style="margin-bottom:2rem;">
+    <h2>Retirement System Quick Comparison</h2>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <thead>
+          <tr style="background:var(--sr-blue);color:#fff;">
+            <th style="padding:0.6rem 0.75rem;text-align:left;">Feature</th>
+            <th style="padding:0.6rem 0.75rem;text-align:center;">Final Pay</th>
+            <th style="padding:0.6rem 0.75rem;text-align:center;">High-36</th>
+            <th style="padding:0.6rem 0.75rem;text-align:center;">BRS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Multiplier per year</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">2.5%</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">2.5%</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">2.0%</td></tr>
+          <tr style="background:var(--sr-gray-bg);"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Base for calculation</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">Final month pay</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">Avg high-36 months</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">Avg high-36 months</td></tr>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">TSP matching</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">None</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">None</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">Up to 5%</td></tr>
+          <tr style="background:var(--sr-gray-bg);"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">20-year payout</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">50% final pay</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">50% avg pay</td><td style="padding:0.5rem;text-align:center;border-bottom:1px solid var(--sr-gray-light);">40% avg pay</td></tr>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;">Continuation pay bonus</td><td style="padding:0.5rem;text-align:center;">No</td><td style="padding:0.5rem;text-align:center;">No</td><td style="padding:0.5rem;text-align:center;">Yes (12 yrs)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Is military retirement pay taxable?</summary>
+      <p style="margin-top:0.75rem;">Federal income tax applies to military retirement pay. However, many states fully or partially exempt military retirement from state income tax. Some states like Texas, Florida, and Nevada have no income tax at all. Disability retirement pay may be partially or fully tax-free depending on the percentage.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">When does military retirement pay start?</summary>
+      <p style="margin-top:0.75rem;">Retirement pay begins the first day of the month after your retirement date. There is typically no gap — <a href="https://www.dfas.mil/" target="_blank" rel="noopener noreferrer">DFAS (Defense Finance and Accounting Service)</a> begins payments automatically once your retirement is processed. You can manage your pay and tax withholding at <a href="https://mypay.dfas.mil/" target="_blank" rel="noopener noreferrer">myPay</a>.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does military retirement affect VA disability compensation?</summary>
+      <p style="margin-top:0.75rem;">Traditionally, VA compensation was offset dollar-for-dollar from retirement pay. However, Concurrent Retirement and Disability Pay (CRDP) allows veterans rated 50%+ to receive both in full. Combat-related disabilities may qualify for CRSC instead. <a href="/military-retirement/concurrent-receipt-crsc-crdp/">Learn about concurrent receipt &rarr;</a></p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the Survivor Benefit Plan (SBP)?</summary>
+      <p style="margin-top:0.75rem;">The Survivor Benefit Plan is an annuity program that continues a portion of your retirement pay to your surviving spouse or dependents after your death. The standard SBP costs 6.5% of your covered base amount and pays 55% of that amount to survivors. SBP and VA Dependency and Indemnity Compensation (DIC) can now be received concurrently.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I retire with less than 20 years?</summary>
+      <p style="margin-top:0.75rem;">Generally, regular military retirement requires at least 20 years of active service. However, medical/disability retirement (Chapter 61) is available regardless of years served if you are medically unfit for duty. Reserve/Guard retirement works differently, using a points system, and typically begins at age 60.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/military-retirement/">Military Retirement Overview</a></li>
+      <li><a href="/military-retirement/blended-retirement-system/">Blended Retirement System (BRS) Guide</a></li>
+      <li><a href="/military-retirement/concurrent-receipt-crsc-crdp/">CRSC vs CRDP: Concurrent Receipt Explained</a></li>
+      <li><a href="/military-retirement/survivor-benefit-plan/">Survivor Benefit Plan (SBP) Guide</a></li>
+      <li><a href="/tools/crsc-crdp-calculator/">CRSC vs CRDP Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This calculator provides estimates based on 2025 pay tables. Actual retirement pay is computed by <a href="https://www.dfas.mil/" target="_blank" rel="noopener noreferrer">DFAS</a> and may differ due to rounding, partial months, special pays, or COLA adjustments. Always confirm with your service branch finance office.
+  </div>
+
+</main>
+
+<script>
+const PAY_TABLE_2025 = {
+  "E-1": [1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917],
+  "E-2": [2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149],
+  "E-3": [2259,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425],
+  "E-4": [2509,2644,2726,2726,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053],
+  "E-5": [2728,2872,2987,3187,3098,3098,3268,3268,3268,3268,3268,3268,3268,3268,3268,3268,3268],
+  "E-6": [2977,3271,3401,3550,3757,3757,3898,3958,4049,4049,4049,4049,4049,4049,4049,4049,4049],
+  "E-7": [3443,3730,3858,3981,4109,4234,4371,4437,4534,4690,4817,4904,5008,5008,5008,5008,5008],
+  "E-8": [4954,5081,5176,5361,5502,5596,5696,5822,5822,5822,5822,5895,6012,6012,6012,6012,6012],
+  "E-9": [6052,6367,6524,6619,6831,6958,6958,7119,7274,7274,7274,7530,7598,7598,7598,7598,7598],
+  "W-1": [3447,3814,3945,4148,4302,4517,4679,4833,5020,5196,5305,5411,5411,5411,5411,5411,5411],
+  "W-2": [3980,4374,4484,4621,4829,4979,5218,5379,5556,5718,5879,6036,6095,6095,6095,6095,6095],
+  "W-3": [4605,4929,5062,5187,5395,5572,5731,5960,6119,6369,6498,6635,6770,6888,6888,6888,6888],
+  "W-4": [5149,5534,5688,5825,5968,6200,6459,6655,6888,7122,7341,7567,7793,8022,8247,8247,8247],
+  "W-5": [0,0,0,0,0,0,0,7699,7699,7922,8208,8499,8787,9075,9356,9610,9610],
+  "O-1": [3803,3961,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962],
+  "O-2": [4382,4983,5698,5900,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004],
+  "O-3": [5079,5754,6215,6735,7068,7263,7398,7530,7530,7530,7530,7530,7530,7530,7530,7530,7530],
+  "O-4": [5784,6699,7144,7630,7989,8321,8534,8767,8983,9085,9127,9127,9127,9127,9127,9127,9127],
+  "O-5": [6737,7591,8103,8420,8774,9015,9344,9677,9947,10237,10433,10497,10497,10497,10497,10497,10497],
+  "O-6": [8093,8891,9481,9481,9538,9945,10051,10311,10622,11029,11317,11605,11605,11605,11605,11605,11605],
+  "O-7": [10225,10688,10847,11123,11308,11598,11851,12087,12432,12798,12798,13120,13120,13120,13120,13120,13120],
+  "O-8": [12406,12821,13119,13265,13360,13613,14029,14392,14674,15046,15339,15556,15697,15697,15697,15697,15697],
+  "O-9": [14714,15207,15323,15474,15699,16040,16296,16296,16776,16776,17286,17286,17286,17286,17286,17286,17286],
+  "O-10": [0,0,0,0,0,0,17675,17675,17675,17675,18491,18491,18491,18491,18491,18491,18491]
+};
+const YOS_BRACKETS = [0,2,3,4,6,8,10,12,14,16,18,20,22,24,26,28,30];
+
+function getBasePay(grade, yos) {
+  const row = PAY_TABLE_2025[grade];
+  if (!row) return 0;
+  let idx = 0;
+  for (let i = 0; i < YOS_BRACKETS.length; i++) {
+    if (yos >= YOS_BRACKETS[i]) idx = i;
+  }
+  return row[idx];
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function recalculate() {
+  const system = document.getElementById('ret-system').value;
+  const grade  = document.getElementById('pay-grade').value;
+  const yos    = parseInt(document.getElementById('yos-slider').value, 10);
+
+  const basePay = getBasePay(grade, yos);
+  // Update avg-pay field if user hasn't changed it
+  const avgPayEl = document.getElementById('avg-pay');
+  if (!avgPayEl.dataset.userEdited) {
+    avgPayEl.value = basePay || '';
+  }
+
+  const avgPay = parseFloat(avgPayEl.value) || basePay;
+
+  let multiplierPct, retirePay, formulaText;
+
+  if (system === 'finalpay') {
+    multiplierPct = 2.5 * yos;
+    retirePay = (multiplierPct / 100) * basePay;
+    formulaText = `Final Pay: 2.5% × ${yos} yrs × ${fmt(basePay)} = ${fmt(retirePay)}/mo  (${multiplierPct.toFixed(1)}% of final pay)`;
+  } else if (system === 'high36') {
+    multiplierPct = 2.5 * yos;
+    retirePay = (multiplierPct / 100) * avgPay;
+    formulaText = `High-36: 2.5% × ${yos} yrs × ${fmt(avgPay)} avg = ${fmt(retirePay)}/mo  (${multiplierPct.toFixed(1)}% of avg high-36 pay)`;
+  } else { // brs
+    multiplierPct = 2.0 * yos;
+    retirePay = (multiplierPct / 100) * avgPay;
+    formulaText = `BRS: 2.0% × ${yos} yrs × ${fmt(avgPay)} avg = ${fmt(retirePay)}/mo  (${multiplierPct.toFixed(1)}% of avg high-36 pay)\nNote: BRS also includes TSP matching up to 5% and continuation pay.`;
+  }
+
+  document.getElementById('res-mult').textContent   = multiplierPct.toFixed(1) + '%';
+  document.getElementById('res-monthly').textContent = fmt(retirePay);
+  document.getElementById('res-annual').textContent  = fmt(retirePay * 12);
+  document.getElementById('ret-formula').textContent = formulaText;
+
+  // Show/hide avg-pay row
+  document.getElementById('avg-pay-row').style.display = system === 'finalpay' ? 'none' : 'block';
+}
+
+document.getElementById('avg-pay').addEventListener('input', function() {
+  this.dataset.userEdited = '1';
+  recalculate();
+});
+
+recalculate();
+</script>
+{% endblock %}

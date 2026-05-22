@@ -1,0 +1,54 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>About Rank and Pay</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0.5rem auto 0;">Free tools and daily briefings for U.S. veterans and military families.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:960px;margin:2rem auto;padding:0 1.25rem;">
+  <article class="article-body" style="line-height:1.75;max-width:720px;">
+
+    <h2>Our Mission</h2>
+    <p>We built Rank and Pay because navigating VA disability ratings, military pay tables, and state benefits is unnecessarily hard. Our mission is to make that information free, fast, and clear — no paywalls, no account required.</p>
+
+    <h2>What We Do</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.25rem;margin:1.5rem 0;">
+
+      <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-top:3px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:0.95rem;color:var(--sr-blue);margin-bottom:0.5rem;">Daily Briefings</h3>
+        <p style="font-size:0.875rem;margin:0;line-height:1.6;">News and policy updates pulled from public VA, DoD, and Congress sources every morning — summarized and delivered to your inbox.</p>
+      </div>
+
+      <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-top:3px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:0.95rem;color:var(--sr-blue);margin-bottom:0.5rem;">Free Calculators</h3>
+        <p style="font-size:0.875rem;margin:0;line-height:1.6;">VA combined rating, military retirement, BAH, and pay breakdown — all free with no account needed.</p>
+      </div>
+
+      <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-top:3px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:0.95rem;color:var(--sr-blue);margin-bottom:0.5rem;">Benefits Guides</h3>
+        <p style="font-size:0.875rem;margin:0;line-height:1.6;">Plain-language explainers for the most common benefits questions — written for veterans, not lawyers.</p>
+      </div>
+
+    </div>
+
+    <h2>Editorial Standards</h2>
+    <p>All data on Rank and Pay is sourced from official government publications (VA.gov, DoD, Congress.gov, BLS) and updated regularly. We clearly attribute sources and link to primary documentation wherever possible.</p>
+
+    <aside style="background:#fff8e1;border:1px solid #ffe082;border-left:4px solid #f59e0b;border-radius:var(--radius);padding:1.25rem 1.5rem;margin:2rem 0;">
+      <strong>Important disclaimer:</strong> Rank and Pay is an independent information resource. We are not affiliated with the Department of Veterans Affairs, the Department of Defense, or any government agency. Nothing on this site constitutes legal, financial, or benefits advice. Always verify information with the VA or an accredited VSO.
+    </aside>
+
+    <h2>Explore the Site</h2>
+    <ul style="padding-left:1.25rem;">
+      <li><a href="/tools/">Free Calculators</a> — VA combined rating, military retirement, BAH, and more</li>
+      <li><a href="/briefing/">Daily Briefings</a> — Latest VA and military policy news</li>
+      <li><a href="/sources/">Sources &amp; Methodology</a> — How we source and verify our data</li>
+    </ul>
+
+  </article>
+</main>
+{% endblock %}

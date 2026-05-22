@@ -25,21 +25,19 @@ AGENCY_SLUGS: tuple[str, ...] = (
     "personnel-management-office",
 )
 
-_FIELDS = ",".join(
-    [
-        "title",
-        "publication_date",
-        "html_url",
-        "abstract",
-        "document_number",
-        "type",
-        "agency_names",
-        "agencies",
-        "significant",
-        "effective_on",
-        "docket_ids",
-    ]
-)
+_FIELDS = [
+    "title",
+    "publication_date",
+    "html_url",
+    "abstract",
+    "document_number",
+    "type",
+    "agency_names",
+    "agencies",
+    "significant",
+    "effective_on",
+    "docket_ids",
+]
 
 
 class FederalRegisterScraper(BaseScraper):
@@ -90,17 +88,20 @@ class FederalRegisterScraper(BaseScraper):
         page = 1
 
         while True:
-            params = {
-                "fields[]": _FIELDS,
-                "conditions[agencies][]": agency_slug,
-                "conditions[publication_date][gte]": start_date.isoformat(),
-                "conditions[publication_date][lte]": end_date.isoformat(),
-                "per_page": "40",
-                "page": str(page),
-                "order": "newest",
-            }
+            # Build list of (key, value) pairs — fields[] must be repeated per field
+            param_pairs: list[tuple[str, str]] = [
+                ("fields[]", f) for f in _FIELDS
+            ]
+            param_pairs += [
+                ("conditions[agencies][]", agency_slug),
+                ("conditions[publication_date][gte]", start_date.isoformat()),
+                ("conditions[publication_date][lte]", end_date.isoformat()),
+                ("per_page", "40"),
+                ("page", str(page)),
+                ("order", "newest"),
+            ]
 
-            url = self._build_url(params)
+            url = self._build_url_from_pairs(param_pairs)
             try:
                 data = self._fetch_json(url)
             except Exception as exc:
@@ -130,14 +131,14 @@ class FederalRegisterScraper(BaseScraper):
         return articles
 
     def _build_url(self, params: dict[str, str]) -> str:
-        """Build the query URL from a params dict that may have repeated keys."""
+        """Build the query URL from a simple params dict (no repeated keys)."""
         from urllib.parse import urlencode
+        return f"{FEDERAL_REGISTER_API}?{urlencode(list(params.items()))}"
 
-        # urlencode with doseq handles list values
-        parts = []
-        for k, v in params.items():
-            parts.append((k, v))
-        return f"{FEDERAL_REGISTER_API}?{urlencode(parts)}"
+    def _build_url_from_pairs(self, pairs: list[tuple[str, str]]) -> str:
+        """Build the query URL from a list of (key, value) pairs (supports repeated keys)."""
+        from urllib.parse import urlencode
+        return f"{FEDERAL_REGISTER_API}?{urlencode(pairs)}"
 
     def _fetch_json(self, url: str) -> dict[str, Any]:
         resp = self._fetch(url)

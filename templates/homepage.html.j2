@@ -1,7 +1,7 @@
 {% extends "_base.html.j2" %}
 {% from "_recent_briefings.html.j2" import recent_briefings_rail %}
 
-{% block title %}VA Claims Workspace — Free VA & Military Benefits Tools{% endblock %}
+{% block title %}Rank and Pay — Military Pay, VA Benefits &amp; Retirement Guides{% endblock %}
 
 {% block extra_head %}
 {% if jsonld %}
@@ -14,11 +14,11 @@
 <!-- Hero -->
 <section class="hero" aria-label="Hero">
   <div class="container">
-    <h1>Understand Your VA Benefits &mdash; Free Tools &amp; Daily Briefings</h1>
-    <p>We track VA policy, calculate your disability rating, and explain military benefits in plain English.</p>
+    <h1>Military Pay, VA Benefits<br>&amp; Retirement</h1>
+    <p>Free tools and daily briefings on BAH rates, pay tables,<br>VA claims, and retirement — in plain English.</p>
     <div class="hero-cta">
-      <a href="/tools/va-disability-rating-calculator/" class="btn btn--primary">Calculate Your Rating</a>
-      <a href="/briefing/" class="btn btn--outline">Browse Today's Briefings</a>
+      <a href="/tools/" class="btn btn--primary">Explore Free Tools</a>
+      <a href="/briefing/" class="btn btn--outline">Today's Briefings</a>
     </div>
   </div>
 </section>
@@ -76,8 +76,32 @@
       <a href="/tools/" class="view-all-link">See all 7 calculators &rarr;</a>
     </section>
 
-    <!-- Recent briefings rail -->
-    {{ recent_briefings_rail(recent_briefings, "Today's VA &amp; Military Briefings") }}
+    <!-- News section -->
+    {% if recent_briefings %}
+    <section aria-label="Latest news" style="margin-bottom:3rem;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem;">
+        <h2 class="section-heading" style="margin-bottom:0;">Latest Briefings</h2>
+        <a href="/briefing/" style="font-size:0.875rem;color:var(--sr-blue);text-decoration:none;font-weight:600;">View all &rarr;</a>
+      </div>
+      <div class="card-grid">
+        {% for post in recent_briefings[:6] %}
+        <article class="cluster-card">
+          <div style="font-size:0.78rem;color:var(--sr-gray-text);margin-bottom:0.4rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <span>{{ post.published_date.strftime('%b %d, %Y') }}</span>
+            {% if post.primary_sector %}
+            <span class="tag" style="font-size:0.72rem;">{{ post.primary_sector | replace('_',' ') | title }}</span>
+            {% endif %}
+          </div>
+          <h3><a href="/briefing/{{ post.slug }}/" style="text-decoration:none;color:inherit;">{{ post.title }}</a></h3>
+          {% if post.summary %}
+          <p>{{ post.summary[:100] }}&hellip;</p>
+          {% endif %}
+          <a href="/briefing/{{ post.slug }}/" class="card-link">Read analysis &rarr;</a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
     <!-- Content clusters -->
     <section class="content-clusters" aria-label="Topic areas">
@@ -118,7 +142,7 @@
 <div style="background:var(--sr-gray-bg);border-top:1px solid var(--sr-gray-light);padding:1.25rem 0;">
   <div class="container--narrow">
     <p style="font-size:0.82rem;color:var(--sr-gray-text);text-align:center;margin:0;">
-      VA Claims Workspace provides informational content about veterans benefits and military compensation. We are not affiliated with the U.S. Department of Veterans Affairs.
+      Rank and Pay provides informational content about veterans benefits and military compensation. We are not affiliated with the U.S. Department of Veterans Affairs.
     </p>
   </div>
 </div>

@@ -1,21 +1,13 @@
 {% extends "_base.html.j2" %}
 {% from "_cluster_nav.html.j2" import cluster_nav %}
 {% block title %}{{ seo.title }}{% endblock %}
-{% block meta_description %}{{ seo.description }}{% endblock %}
-{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
-{% block og_tags %}
-<meta property="og:title" content="{{ seo.title | e }}">
-<meta property="og:description" content="{{ seo.description | e }}">
-<meta property="og:url" content="{{ seo.canonical }}">
-<meta property="og:type" content="article">
-{% endblock %}
-{% block jsonld %}<script type="application/ld+json">{{ jsonld | tojson }}</script>{% endblock %}
+{# seo dict is handled in _base.html.j2 head — canonical, description, OG, JSON-LD all auto-rendered #}
 
 {% block content %}
 <section class="hero" style="padding:2.5rem 0 2rem;">
   <div class="container">
-    <h1>{{ page.h1 or page.title }}</h1>
-    {% if page.subtitle %}<p style="opacity:0.9;max-width:600px;margin:0.5rem auto 0;">{{ page.subtitle }}</p>{% endif %}
+    <h1>{{ page.subtitle or page.title }}</h1>
+    {% if page.summary %}<p style="opacity:0.9;max-width:600px;margin:0.5rem auto 0;">{{ page.summary }}</p>{% endif %}
   </div>
 </section>
 
@@ -98,7 +90,7 @@
 
       <!-- Disclaimer -->
       <div class="page-disclaimer">
-        <strong>Disclaimer:</strong> VA Claims Workspace provides general information only and is not a
+        <strong>Disclaimer:</strong> Rank and Pay provides general information only and is not a
         law firm. Nothing on this site constitutes legal, financial, or benefits advice. Always
         verify information with the VA or an accredited claims agent.
       </div>

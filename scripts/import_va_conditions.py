@@ -59,19 +59,17 @@ def main():
         for slug, display, cfr, typical_pct, short_desc in ALL_CONDITIONS:
             existing = session.query(VACondition).filter_by(slug=slug).first()
             if existing:
-                existing.display_name = display
-                existing.cfr_citation = cfr
-                existing.typical_rating_pct = typical_pct
-                existing.short_description = short_desc
+                existing.name = display
+                existing.evidence_notes = f"{cfr}. {short_desc}"
+                existing.typical_ratings_json = [typical_pct] if typical_pct else []
                 session.add(existing)
                 updated += 1
             else:
                 cond = VACondition(
                     slug=slug,
-                    display_name=display,
-                    cfr_citation=cfr,
-                    typical_rating_pct=typical_pct,
-                    short_description=short_desc,
+                    name=display,
+                    evidence_notes=f"{cfr}. {short_desc}",
+                    typical_ratings_json=[typical_pct] if typical_pct else [],
                 )
                 session.add(cond)
                 inserted += 1

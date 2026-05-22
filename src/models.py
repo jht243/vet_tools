@@ -209,6 +209,19 @@ class LandingPage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    @property
+    def key_takeaways(self) -> list:
+        """Parse sections_json (stored as JSON string) into a Python list."""
+        import json as _json
+        v = self.sections_json
+        if not v:
+            return []
+        try:
+            parsed = _json.loads(v) if isinstance(v, str) else v
+            return parsed if isinstance(parsed, list) else []
+        except (ValueError, TypeError):
+            return []
+
 
 class DistributionLog(Base):
     """
@@ -278,6 +291,45 @@ class VACondition(Base):
     secondary_conditions_json = Column(JSON, nullable=True)  # list of condition slugs
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def display_name(self) -> str:
+        """Alias for templates that expect display_name."""
+        return self.name or ""
+
+    @property
+    def short_description(self) -> str:
+        """Alias for templates — first sentence of evidence_notes."""
+        notes = self.evidence_notes or ""
+        dot = notes.find(".")
+        return notes[:dot + 1] if dot > 0 else notes[:120]
+
+    @property
+    def typical_rating_pct(self):
+        """Most common rating from typical_ratings_json, or None."""
+        try:
+            import json as _j
+            ratings = self.typical_ratings_json
+            if isinstance(ratings, str):
+                ratings = _j.loads(ratings)
+            if ratings and isinstance(ratings, list):
+                return ratings[0]
+        except Exception:
+            pass
+        return None
+
+    @property
+    def cfr_citation(self) -> str:
+        """CFR citation extracted from evidence_notes, or empty string."""
+        notes = self.evidence_notes or ""
+        import re as _re
+        m = _re.search(r"(38 CFR[^,\.\n]+|DC \d+)", notes)
+        return m.group(0).strip() if m else ""
+
+    @property
+    def long_description(self) -> str:
+        """Full evidence notes for template fallback."""
+        return self.evidence_notes or ""
 
 
 class VABenefitsRate(Base):

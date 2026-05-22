@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  {% set _site_name = _site_name | default("VA Claims Workspace") %}
+  {% set _site_name = _site_name | default("Rank and Pay") %}
 
   <title>{% block title %}{% if seo and seo.title %}{{ seo.title }}{% else %}{{ _site_name }}{% endif %}{% endblock %}</title>
 
@@ -27,7 +27,7 @@
   {% endif %}
 
   {% if jsonld %}
-  <script type="application/ld+json">{{ jsonld | tojson }}</script>
+  <script type="application/ld+json">{{ jsonld | safe }}</script>
   {% endif %}
 
   <!-- Google Fonts -->
@@ -1150,12 +1150,12 @@
 <!-- Site Header / Nav -->
 <header class="site-header">
   <div class="nav-inner">
-    <a href="/" class="nav-brand" aria-label="VA Claims Workspace home">
+    <a href="/" class="nav-brand" aria-label="Rank and Pay home">
       <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 30 30" aria-hidden="true" focusable="false">
         <path d="M15 2L4 7v8c0 6.5 4.7 12.6 11 14.3C21.3 27.6 26 21.5 26 15V7L15 2z" fill="#ffffff"/>
         <path d="M15 5L7 9v6c0 4.9 3.5 9.5 8 10.9C20.5 24.5 23 19.9 23 15V9L15 5z" fill="#002b5e" opacity="0.5"/>
       </svg>
-      VA Claims Workspace
+      Rank and Pay
     </a>
 
     <nav aria-label="Main navigation">
@@ -1209,9 +1209,9 @@
             <path d="M15 2L4 7v8c0 6.5 4.7 12.6 11 14.3C21.3 27.6 26 21.5 26 15V7L15 2z" fill="white"/>
             <path d="M15 5L7 9v6c0 4.9 3.5 9.5 8 10.9C20.5 24.5 23 19.9 23 15V9L15 5z" fill="#002b5e" opacity="0.5"/>
           </svg>
-          VA Claims Workspace
+          Rank and Pay
         </div>
-        <p class="footer-desc">Free tools and daily briefings to help veterans and military families understand VA benefits, disability ratings, and military retirement pay.</p>
+        <p class="footer-desc">Free tools and daily briefings covering military pay tables, BAH rates, VA disability ratings, retirement calculators, and benefits guides for veterans and military families.</p>
       </div>
 
       <div class="footer-col">
@@ -1239,7 +1239,7 @@
     </div>
 
     <div class="footer-bottom">
-      <span>&copy; 2025 VA Claims Workspace. For informational purposes only &mdash; not legal or benefits advice.</span>
+      <span>&copy; 2025 Rank and Pay. For informational purposes only &mdash; not legal or benefits advice.</span>
       <span>
         <a href="/privacy/">Privacy</a> &middot;
         <a href="/terms/">Terms</a>

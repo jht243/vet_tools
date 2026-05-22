@@ -35,7 +35,7 @@ def build_blog_post_seo(post) -> dict:
     """Build the seo context dict for a BlogPost detail page."""
     base = settings.canonical_site_url
 
-    raw_title = f"{post.title} | VA Claims Workspace"
+    raw_title = f"{post.title} | Rank and Pay"
     title = _seo_title(raw_title, max_len=70)
 
     description = ""

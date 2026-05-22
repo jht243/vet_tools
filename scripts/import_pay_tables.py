@@ -61,7 +61,7 @@ def main(year, dry_run):
                 .first()
             )
             if existing:
-                existing.monthly_basic_pay = monthly_pay
+                existing.monthly_pay_cents = monthly_pay * 100
                 existing.yos_max = yos_max
                 if not dry_run:
                     session.add(existing)
@@ -73,7 +73,7 @@ def main(year, dry_run):
                         pay_grade=pay_grade,
                         yos_min=yos_min,
                         yos_max=yos_max,
-                        monthly_basic_pay=monthly_pay,
+                        monthly_pay_cents=monthly_pay * 100,
                     )
                     session.add(row)
                 inserted += 1

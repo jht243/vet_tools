@@ -18,7 +18,7 @@ def main(urls, all_posts, days):
     """Submit one or more URLs to IndexNow.
 
     Usage:
-      python scripts/indexnow_submit.py https://vaclaimsworkspace.com/briefing/my-post/
+      python scripts/indexnow_submit.py https://rankandpay.org/briefing/my-post/
       python scripts/indexnow_submit.py --all-posts --days 3
     """
     from src.models import init_db, BlogPost, engine

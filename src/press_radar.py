@@ -19,7 +19,7 @@ PRIMARY_SOURCES = {
 }
 
 SYSTEM_PROMPT = """\
-You are an editorial assistant for VA Claims Workspace, a site covering VA benefits, \
+You are an editorial assistant for Rank and Pay, a site covering VA benefits, \
 military compensation, and veteran policy.
 
 Your job is to identify the 3-5 most significant news items from today's sources. \
@@ -47,8 +47,8 @@ def _fetch_today_articles(session: Session, lookback_days: int = 1) -> list[Exte
 
 
 def _prioritize(articles: list[ExternalArticleEntry]) -> list[ExternalArticleEntry]:
-    primary = [a for a in articles if a.source_type in PRIMARY_SOURCES]
-    secondary = [a for a in articles if a.source_type not in PRIMARY_SOURCES]
+    primary = [a for a in articles if a.source in PRIMARY_SOURCES]
+    secondary = [a for a in articles if a.source not in PRIMARY_SOURCES]
     return (primary + secondary)[:30]
 
 
@@ -74,7 +74,7 @@ def run_press_radar(dry_run: bool = False) -> Optional[list[dict]]:
     lines = []
     for a in articles:
         lines.append(
-            f"- [{a.source_type}] {a.title} | {a.url} | pub={a.published_date}"
+            f"- [{a.source}] {a.title} | {a.url} | pub={a.published_date}"
         )
     user_content = "Today's VA/military headlines:\n" + "\n".join(lines)
 

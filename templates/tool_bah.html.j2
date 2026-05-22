@@ -1,0 +1,211 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>BAH Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">BAH Calculator 2026: Basic Allowance for Housing</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Estimate your monthly BAH by pay grade and dependent status. BAH varies significantly by duty station — see national averages below and get your exact local rate from DoD.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Estimate Your BAH</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Pay Grade</label>
+        <select id="bah-grade" onchange="calcBah()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <optgroup label="Enlisted">
+            <option value="E-1">E-1</option><option value="E-2">E-2</option><option value="E-3">E-3</option>
+            <option value="E-4">E-4</option><option value="E-5" selected>E-5</option><option value="E-6">E-6</option>
+            <option value="E-7">E-7</option><option value="E-8">E-8</option><option value="E-9">E-9</option>
+          </optgroup>
+          <optgroup label="Warrant Officer">
+            <option value="W-1">W-1</option><option value="W-2">W-2</option><option value="W-3">W-3</option>
+            <option value="W-4">W-4</option><option value="W-5">W-5</option>
+          </optgroup>
+          <optgroup label="Officer">
+            <option value="O-1">O-1</option><option value="O-2">O-2</option><option value="O-3">O-3</option>
+            <option value="O-4">O-4</option><option value="O-5">O-5</option><option value="O-6">O-6</option>
+            <option value="O-7">O-7</option><option value="O-8">O-8</option><option value="O-9">O-9</option>
+            <option value="O-10">O-10</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Dependent Status</label>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;padding-top:0.25rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="dep-status" value="with" checked onchange="calcBah()" style="accent-color:var(--sr-blue);"> With dependents
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="dep-status" value="no" onchange="calcBah()" style="accent-color:var(--sr-blue);"> Without dependents
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="bah-result" style="padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.25rem;">
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">National Average BAH</div>
+          <div id="bah-avg" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">—</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Annual Estimate</div>
+          <div id="bah-annual" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">—</div>
+        </div>
+      </div>
+
+      <div style="background:#e8f0fe;border:1px solid #b3c7f7;border-radius:var(--radius);padding:1rem;margin-bottom:0.75rem;">
+        <strong>BAH varies widely by duty station.</strong> These are approximate national averages for orientation only. San Diego, Washington D.C., and New York City rates can be 2&times; higher than rural locations.
+      </div>
+
+      <a href="https://www.defensetravel.dod.mil/site/bahCalc.cfm" target="_blank" rel="noopener noreferrer"
+        style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--sr-blue);color:#fff;padding:0.65rem 1.25rem;border-radius:var(--radius);text-decoration:none;font-weight:600;font-size:0.9rem;">
+        Get Your Exact BAH Rate at DoD &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- BAH Rate Table -->
+  <section style="margin-bottom:2rem;">
+    <h2>2026 National Average BAH Ranges by Grade</h2>
+    <p>These are approximate 2026 national averages. Your actual rate depends entirely on your permanent duty station (PDS) zip code.</p>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+        <thead>
+          <tr style="background:var(--sr-blue);color:#fff;">
+            <th style="padding:0.6rem 0.75rem;text-align:left;">Grade</th>
+            <th style="padding:0.6rem 0.75rem;text-align:right;">Without Dependents</th>
+            <th style="padding:0.6rem 0.75rem;text-align:right;">With Dependents</th>
+          </tr>
+        </thead>
+        <tbody id="bah-table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- How BAH works -->
+  <section style="margin-bottom:2rem;">
+    <h2>How BAH Works</h2>
+    <p>Basic Allowance for Housing (BAH) is a tax-free monthly allowance paid to service members who live off base. The rate is set annually by the DoD and is based on the cost of local rental housing in your duty station area.</p>
+    <p>Key facts about BAH: <a href="https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup/" target="_blank" rel="noopener noreferrer">Find your exact local rate using the DoD BAH Rate Lookup &rarr;</a></p>
+    <ul>
+      <li><strong>Tax-free:</strong> BAH is not subject to federal or state income tax, making it extremely valuable — a $1,500 BAH is worth more than $1,500 in taxable income.</li>
+      <li><strong>Location-based:</strong> Rates are calculated to cover median rental costs for your grade in each zip code area. High cost-of-living areas pay substantially more.</li>
+      <li><strong>100% coverage goal:</strong> DoD policy is to cover 100% of median local housing costs, but Congress occasionally adjusts this.</li>
+      <li><strong>Dependent status matters:</strong> Having a dependent (spouse, child, or dependent parent) qualifies you for the higher "with dependents" rate, which does not increase with additional dependents.</li>
+      <li><strong>Grade-based:</strong> Higher grades receive higher BAH, regardless of where they live relative to lower-grade service members.</li>
+    </ul>
+  </section>
+
+  <!-- BAH vs OHA -->
+  <section style="margin-bottom:2rem;">
+    <h2>BAH vs. OHA: What's the Difference?</h2>
+    <p><strong>BAH (Basic Allowance for Housing)</strong> applies to CONUS (Continental United States) duty stations.</p>
+    <p><strong>OHA (Overseas Housing Allowance)</strong> applies to OCONUS (overseas) duty stations. OHA is calculated differently — it covers actual rent up to a maximum plus utility and move-in allowances, making overseas housing assistance more complex to estimate.</p>
+    <p>If you are stationed overseas, use the <a href="https://www.defensetravel.dod.mil/site/ohaCalc.cfm" rel="noopener" target="_blank">DoD OHA Calculator</a> instead.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does BAH change when I move to a new duty station?</summary>
+      <p style="margin-top:0.75rem;">Yes. Your BAH rate is tied to your permanent duty station (PDS). When you PCS (permanent change of station), your BAH changes to the rate for your new duty station. There is typically a transition period where you continue to receive your old rate.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Do I get BAH if I live in the barracks or on-base housing?</summary>
+      <p style="margin-top:0.75rem;">If you live in government-provided housing (barracks, on-post housing), you do not receive full BAH — it is paid to the housing provider. Single junior enlisted members are typically required to live in the barracks and receive partial BAH (BAH-partial) to offset common costs.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I save money on BAH by finding cheaper housing?</summary>
+      <p style="margin-top:0.75rem;">Yes, and this is one of the major financial benefits of military service. BAH is paid at a fixed rate regardless of your actual rent. If you find housing below your BAH rate, you keep the difference. Many service members build significant savings this way.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What happens to BAH during a deployment?</summary>
+      <p style="margin-top:0.75rem;">If you maintain a household in the U.S. during deployment, you continue to receive BAH at your duty station rate. If you give up your lease and move your family, BAH rules become more complex. Members deployed to combat zones may also receive additional tax exclusions on all pay received during the deployment.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/military-pay/basic-allowance-housing/">BAH In-Depth Guide</a></li>
+      <li><a href="/tools/military-pay-calculator/">Full Military Pay Calculator (Base Pay + BAH + BAS)</a></li>
+      <li><a href="https://www.defensetravel.dod.mil/site/bahCalc.cfm" target="_blank" rel="noopener">Official DoD BAH Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> National average BAH figures are estimates for educational purposes. Actual BAH rates are set by DoD and vary by duty station zip code. Always use the official <a href="https://www.defensetravel.dod.mil/site/bahCalc.cfm" rel="noopener" target="_blank">DoD BAH Calculator</a> for exact figures.
+  </div>
+
+</main>
+
+<script>
+const BAH_RANGES = {
+  "E-1":{no:900,with:1150},"E-2":{no:950,with:1200},"E-3":{no:1000,with:1250},
+  "E-4":{no:1050,with:1300},"E-5":{no:1150,with:1400},"E-6":{no:1300,with:1550},
+  "E-7":{no:1450,with:1700},"E-8":{no:1600,with:1850},"E-9":{no:1750,with:2000},
+  "W-1":{no:1400,with:1650},"W-2":{no:1550,with:1800},"W-3":{no:1700,with:1950},
+  "W-4":{no:1850,with:2100},"W-5":{no:2050,with:2300},
+  "O-1":{no:1400,with:1700},"O-2":{no:1550,with:1850},"O-3":{no:1750,with:2050},
+  "O-4":{no:1950,with:2250},"O-5":{no:2200,with:2500},"O-6":{no:2450,with:2750},
+  "O-7":{no:2650,with:3000},"O-8":{no:2800,with:3150},
+  "O-9":{no:2900,with:3250},"O-10":{no:3000,with:3350}
+};
+
+function fmt(n) { return '$' + n.toLocaleString('en-US'); }
+
+function calcBah() {
+  const grade = document.getElementById('bah-grade').value;
+  const dep = document.querySelector('input[name="dep-status"]:checked').value;
+  const data = BAH_RANGES[grade];
+  if (!data) return;
+  const monthly = dep === 'with' ? data.with : data.no;
+  document.getElementById('bah-avg').textContent = fmt(monthly) + '/mo';
+  document.getElementById('bah-annual').textContent = fmt(monthly * 12) + '/yr';
+}
+
+// Build table
+(function(){
+  const tbody = document.getElementById('bah-table-body');
+  const grades = ['E-1','E-2','E-3','E-4','E-5','E-6','E-7','E-8','E-9',
+                  'W-1','W-2','W-3','W-4','W-5',
+                  'O-1','O-2','O-3','O-4','O-5','O-6','O-7','O-8','O-9','O-10'];
+  grades.forEach((g, i) => {
+    const d = BAH_RANGES[g];
+    if (!d) return;
+    const tr = document.createElement('tr');
+    tr.style.background = i % 2 === 0 ? '#fff' : 'var(--sr-gray-bg)';
+    tr.innerHTML = `<td style="padding:0.45rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">${g}</td>
+                    <td style="padding:0.45rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">${fmt(d.no)}</td>
+                    <td style="padding:0.45rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">${fmt(d.with)}</td>`;
+    tbody.appendChild(tr);
+  });
+})();
+
+calcBah();
+</script>
+{% endblock %}

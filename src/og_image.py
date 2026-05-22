@@ -29,7 +29,7 @@ def _draw(title: str, subtitle: str = "") -> bytes:
         font_brand = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
     except Exception:
         font_brand = ImageFont.load_default()
-    draw.text((72, brand_y), "VA Claims Workspace", font=font_brand, fill=_WHITE)
+    draw.text((72, brand_y), "Rank and Pay", font=font_brand, fill=_WHITE)
 
     # Title — word-wrap at ~38 chars per line, up to 3 lines
     try:
@@ -57,7 +57,7 @@ def _draw(title: str, subtitle: str = "") -> bytes:
         font_footer = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
     except Exception:
         font_footer = ImageFont.load_default()
-    draw.text((72, _H - 40), "vaclaimsworkspace.com", font=font_footer, fill=_WHITE)
+    draw.text((72, _H - 40), "rankandpay.org", font=font_footer, fill=_WHITE)
 
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)

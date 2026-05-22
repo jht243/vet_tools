@@ -9,7 +9,7 @@
 <meta property="og:url" content="{{ seo.canonical }}">
 <meta property="og:type" content="article">
 {% endblock %}
-{% block jsonld %}<script type="application/ld+json">{{ jsonld | tojson }}</script>{% endblock %}
+{# JSON-LD is emitted by _base.html.j2 via the jsonld variable — no block needed #}
 
 {% block content %}
 <section class="hero" style="padding:2.5rem 0 2rem;">
