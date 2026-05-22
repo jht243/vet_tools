@@ -283,7 +283,7 @@ def blog_index():
             "blog_index.html.j2",
             seo=seo,
             posts=posts,
-            page_num=page_num,
+            page=page_num,
             total_pages=total_pages,
             total=total,
         )
