@@ -52,7 +52,7 @@
       <span><strong>Harm type</strong> {{ incident.harm_type }}</span>
       {% endif %}
       <span style="margin-left:auto;">
-        {{ share_button('https://banthebots.org/ai-incidents/' ~ incident.id, incident.title) }}
+        {{ share_button(canonical_url, incident.title) }}
       </span>
     </div>
   </header>
@@ -94,7 +94,7 @@
 
   <div style="display:flex; align-items:center; gap:14px; margin: 24px 0 8px; padding: 14px 0; border-top: 1px solid var(--sr-gray-light);">
     <span style="font-size:13px; color:var(--sr-gray-text);">Know about a similar incident?</span>
-    {{ share_button('https://banthebots.org/ai-incidents/' ~ incident.id, incident.title, label='Share incident') }}
+    {{ share_button(canonical_url, incident.title, label='Share incident') }}
   </div>
 
   {# Related briefings #}

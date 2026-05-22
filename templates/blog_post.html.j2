@@ -28,7 +28,7 @@
         Via {{ source_label|default('source') }} ↗
       </a>
       {% endif %}
-      <span style="margin-left:auto;">{{ share_button('https://banthebots.org/briefing/' ~ post.slug, post.title) }}</span>
+      <span style="margin-left:auto;">{{ share_button(canonical_url, post.title) }}</span>
     </div>
   </header>
 
@@ -67,7 +67,7 @@
 
   <div style="display:flex; align-items:center; gap:14px; margin: 24px 0 8px; padding: 14px 0; border-top: 1px solid var(--sr-gray-light);">
     <span style="font-size:13px; color: var(--sr-gray-text);">Found this useful?</span>
-    {{ share_button('https://banthebots.org/briefing/' ~ post.slug, post.title, label='Share analysis') }}
+    {{ share_button(canonical_url, post.title, label='Share analysis') }}
   </div>
 
   {% if faq_items %}

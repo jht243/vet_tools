@@ -28,7 +28,7 @@
       <span><strong>Last updated</strong> {{ page.last_generated_at.strftime('%B %d, %Y') }}</span>
       {% if page.word_count %}<span>{{ page.word_count }}-word guide</span>{% endif %}
       <span><strong>Editor</strong> Ban the Bots</span>
-      <span style="margin-left:auto;">{{ share_button('https://banthebots.org' ~ page.canonical_path, page.title) }}</span>
+      <span style="margin-left:auto;">{{ share_button(canonical_url, page.title) }}</span>
     </div>
   </header>
 
