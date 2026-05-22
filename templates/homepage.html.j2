@@ -1,578 +1,126 @@
 {% extends "_base.html.j2" %}
+{% from "_recent_briefings.html.j2" import recent_briefings_rail %}
 
-{% block head_extra %}
-<style>
-  /* ── Hero ─────────────────────────────────────────────────────── */
-  .hp-hero {
-    background: var(--sr-blue);
-    color: var(--white);
-    padding: 72px 24px 80px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .hp-hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(204,0,0,0.08) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .hp-hero-inner {
-    max-width: 760px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-  }
-  .hp-hero-eyebrow {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: rgba(255,255,255,0.65);
-    margin-bottom: 18px;
-  }
-  .hp-hero h1 {
-    font-family: var(--font-serif);
-    font-size: clamp(34px, 5vw, 54px);
-    font-weight: 700;
-    line-height: 1.12;
-    margin: 0 0 20px;
-    color: var(--white);
-  }
-  .hp-hero-sub {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: clamp(16px, 2.2vw, 21px);
-    color: rgba(255,255,255,0.82);
-    line-height: 1.5;
-    max-width: 600px;
-    margin: 0 auto 36px;
-  }
-  .hp-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-  }
-  .hp-btn-primary {
-    display: inline-block;
-    background: var(--sr-red);
-    color: var(--white);
-    padding: 14px 30px;
-    border-radius: 3px;
-    font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    text-decoration: none;
-    transition: background 0.15s;
-  }
-  .hp-btn-primary:hover { background: #aa0000; color: var(--white); text-decoration: none; }
-  .hp-btn-ghost {
-    display: inline-block;
-    background: transparent;
-    color: var(--white);
-    padding: 13px 28px;
-    border-radius: 3px;
-    border: 2px solid rgba(255,255,255,0.5);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    text-decoration: none;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .hp-btn-ghost:hover { border-color: var(--white); background: rgba(255,255,255,0.08); color: var(--white); text-decoration: none; }
+{% block title %}VA Claims Workspace — Free VA & Military Benefits Tools{% endblock %}
 
-  /* ── Stats strip ──────────────────────────────────────────────── */
-  .hp-stats {
-    background: var(--sr-blue-dark);
-    color: rgba(255,255,255,0.75);
-    padding: 14px 24px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-  .hp-stats-inner {
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px 28px;
-  }
-  .hp-stat-item strong { color: var(--white); }
-  .hp-stat-sep { opacity: 0.3; }
-
-  /* ── Engagement cards ─────────────────────────────────────────── */
-  .hp-engage {
-    background: var(--sr-gray-bg);
-    padding: 60px 24px;
-    border-bottom: 1px solid var(--sr-gray-light);
-  }
-  .hp-engage-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .hp-section-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--sr-red);
-    margin-bottom: 6px;
-  }
-  .hp-section-heading {
-    font-family: var(--font-serif);
-    font-size: 28px;
-    color: var(--sr-blue-dark);
-    margin: 0 0 32px;
-    font-weight: 700;
-  }
-  .hp-engage-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-  }
-  .hp-engage-card {
-    background: var(--white);
-    border: 1px solid var(--sr-gray-light);
-    border-radius: 5px;
-    padding: 28px 28px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .hp-engage-card:hover { border-color: var(--sr-blue); box-shadow: 0 4px 18px rgba(0,43,94,0.09); }
-  .hp-engage-icon {
-    width: 44px;
-    height: 44px;
-    background: var(--sr-blue);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 4px;
-    flex-shrink: 0;
-  }
-  .hp-engage-icon svg { display: block; }
-  .hp-engage-card h3 {
-    font-family: var(--font-serif);
-    font-size: 19px;
-    color: var(--sr-blue-dark);
-    margin: 0;
-    font-weight: 700;
-    line-height: 1.3;
-  }
-  .hp-engage-card p {
-    font-size: 14px;
-    color: var(--sr-gray-text);
-    line-height: 1.6;
-    margin: 0;
-    flex: 1;
-  }
-  .hp-engage-link {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--sr-blue);
-    text-decoration: none;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
-  .hp-engage-link::after { content: " →"; }
-  .hp-engage-link:hover { color: var(--sr-red); text-decoration: none; }
-
-  /* ── Newsletter inline form ───────────────────────────────────── */
-  .hp-newsletter-card {
-    background: var(--sr-blue);
-    border-color: var(--sr-blue);
-    color: var(--white);
-  }
-  .hp-newsletter-card:hover { border-color: var(--sr-blue-dark); }
-  .hp-newsletter-card h3 { color: var(--white); }
-  .hp-newsletter-card p { color: rgba(255,255,255,0.75); }
-  .hp-nl-form { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-  .hp-nl-form input[type="email"] {
-    padding: 11px 14px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 3px;
-    background: rgba(255,255,255,0.1);
-    color: var(--white);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .hp-nl-form input[type="email"]::placeholder { color: rgba(255,255,255,0.5); }
-  .hp-nl-form input[type="email"]:focus { outline: none; border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.15); }
-  .hp-nl-submit {
-    padding: 11px 16px;
-    background: var(--sr-red);
-    color: var(--white);
-    border: 0;
-    border-radius: 3px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .hp-nl-submit:hover { background: #aa0000; }
-
-  /* ── Coverage areas ───────────────────────────────────────────── */
-  .hp-coverage {
-    background: var(--white);
-    padding: 64px 24px;
-    border-bottom: 1px solid var(--sr-gray-light);
-  }
-  .hp-coverage-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .hp-coverage-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    margin-top: 32px;
-  }
-  .hp-coverage-tile {
-    border: 1px solid #d8e0eb;
-    border-radius: 5px;
-    padding: 24px 22px;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-    background: var(--white);
-  }
-  .hp-coverage-tile:hover {
-    border-color: var(--sr-blue);
-    box-shadow: 0 4px 18px rgba(0,43,94,0.09);
-    transform: translateY(-2px);
-    text-decoration: none;
-  }
-  .hp-cov-icon {
-    font-size: 26px;
-    line-height: 1;
-  }
-  .hp-cov-title {
-    font-family: var(--font-serif);
-    font-size: 17px;
-    color: var(--sr-blue-dark);
-    font-weight: 700;
-    line-height: 1.3;
-    margin: 0;
-  }
-  .hp-cov-desc {
-    font-size: 13px;
-    color: var(--sr-gray-text);
-    line-height: 1.55;
-    margin: 0;
-  }
-  .hp-cov-cta {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--sr-red);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-top: auto;
-  }
-
-  /* ── Recent briefings ─────────────────────────────────────────── */
-  .hp-briefings {
-    background: var(--sr-gray-bg);
-    padding: 64px 24px 72px;
-  }
-  .hp-briefings-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .hp-briefings-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 28px;
-    padding-bottom: 14px;
-    border-bottom: 2px solid var(--sr-blue);
-  }
-  .hp-briefings-header .hp-section-heading { margin-bottom: 0; }
-  .hp-briefings-all {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--sr-blue);
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .hp-briefings-all:hover { color: var(--sr-red); text-decoration: none; }
-  .hp-briefings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 18px;
-  }
-  .hp-brf-card {
-    background: var(--white);
-    border: 1px solid #d8e0eb;
-    border-radius: 5px;
-    padding: 20px 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-  }
-  .hp-brf-card:hover {
-    border-color: var(--sr-blue);
-    box-shadow: 0 4px 16px rgba(0,43,94,0.08);
-    transform: translateY(-1px);
-    text-decoration: none;
-  }
-  .hp-brf-eyebrow {
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: var(--sr-red);
-  }
-  .hp-brf-title {
-    font-family: var(--font-serif);
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--sr-blue-dark);
-    line-height: 1.3;
-    margin: 0;
-  }
-  .hp-brf-summary {
-    font-size: 13.5px;
-    color: #4a5568;
-    line-height: 1.55;
-    margin: 0;
-    flex: 1;
-  }
-  .hp-brf-meta {
-    font-size: 11.5px;
-    color: var(--sr-gray-text);
-    padding-top: 8px;
-    border-top: 1px solid #eef2f7;
-  }
-
-  @media (max-width: 600px) {
-    .hp-hero { padding: 48px 20px 56px; }
-    .hp-engage-grid, .hp-briefings-grid { grid-template-columns: 1fr; }
-    .hp-coverage-grid { grid-template-columns: 1fr 1fr; }
-  }
-</style>
+{% block extra_head %}
+{% if jsonld %}
+<script type="application/ld+json">{{ jsonld | tojson }}</script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
 
-{# ── Hero ──────────────────────────────────────────────────────────────── #}
-<section class="hp-hero">
-  <div class="hp-hero-inner">
-    <span class="hp-hero-eyebrow">What AI Is Doing to Real People · Updated Daily</span>
-    <h1>What AI Is Doing to<br>Jobs, Kids, and Your Community</h1>
-    <p class="hp-hero-sub">
-      Plain-English coverage of AI layoffs, data center impacts, parenting concerns,
-      and who's fighting back — for workers, parents, and anyone who Googled this.
-    </p>
-    <div class="hp-hero-actions">
-      <a href="/#newsletter" class="hp-btn-primary">Subscribe Free</a>
-      <a href="/briefing" class="hp-btn-ghost">Browse Briefings</a>
+<!-- Hero -->
+<section class="hero" aria-label="Hero">
+  <div class="container">
+    <h1>Understand Your VA Benefits &mdash; Free Tools &amp; Daily Briefings</h1>
+    <p>We track VA policy, calculate your disability rating, and explain military benefits in plain English.</p>
+    <div class="hero-cta">
+      <a href="/tools/va-disability-rating-calculator/" class="btn btn--primary">Calculate Your Rating</a>
+      <a href="/briefing/" class="btn btn--outline">Browse Today's Briefings</a>
     </div>
   </div>
 </section>
 
-{# ── Stats strip ───────────────────────────────────────────────────────── #}
-{% if briefing_count or incident_count %}
-<div class="hp-stats">
-  <div class="hp-stats-inner">
-    {% if briefing_count %}
-    <span class="hp-stat-item"><strong>{{ briefing_count }}+</strong> briefings published</span>
-    {% endif %}
-    {% if incident_count %}
-    <span class="hp-stat-sep">·</span>
-    <span class="hp-stat-item"><strong>{{ incident_count }}</strong> AI incidents tracked</span>
-    {% endif %}
-    <span class="hp-stat-sep">·</span>
-    <span class="hp-stat-item">Updated daily</span>
+<!-- Stats strip -->
+<div class="stats-strip" aria-label="Site statistics">
+  <div class="container">
+    <div class="stats-strip-inner">
+      <div class="stat-item">
+        <span class="stat-number">{{ briefing_count | default('500+') }}</span>
+        <span class="stat-label">briefings published</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">35</span>
+        <span class="stat-label">conditions tracked</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">50</span>
+        <span class="stat-label">state guides</span>
+      </div>
+    </div>
   </div>
 </div>
-{% endif %}
 
-{# ── Engagement cards ──────────────────────────────────────────────────── #}
-<section class="hp-engage">
-  <div class="hp-engage-inner">
-    <div class="hp-section-label">Explore the Site</div>
-    <h2 class="hp-section-heading">Find out what AI means for you</h2>
-    <div class="hp-engage-grid">
+<!-- Top Tools -->
+<div class="page-wrapper">
+  <div class="container">
 
-      {# Newsletter card — styled differently (navy bg) #}
-      <div class="hp-engage-card hp-newsletter-card">
-        <div class="hp-engage-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        </div>
-        <h3>Daily Briefing</h3>
-        <p>The day's AI news — layoffs, data centers, lawsuits, regulations — in your inbox every morning. Free, no noise.</p>
-        <form class="hp-nl-form" id="hp-nl-form" action="/api/subscribe" method="POST">
-          <input type="email" name="email" id="hp-nl-email" placeholder="your@email.com" required autocomplete="email">
-          <button type="submit" class="hp-nl-submit">Subscribe Free</button>
-        </form>
+    <section aria-label="Top calculators" style="margin-bottom:3rem;">
+      <h2 class="section-heading">Free VA &amp; Military Calculators</h2>
+      <div class="card-grid">
+
+        <article class="card">
+          <span class="tool-icon" aria-hidden="true">🎖️</span>
+          <h3>VA Disability Rating Calculator</h3>
+          <p>Estimate your combined VA disability rating using the official VA math formula — add multiple conditions.</p>
+          <a href="/tools/va-disability-rating-calculator/" class="card-link">Launch Tool &rarr;</a>
+        </article>
+
+        <article class="card">
+          <span class="tool-icon" aria-hidden="true">💰</span>
+          <h3>Military Retirement Calculator</h3>
+          <p>Estimate your monthly military retirement pay under the Legacy, BRS, or REDUX retirement systems.</p>
+          <a href="/tools/military-retirement-calculator/" class="card-link">Launch Tool &rarr;</a>
+        </article>
+
+        <article class="card">
+          <span class="tool-icon" aria-hidden="true">🏠</span>
+          <h3>BAH Calculator</h3>
+          <p>Look up your Basic Allowance for Housing rate by zip code, rank, and dependency status.</p>
+          <a href="/tools/bah-calculator/" class="card-link">Launch Tool &rarr;</a>
+        </article>
+
       </div>
+      <a href="/tools/" class="view-all-link">See all 7 calculators &rarr;</a>
+    </section>
 
-      {# Will AI take my job #}
-      <div class="hp-engage-card">
-        <div class="hp-engage-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-        </div>
-        <h3>Will AI Take My Job?</h3>
-        <p>Type in your job title and get a plain-English breakdown of what's at risk, what's resilient, and what to learn next.</p>
-        <a class="hp-engage-link" href="/will-ai-replace-my-job/">Check your job</a>
+    <!-- Recent briefings rail -->
+    {{ recent_briefings_rail(recent_briefings, "Today's VA &amp; Military Briefings") }}
+
+    <!-- Content clusters -->
+    <section class="content-clusters" aria-label="Topic areas">
+      <h2 class="section-heading">Explore by Topic</h2>
+      <div class="card-grid">
+
+        <article class="cluster-card">
+          <h3><a href="/va-claims/" style="text-decoration:none;color:inherit;">VA Claims</a></h3>
+          <p>How to file a VA claim, gather evidence, appeal a denial, and navigate the ratings process.</p>
+          <a href="/va-claims/" class="card-link">Explore VA Claims &rarr;</a>
+        </article>
+
+        <article class="cluster-card">
+          <h3><a href="/va-disability-ratings/" style="text-decoration:none;color:inherit;">VA Disability Ratings</a></h3>
+          <p>Condition-by-condition rating criteria, combined ratings math, and TDIU eligibility.</p>
+          <a href="/va-disability-ratings/" class="card-link">Explore Ratings &rarr;</a>
+        </article>
+
+        <article class="cluster-card">
+          <h3><a href="/military-retirement/" style="text-decoration:none;color:inherit;">Military Retirement</a></h3>
+          <p>Retirement system comparisons, SBP elections, CRSC vs CRDP, and pay tables.</p>
+          <a href="/military-retirement/" class="card-link">Explore Retirement &rarr;</a>
+        </article>
+
+        <article class="cluster-card">
+          <h3><a href="/state-benefits/" style="text-decoration:none;color:inherit;">State Benefits</a></h3>
+          <p>Property tax exemptions, tuition waivers, and other state-level veterans benefits — all 50 states.</p>
+          <a href="/state-benefits/" class="card-link">Explore State Benefits &rarr;</a>
+        </article>
+
       </div>
+    </section>
 
-      {# For Parents #}
-      <div class="hp-engage-card">
-        <div class="hp-engage-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <h3>For Parents</h3>
-        <p>Screen time, what your kids should study, AI safety risks, social media algorithms — a parent's guide in plain English.</p>
-        <a class="hp-engage-link" href="/parents/">Read the guide</a>
-      </div>
-
-    </div>
   </div>
-</section>
+</div>
 
-{# ── Coverage areas ────────────────────────────────────────────────────── #}
-<section class="hp-coverage">
-  <div class="hp-coverage-inner">
-    <div class="hp-section-label">What We Track</div>
-    <h2 class="hp-section-heading">Real-time data on AI's impact</h2>
-    <div class="hp-coverage-grid">
-
-      <a class="hp-coverage-tile" href="/ai-layoffs/">
-        <div class="hp-cov-icon">📉</div>
-        <h3 class="hp-cov-title">AI Layoffs Tracker</h3>
-        <p class="hp-cov-desc">Every company that cut jobs because of AI — searchable by industry, state, and year.</p>
-        <span class="hp-cov-cta">See the list →</span>
-      </a>
-
-      <a class="hp-coverage-tile" href="/data-center-map/">
-        <div class="hp-cov-icon">🗺️</div>
-        <h3 class="hp-cov-title">Data Center Map</h3>
-        <p class="hp-cov-desc">Find AI data centers near you — proposed, under construction, and operating — and see their water and power use.</p>
-        <span class="hp-cov-cta">Open the map →</span>
-      </a>
-
-      <a class="hp-coverage-tile" href="/ai-lawsuits/">
-        <div class="hp-cov-icon">⚖️</div>
-        <h3 class="hp-cov-title">AI Lawsuits Tracker</h3>
-        <p class="hp-cov-desc">Artists, authors, musicians, and publishers fighting back in court — every major lawsuit against AI companies.</p>
-        <span class="hp-cov-cta">See the cases →</span>
-      </a>
-
-      <a class="hp-coverage-tile" href="/fighting-back/">
-        <div class="hp-cov-icon">✊</div>
-        <h3 class="hp-cov-title">Fighting Back</h3>
-        <p class="hp-cov-desc">Unions, companies, and governments drawing the line — no-AI policies, worker protections, and legislation.</p>
-        <span class="hp-cov-cta">See who's pushing back →</span>
-      </a>
-
-      <a class="hp-coverage-tile" href="/ai-proof-jobs/">
-        <div class="hp-cov-icon">🔒</div>
-        <h3 class="hp-cov-title">AI-Proof Jobs</h3>
-        <p class="hp-cov-desc">Which jobs are genuinely safe from automation — and what skills make you harder to replace.</p>
-        <span class="hp-cov-cta">Read the guide →</span>
-      </a>
-
-      <a class="hp-coverage-tile" href="/ai-incidents/">
-        <div class="hp-cov-icon">⚠️</div>
-        <h3 class="hp-cov-title">AI Incidents</h3>
-        <p class="hp-cov-desc">A running tracker of real-world AI failures — hallucinations, bias, and high-stakes errors.</p>
-        <span class="hp-cov-cta">See incidents →</span>
-      </a>
-
-    </div>
+<!-- Footer disclaimer -->
+<div style="background:var(--sr-gray-bg);border-top:1px solid var(--sr-gray-light);padding:1.25rem 0;">
+  <div class="container--narrow">
+    <p style="font-size:0.82rem;color:var(--sr-gray-text);text-align:center;margin:0;">
+      VA Claims Workspace provides informational content about veterans benefits and military compensation. We are not affiliated with the U.S. Department of Veterans Affairs.
+    </p>
   </div>
-</section>
-
-{# ── Recent briefings ──────────────────────────────────────────────────── #}
-{% if posts %}
-<section class="hp-briefings" id="newsletter">
-  <div class="hp-briefings-inner">
-    <div class="hp-briefings-header">
-      <h2 class="hp-section-heading" style="margin-bottom:0;">Latest Briefings</h2>
-      <a class="hp-briefings-all" href="/briefing">View all →</a>
-    </div>
-    <div class="hp-briefings-grid">
-      {% for p in posts %}
-      <a class="hp-brf-card" href="/briefing/{{ p.slug }}">
-        <div class="hp-brf-eyebrow">
-          {{ p.primary_sector|replace('_',' ')|upper if p.primary_sector else 'ANALYSIS' }}
-        </div>
-        <h3 class="hp-brf-title">{{ p.title }}</h3>
-        {% if p.summary %}
-        <p class="hp-brf-summary">{{ p.summary }}</p>
-        {% endif %}
-        <div class="hp-brf-meta">{{ p.published_date.strftime('%b %d, %Y') }}{% if p.reading_minutes %} · {{ p.reading_minutes }} min read{% endif %}</div>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-<script>
-(function() {
-  var form = document.getElementById('hp-nl-form');
-  var btn = form ? form.querySelector('button[type="submit"]') : null;
-  var input = form ? form.querySelector('input[type="email"]') : null;
-  if (!form || !btn || !input) return;
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    var email = input.value.trim();
-    if (!email) return;
-    btn.disabled = true;
-    btn.textContent = 'Subscribing…';
-    fetch('/api/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) {
-        btn.textContent = '✓ You\'re in!';
-        input.value = '';
-        input.disabled = true;
-      } else {
-        btn.disabled = false;
-        btn.textContent = data.error || 'Try again';
-        setTimeout(function() { btn.textContent = 'Subscribe Free'; }, 2500);
-      }
-    })
-    .catch(function() {
-      btn.disabled = false;
-      btn.textContent = 'Try again';
-      setTimeout(function() { btn.textContent = 'Subscribe Free'; }, 2500);
-    });
-  });
-})();
-</script>
+</div>
 
 {% endblock %}

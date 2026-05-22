@@ -1,66 +1,57 @@
 {% extends "_base.html.j2" %}
-
-{% block page_hero %}
-<div class="page-hero-strip">
-  <div class="page-hero-inner">
-    <div class="page-hero-eyebrow">Evergreen guides</div>
-    <h1 class="page-hero-title">AI Explainers for Business Owners</h1>
-    <p class="page-hero-subtitle">
-      Plain-English answers to the questions business owners most often ask
-      about AI regulation, liability, labor disruption, and how to make
-      defensible decisions when adopting AI tools.
-    </p>
-  </div>
-</div>
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ seo.title | e }}">
+<meta property="og:description" content="{{ seo.description | e }}">
+<meta property="og:url" content="{{ seo.canonical }}">
 {% endblock %}
 
 {% block content %}
-<section class="container">
-
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a href="/">Home</a><span>/</span>
-    <span>Explainers</span>
-  </nav>
-
-  <div class="cr-search-panel" role="search" aria-label="Search explainers">
-    <label class="cr-search-label" for="explainer-search">Search explainers</label>
-    <div class="cr-search-row">
-      <input type="search" id="explainer-search" placeholder="Search EU AI Act, NIST, liability, responsible AI…" autocomplete="off">
-    </div>
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>VA &amp; Military Benefits Explainers</h1>
+    <p>Plain-English guides to the most confusing parts of VA claims, military retirement, and veteran healthcare.</p>
   </div>
-
-  <div class="cr-empty-filter" id="explainer-empty">No explainers match that search.</div>
-
-  <div class="index-grid">
-    {% for e in explainers %}
-    <article class="index-card" data-search="{{ (e.title ~ ' ' ~ (e.summary or '') ~ ' ' ~ (e.subtitle or ''))|lower }}">
-      <a class="title-link" href="{{ e.canonical_path }}">{{ e.title }}</a>
-      <div class="meta">{{ e.word_count or '—' }} words · Updated {{ e.last_generated_at.strftime('%b %d, %Y') if e.last_generated_at else '' }}</div>
-      <p class="summary">{{ e.summary or e.subtitle or '' }}</p>
-    </article>
-    {% else %}
-    <p style="color: var(--sr-gray-text);">No explainers published yet.</p>
-    {% endfor %}
-  </div>
-
 </section>
 
-<script>
-(function () {
-  var input = document.getElementById('explainer-search');
-  var empty = document.getElementById('explainer-empty');
-  if (!input) return;
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.index-card[data-search]'));
-  input.addEventListener('input', function () {
-    var q = input.value.trim().toLowerCase();
-    var visible = 0;
-    cards.forEach(function (card) {
-      var show = !q || (card.getAttribute('data-search') || '').indexOf(q) !== -1;
-      card.style.display = show ? '' : 'none';
-      if (show) visible += 1;
-    });
-    if (empty) empty.style.display = q && visible === 0 ? 'block' : 'none';
-  });
-})();
-</script>
+<main class="container" style="max-width:1000px;margin:2rem auto;padding:0 1.25rem;">
+
+  {% if pages %}
+  <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
+    {% for page in pages %}
+    <a href="/explainers/{{ page.slug }}/" class="cluster-card" style="text-decoration:none;color:inherit;">
+      <h2 style="font-size:1rem;color:var(--sr-blue);margin-bottom:0.3rem;">{{ page.title }}</h2>
+      {% if page.subtitle %}
+      <p style="font-size:0.875rem;color:var(--sr-gray-text);">{{ page.subtitle }}</p>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- Static fallback list when DB not yet seeded -->
+  <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
+    {% set explainer_list = [
+      ("what-is-a-nexus-letter", "What Is a Nexus Letter?", "Why it's the key to service connection"),
+      ("va-disability-rating-explained", "VA Disability Rating Explained", "How the combined rating formula works"),
+      ("pact-act-explained", "PACT Act Explained", "What burn-pit veterans need to know"),
+      ("cdr-explained", "Combined Disability Rating Formula", "Why 50% + 50% ≠ 100%"),
+      ("tdiu-explained", "TDIU Explained", "Total Disability Individual Unemployability"),
+      ("va-appeals-process", "VA Appeals Process", "BVA, CAVC, and your options"),
+      ("blended-retirement-system", "Blended Retirement System", "BRS vs. legacy High-3"),
+      ("bah-explained", "BAH Explained", "How Basic Allowance for Housing is calculated"),
+      ("tricare-options-explained", "TRICARE Options Explained", "Prime, Select, and For Life"),
+      ("government-shutdown-veterans", "Government Shutdowns & Veterans", "What stops and what continues"),
+    ] %}
+    {% for slug, title, desc in explainer_list %}
+    <a href="/explainers/{{ slug }}/" class="cluster-card" style="text-decoration:none;color:inherit;">
+      <h2 style="font-size:1rem;color:var(--sr-blue);margin-bottom:0.3rem;">{{ title }}</h2>
+      <p style="font-size:0.875rem;color:var(--sr-gray-text);">{{ desc }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</main>
 {% endblock %}

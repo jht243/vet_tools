@@ -1,810 +1,502 @@
-"""
-Landing-page generator. Produces evergreen, long-form HTML for:
-  - the pillar page   (/ai-backlash/)
-  - industry pages    (/responsible-ai/{slug}/)
-  - explainers        (/explainers/{slug})
-
-Pages target high-intent SEO queries ("AI backlash", "responsible AI in
-healthcare", "what is the EU AI Act") and are regenerated weekly (or on
-demand). Each generation uses the premium model so the language reads like
-a senior analyst — different cost/quality trade-off from the daily news
-churn handled by analyzer.py and blog_generator.py.
-
-Output is persisted to the LandingPage table; Flask routes read from
-there so the request path stays cheap.
-"""
-
+"""Landing page generator — creates pillar, spoke, condition, state, and explainer pages."""
 from __future__ import annotations
-
 import json
 import logging
-import re
-from datetime import date, datetime, timedelta
+from datetime import date
+from typing import Optional
 
-from openai import OpenAI
+from sqlalchemy.orm import Session
 
-from src.config import settings
-from src.models import (
-    BlogPost,
-    ExternalArticleEntry,
-    ArticleStatus,
-    LandingPage,
-    SessionLocal,
-    init_db,
-)
-
+from src.models import LandingPage, VACondition, engine
 
 logger = logging.getLogger(__name__)
 
-
-INDUSTRY_SLUGS = (
-    "healthcare",
-    "finance",
-    "legal",
-    "retail",
-    "education",
-    "manufacturing",
-    "real-estate",
-    "marketing",
-)
-
-_ALLOWED_TAGS_RE = re.compile(
-    r"<\s*/?\s*(h2|h3|h4|p|ul|ol|li|strong|em|b|i|blockquote|a|table|thead|tbody|tr|th|td)(\s+[^>]*)?\s*/?\s*>",
-    re.IGNORECASE,
-)
-_ANY_TAG_RE = re.compile(r"<[^>]+>")
-
-
-def _sanitize_body_html(html: str) -> str:
-    if not html:
-        return ""
-
-    def _replace(match: re.Match) -> str:
-        if _ALLOWED_TAGS_RE.fullmatch(match.group(0)):
-            return match.group(0)
-        return ""
-
-    return _ANY_TAG_RE.sub(_replace, html)
-
-
-def _count_words(html: str) -> int:
-    text = _ANY_TAG_RE.sub(" ", html or "")
-    return len([w for w in text.split() if w])
-
-
-def _premium_call(client: OpenAI, *, system: str, user: str, max_tokens: int = 4500) -> tuple[str, dict]:
-    """Single premium-model call. Returns (raw_json_string, usage_dict)."""
-    model = settings.openai_premium_model
-    is_gpt5 = model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3")
-
-    base_kwargs = dict(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format={"type": "json_object"},
-    )
-
-    if is_gpt5:
-        base_kwargs["max_completion_tokens"] = max_tokens
-    else:
-        base_kwargs["max_tokens"] = max_tokens
-        base_kwargs["temperature"] = 0.4
-
-    response = client.chat.completions.create(**base_kwargs)
-    raw = response.choices[0].message.content
-    usage = getattr(response, "usage", None)
-    in_tok = getattr(usage, "prompt_tokens", 0) if usage else 0
-    out_tok = getattr(usage, "completion_tokens", 0) if usage else 0
-    cost = (
-        (in_tok or 0) / 1_000_000 * settings.llm_premium_input_price_per_mtok
-        + (out_tok or 0) / 1_000_000 * settings.llm_premium_output_price_per_mtok
-    )
-    return raw, {
-        "input_tokens": in_tok,
-        "output_tokens": out_tok,
-        "cost_usd": round(cost, 4),
-        "model": settings.openai_premium_model,
-    }
-
-
-def _gather_recent_signal(db, *, angles_filter: list[str] | None = None, limit: int = 25) -> dict:
-    """
-    Pull the freshest high-relevance briefing entries to feed the LLM as
-    live context. Optionally filter by angle (jobs_labor, regulation_policy, etc.).
-    """
-    cutoff = date.today() - timedelta(days=90)
-
-    ext = (
-        db.query(ExternalArticleEntry)
-        .filter(ExternalArticleEntry.status == ArticleStatus.ANALYZED)
-        .filter(ExternalArticleEntry.published_date >= cutoff)
-        .order_by(ExternalArticleEntry.published_date.desc())
-        .limit(150)
-        .all()
-    )
-
-    items = []
-    for r in ext:
-        analysis = r.analysis_json or {}
-        if analysis.get("relevance_score", 0) < settings.analysis_min_relevance:
-            continue
-        angles = analysis.get("angles", []) or []
-        if angles_filter and not any(a in angles_filter for a in angles):
-            continue
-        items.append({
-            "date": r.published_date.isoformat() if r.published_date else "",
-            "headline": analysis.get("headline_short") or r.headline,
-            "takeaway": (analysis.get("takeaway") or "").replace("<strong>", "").replace("</strong>", ""),
-            "angles": angles,
-            "relevance": analysis.get("relevance_score", 0),
-            "source": r.source.value if r.source else "unknown",
-        })
-    items.sort(key=lambda x: (x["relevance"], x["date"]), reverse=True)
-    return {"recent_items": items[:limit], "total_considered": len(items)}
-
-
-def _gather_recent_blog_posts(db, *, sector: str | None = None, limit: int = 8) -> list[BlogPost]:
-    q = db.query(BlogPost).order_by(BlogPost.published_date.desc())
-    if sector:
-        q = q.filter(BlogPost.primary_sector == sector)
-    return q.limit(limit).all()
-
-
-def _payload_to_landing_row(
-    payload: dict,
-    *,
-    page_key: str,
-    page_type: str,
-    canonical_path: str,
-    sector_slug: str | None,
-    usage: dict,
-) -> dict:
-    body_html = _sanitize_body_html(payload.get("body_html", ""))
-    word_count = _count_words(body_html)
-
-    keywords = payload.get("keywords") or []
-    if isinstance(keywords, str):
-        keywords = [k.strip() for k in keywords.split(",") if k.strip()]
-
-    sections = payload.get("table_of_contents") or []
-    if not isinstance(sections, list):
-        sections = []
-
-    faq_json = payload.get("faq_json") or []
-    if not isinstance(faq_json, list):
-        faq_json = []
-
-    extras = {
-        "key_takeaways": payload.get("key_takeaways") or [],
-        "table_of_contents": sections,
-    }
-
-    return {
-        "page_key": page_key,
-        "page_type": page_type,
-        "title": (payload.get("title") or "")[:300],
-        "subtitle": (payload.get("subtitle") or "")[:500],
-        "summary": (payload.get("meta_description") or "")[:600],
-        "body_html": body_html,
-        "keywords_json": keywords,
-        "sections_json": extras,
-        "faq_json": faq_json,
-        "sector_slug": sector_slug,
-        "canonical_path": canonical_path,
-        "word_count": word_count,
-        "llm_model": usage.get("model"),
-        "llm_input_tokens": usage.get("input_tokens"),
-        "llm_output_tokens": usage.get("output_tokens"),
-        "llm_cost_usd": usage.get("cost_usd"),
-        "last_generated_at": datetime.utcnow(),
-    }
-
-
-def _upsert_landing(db, fields: dict) -> LandingPage:
-    existing = db.query(LandingPage).filter(LandingPage.page_key == fields["page_key"]).first()
-    if existing:
-        for k, v in fields.items():
-            setattr(existing, k, v)
-        db.commit()
-        db.refresh(existing)
-        return existing
-    row = LandingPage(**fields)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
-
-
-# ── Pillar prompt ─────────────────────────────────────────────────────────────
-
-PILLAR_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing the definitive evergreen pillar page: "AI Backlash Explained."
-
-Audience: regular people — workers worried about their jobs, parents wondering what their kids should study, renters and homeowners near new AI data centers, artists whose work was scraped without permission, anyone who noticed the internet feeling worse and wants to understand why. NOT business compliance officers. NOT enterprise CTOs. Write as if explaining this to a smart friend who hasn't followed AI news closely but is starting to feel its effects.
-
-You MUST:
-- Write 1400-1800 words of clear, credible, human-first prose. No hype. No jargon.
-- Structure with HTML <h2> sections (6-8 of them). Short <p> paragraphs (2-4 sentences each).
-- Cite specific regulation names, real company names, real lawsuit names, real dollar figures, real job counts from the LIVE CONTEXT given by the user. Never invent statistics.
-- Cover: what the AI backlash actually is and who is driving it (workers, artists, parents, communities near data centers), why it's happening (job displacement, energy and water costs, content quality collapse, regulatory tightening, real harm cases), what ordinary people can do about it.
-- Explicitly address: the risks and dangers of AI (not sci-fi — real ones: job loss, energy costs, deepfakes, bias); the growing sense that the AI bubble may be overhyped (ai bubble burst); the tangible impact of AI on society and individuals.
-- End with a "What you can do" section linking to our tools.
-- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/ai-regulation, /explainers/deepfakes, /explainers/facial-recognition, /explainers/autonomous-weapons, /explainers/agi.
-- Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
-
-Return ONE JSON object with these fields:
-- title (string, 55-75 chars, front-load "AI Backlash")
-- subtitle (string, 100-150 chars)
-- meta_description (string, 140-160 chars, plain text, ends with period)
-- body_html (string, full 1400-1800 word body, allowed tags only)
-- key_takeaways (array of 5-7 plain-text bullet sentences)
-- keywords (array of 10-14 lowercase phrases — must include: "ai backlash", "dangers of ai", "risks of ai", "impact of ai", "ai bubble burst", "ai negative effects", "is ai harmful" plus relevant long-tail)
-- table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of exactly 5 objects with "question" and "answer" string keys — long-tail FAQ questions a real person would Google, e.g. "Is the AI backlash real?", "What are the real dangers of AI?", "Is the AI bubble going to burst?", "How do I find out if there's a data center near me?", "What companies have a no-AI policy?")
-
-Return ONLY the JSON object. No markdown fences."""
-
-
-PILLAR_USER_PROMPT_TEMPLATE = """Write the evergreen pillar page for "Ban the Bots" on the AI backlash.
-
-LIVE CONTEXT ({n_items} recent high-relevance items from our article database — use these to ground your analysis in real, dated events. Cite company names, regulation names, and figures where they strengthen the argument):
-
-{context_json}
-
-Open with the strongest current case that the AI backlash is real and felt by ordinary people — workers, parents, artists, and communities. Follow with why it's happening: job displacement, energy and water costs from data centers, content quality collapse (AI slop), regulatory tightening, and real harm cases. Walk through each category with real examples from the live context. Acknowledge the nuance: the backlash isn't about AI being inherently evil — it's about who bears the costs and who captures the benefits. Close with a concrete "What you can do" section pointing readers to our tools and trackers."""
-
-
-# ── Industry prompt ───────────────────────────────────────────────────────────
-
-INDUSTRY_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing an evergreen guide about AI's impact on a specific industry — written for the people who work in it and depend on it, not the executives running it.
-
-Audience: workers, patients, students, and consumers affected by AI in this sector — a nurse, a loan applicant, a student, a retail worker, a teacher. NOT HR departments or compliance officers. Write about how AI decisions in this industry affect ordinary people's lives, jobs, safety, and rights.
-
-You MUST:
-- Write 900-1200 words of industry-specific, plain-English prose. No hype.
-- Structure with HTML <h2> sections (5-6 of them).
-- Cover: (1) what AI tools are being deployed in this industry and how they affect workers and consumers, (2) applicable laws and protections that exist (name them specifically — HIPAA for healthcare, FERPA for education, CFPB for finance, etc.), (3) real incidents or harms from the LIVE CONTEXT, (4) a "watch out for" checklist (5-7 concrete things workers and consumers should know as a <ul>), (5) what's being done to protect people in this industry, (6) where to learn more.
-- Cite specific regulation names, real company names, real cases from the LIVE CONTEXT. Never invent statistics.
-- Insert internal links to: /ai-backlash/, /ai-incidents/, /ai-layoffs/, /fighting-back/, /no-ai-policy-template/, /human-made-policy-template/, /briefing.
-- Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
-
-Return ONE JSON object with these fields:
-- title (string, 55-75 chars, front-load the industry name and "AI")
-- subtitle (string, 100-150 chars — speak to the worker/consumer, not the executive)
-- meta_description (string, 140-160 chars, plain text, ends with period)
-- body_html (string, 900-1200 words, allowed tags only)
-- key_takeaways (array of 4-6 plain-text bullet sentences)
-- keywords (array of 8-12 lowercase phrases)
-- table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of 4-5 objects with "question" and "answer" string keys — questions a real worker or patient would Google, e.g. "Is AI taking nursing jobs?", "Can my bank use AI to deny my loan?", "Are AI teachers replacing human teachers?")
-
-Return ONLY the JSON object. No markdown fences."""
-
-
-INDUSTRY_USER_PROMPT_TEMPLATE = """Write the evergreen guide for "Ban the Bots" about AI's impact on the {industry_label} industry — for the people who work in it or depend on it.
-
-LIVE CONTEXT ({n_items} recent high-relevance items from our article database relevant to AI in this industry — use these to ground your analysis in real, dated events):
-
-{context_json}
-
-Open with how AI is already changing day-to-day life for workers and consumers in {industry_label} — name specific tools and real consequences. Walk through the laws that are supposed to protect people (name them). Surface real incidents or cases from the live context where AI caused harm or job loss in this sector. Build a practical "watch out for" checklist a worker or patient can actually use. Close by pointing to what's being done — unions, legislation, no-AI policies — and where readers can track developments."""
-
-
-# ── Explainer prompt ──────────────────────────────────────────────────────────
-
-EXPLAINER_SYSTEM_PROMPT = """You are an expert SEO content writer creating high-ranking, helpful explainer articles for "Ban the Bots."
-
-Audience: anyone who Googled this question — a worker, a student, a parent, a concerned citizen. They don't follow tech news but they're feeling AI's effects in their daily life and want a real answer, not a press release. Write as if talking to a smart, curious person who just asked you this question. No jargon, no business-speak.
-
-SEO REQUIREMENTS — you MUST follow all of these:
-- Use the PRIMARY KEYWORD in: the title, the H1, the first paragraph, the conclusion, and 2-3 H2/H3 headings.
-- Use secondary and semantic keywords naturally throughout. No keyword stuffing.
-- Write 1,200–1,800 words. Include a table of contents.
-- Structure: H1 → table of contents → H2 sections → H3 sub-sections where needed. Short paragraphs (2–4 sentences).
-- Optimize for featured snippets: open with a direct 2-3 sentence definition/answer, use numbered/bulleted lists, use "What is X?", "How does X work?", "Is X legal?" style H2 headings.
-- Include at least one comparison table, numbered list, or FAQ block.
-- End with a strong conclusion restating the primary keyword and a clear call-to-action.
-- Insert internal links naturally. Valid internal URLs ONLY (never invent paths): /ai-backlash/, /ai-incidents/, /ai-layoffs/, /ai-lawsuits/, /fighting-back/, /data-center-map/, /ai-proof-jobs/, /will-ai-replace-my-job/, /parents/, /responsible-ai/healthcare/, /responsible-ai/finance/, /responsible-ai/legal/, /responsible-ai/retail/, /responsible-ai/education/, /responsible-ai/manufacturing/, /responsible-ai/real-estate/, /responsible-ai/marketing/, /no-ai-policy-template/, /human-made-policy-template/, /briefing, /explainers/eu-ai-act, /explainers/ai-jobs, /explainers/ai-water-use, /explainers/ai-slop, /explainers/ai-art-theft, /explainers/ai-proof-jobs, /explainers/data-center-impact, /explainers/what-to-study, /explainers/ai-regulation, /explainers/deepfakes, /explainers/facial-recognition, /explainers/autonomous-weapons, /explainers/agi.
-
-CONTENT QUALITY — you MUST:
-- Match the search intent fully. Give the reader exactly what they came for.
-- Use real statistics, named legislation, documented cases, and specific examples from the RESEARCH CONTEXT provided. Never invent data.
-- Demonstrate E-E-A-T: cite specific laws by name, reference real cases and named organisations, use precise figures.
-- Include practical, actionable takeaways a reader can use today.
-- Be evergreen: do not frame the article as breaking news, but do reference recent events as examples.
-
-HTML RULES: Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style, h1 (the title field is the H1).
-
-Return ONE JSON object with these exact fields:
-- title (string, 50-60 chars, SEO-optimised, includes primary keyword — improve if needed while keeping core meaning)
-- subtitle (string, 100-150 chars — speak to the person who just Googled this, not a business audience)
-- meta_description (string, 140-160 chars, plain text, ends with period, includes primary keyword)
-- body_html (string, 1,200-1,800 words, starts with table of contents as a <ul> with anchor links, then body sections)
-- key_takeaways (array of 5-7 plain-text bullet sentences)
-- keywords (array of 10-14 lowercase phrases — primary keyword first, then secondary and semantic variants)
-- table_of_contents (array of {anchor, label} objects matching every h2 in body_html)
-- faq_json (array of 5-6 objects with "question" and "answer" string keys — long-tail questions a real person would Google, optimised for featured snippets)
-
-Return ONLY the JSON object. No markdown fences."""
-
-
-EXPLAINER_USER_PROMPT_TEMPLATE = """Write the evergreen explainer titled: "{topic_title}".
-
-Primary keyword and search intent: "{search_intent}".
-
-RESEARCH CONTEXT (verified facts, statistics, named cases, and legislation — use these to ground the article. Cite them precisely. Do not invent additional statistics):
-
-{research_context}
-
-LIVE BRIEFING CONTEXT ({n_items} recent high-relevance items from our article database — use sparingly to illustrate a current example. The explainer must NOT read as current news):
-
-{context_json}
-
-WRITING INSTRUCTIONS:
-1. Open with a direct featured-snippet-ready definition/answer (2–3 sentences) that includes the primary keyword.
-2. Follow with the table of contents.
-3. Walk through each H2 section in logical order: definition → how it works → why it matters → real-world examples/cases → legal landscape → what you can do.
-4. Use the research context to back every factual claim. Cite specific names, figures, and laws.
-5. Include at least one structured list (numbered or bulleted) summarising key points.
-6. Close with a conclusion that restates the primary keyword and directs readers to relevant Ban the Bots tools: /ai-layoffs/, /fighting-back/, /data-center-map/, /ai-backlash/, /ai-lawsuits/.
-
-No hyperbole. No marketing language. Write for someone who wants to understand, not to be sold to."""
-
-
-# ── AI-Proof Jobs pillar prompt ───────────────────────────────────────────────
-
-AI_PROOF_JOBS_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing an evergreen pillar page: "AI-Proof Jobs: What Work Humans Will Always Do Better."
-
-Audience: workers, career-changers, and parents who are scared about AI taking jobs. Write for someone who works in an office, a factory, a school, or a hospital and is wondering if they'll still have a job in 10 years. NOT an HR executive or management consultant. Speak plainly, with warmth and honesty.
-
-You MUST:
-- Write 1400-1800 words of clear, human-first prose. No hype. No false reassurance.
-- Structure with HTML <h2> sections (6-8 of them). Short <p> paragraphs (2-4 sentences each).
-- Cover: (1) what "AI-proof" actually means (it's about tasks, not whole jobs), (2) the job categories most resilient to automation and why — physical dexterity in variable environments, human care and emotional connection, creative judgment, local trust and relationships, crisis response, (3) specific job families that score well on these dimensions, (4) what workers in higher-risk jobs can do to shift toward resilient skills, (5) a frank acknowledgment that some displacement is coming and what that means.
-- Cite specific research, name real automation studies, and use real statistics from the LIVE CONTEXT. Never invent statistics.
-- Insert internal links naturally. Valid internal URLs ONLY: /will-ai-replace-my-job/, /ai-layoffs/, /fighting-back/, /ai-backlash/, /ai-incidents/, /parents/, /explainers/ai-proof-jobs, /explainers/ai-jobs, /explainers/what-to-study, /explainers/ai-regulation, /briefing.
-- Use only: h2, h3, p, ul, ol, li, strong, em, blockquote, a. No div, span, table, script, style.
-
-Return ONE JSON object with these fields:
-- title (string, 55-75 chars, front-load "AI-Proof Jobs")
-- subtitle (string, 100-150 chars — speak to the worker, not the executive)
-- meta_description (string, 140-160 chars, plain text, ends with period)
-- body_html (string, full 1400-1800 word body, allowed tags only)
-- key_takeaways (array of 5-7 plain-text bullet sentences)
-- keywords (array of 10-14 lowercase phrases — must include: "ai proof jobs", "jobs ai can't replace", "will ai replace jobs", "ai replace", "ai impact on service jobs", "jobs safe from ai", "what jobs will ai replace" plus relevant long-tail)
-- table_of_contents (array of {anchor, label} objects matching your h2 sections)
-- faq_json (array of 5 objects with "question" and "answer" string keys — questions real workers Google, e.g. "What jobs are safe from AI?", "Will AI replace service workers?", "What should I study to avoid AI taking my job?", "Are trade jobs safe from AI?", "How long until AI takes most jobs?")
-
-Return ONLY the JSON object. No markdown fences."""
-
-AI_PROOF_JOBS_USER_PROMPT_TEMPLATE = """Write the evergreen pillar page for "Ban the Bots" on AI-proof jobs.
-
-LIVE CONTEXT ({n_items} recent high-relevance items from our article database — use these to ground your analysis in real, dated events and studies):
-
-{context_json}
-
-Open with honest framing: some jobs are genuinely safer than others, and the research tells us why. Walk through the categories of work that are hardest to automate — physical dexterity in unpredictable environments, human care and emotional intelligence, creative judgment that requires cultural context, local trust relationships, crisis and emergency response. Give specific job examples in each category. Address the workers most at risk and what skills they can develop. Close with a section on what's being done — unions, legislation, no-AI policies — pointing to /fighting-back/ and /ai-layoffs/ for the real-world picture."""
-
-
-# ── Public API ────────────────────────────────────────────────────────────────
-
-def generate_ai_proof_jobs_pillar(*, force: bool = False) -> LandingPage:
-    """Generate (or regenerate) the /ai-proof-jobs/ pillar page."""
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY not set; cannot generate AI-proof jobs pillar")
-
-    init_db()
-    db = SessionLocal()
-    try:
-        page_key = "pillar:ai-proof-jobs"
-        if not force:
-            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if existing and existing.last_generated_at and (
-                datetime.utcnow() - existing.last_generated_at < timedelta(days=6)
-            ):
-                logger.info("ai-proof-jobs pillar is fresh (regenerated %s); skipping", existing.last_generated_at)
-                return existing
-
-        signal = _gather_recent_signal(db, limit=30, angles_filter=["jobs_labor"])
-        user = AI_PROOF_JOBS_USER_PROMPT_TEMPLATE.format(
-            n_items=len(signal["recent_items"]),
-            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
-        )
-
-        client = OpenAI(api_key=settings.openai_api_key)
-        raw, usage = _premium_call(client, system=AI_PROOF_JOBS_SYSTEM_PROMPT, user=user, max_tokens=12000)
-        payload = json.loads(raw)
-
-        fields = _payload_to_landing_row(
-            payload,
-            page_key=page_key,
-            page_type="pillar",
-            canonical_path="/ai-proof-jobs/",
-            sector_slug=None,
-            usage=usage,
-        )
-        row = _upsert_landing(db, fields)
-        logger.info(
-            "ai-proof-jobs pillar generated: %d words, model=%s, cost=$%.4f",
-            row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
-        )
-        return row
-    finally:
-        db.close()
-
-
-def generate_pillar_page(*, force: bool = False) -> LandingPage:
-    """Generate (or regenerate) the /ai-backlash/ pillar page."""
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY not set; cannot generate pillar page")
-
-    init_db()
-    db = SessionLocal()
-    try:
-        page_key = "pillar:ai-backlash"
-        if not force:
-            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if existing and existing.last_generated_at and (
-                datetime.utcnow() - existing.last_generated_at < timedelta(days=6)
-            ):
-                logger.info("pillar page is fresh (regenerated %s); skipping", existing.last_generated_at)
-                return existing
-
-        signal = _gather_recent_signal(db, limit=30)
-        user = PILLAR_USER_PROMPT_TEMPLATE.format(
-            n_items=len(signal["recent_items"]),
-            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
-        )
-
-        client = OpenAI(api_key=settings.openai_api_key)
-        raw, usage = _premium_call(client, system=PILLAR_SYSTEM_PROMPT, user=user, max_tokens=12000)
-        payload = json.loads(raw)
-
-        fields = _payload_to_landing_row(
-            payload,
-            page_key=page_key,
-            page_type="pillar",
-            canonical_path="/ai-backlash/",
-            sector_slug=None,
-            usage=usage,
-        )
-        row = _upsert_landing(db, fields)
-        logger.info(
-            "pillar page generated: %d words, model=%s, cost=$%.4f",
-            row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
-        )
-        return row
-    finally:
-        db.close()
-
-
-def generate_industry_page(
-    industry_slug: str,
-    *,
-    industry_label: str | None = None,
-    force: bool = False,
-) -> LandingPage:
-    """Generate (or regenerate) a /responsible-ai/{slug}/ industry landing page."""
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY not set; cannot generate industry page")
-
-    label = (industry_label or industry_slug).replace("-", " ").replace("_", " ").title()
-    init_db()
-    db = SessionLocal()
-    try:
-        page_key = f"industry:{industry_slug}"
-        if not force:
-            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if existing and existing.last_generated_at and (
-                datetime.utcnow() - existing.last_generated_at < timedelta(days=6)
-            ):
-                logger.info("industry page %s is fresh; skipping", industry_slug)
-                return existing
-
-        # Gather signal relevant to this industry's angle(s)
-        industry_angles: dict[str, list[str]] = {
-            "healthcare": ["ai_incidents", "regulation_policy", "responsible_ai"],
-            "finance": ["regulation_policy", "ai_incidents", "responsible_ai"],
-            "legal": ["regulation_policy", "responsible_ai", "ai_incidents"],
-            "retail": ["jobs_labor", "content_quality", "responsible_ai"],
-            "education": ["jobs_labor", "content_quality", "ai_incidents"],
-            "manufacturing": ["jobs_labor", "environment_energy", "responsible_ai"],
-            "real-estate": ["responsible_ai", "ai_incidents"],
-            "marketing": ["content_quality", "responsible_ai", "backlash_protest"],
-        }
-        angles = industry_angles.get(industry_slug, ["responsible_ai"])
-        signal = _gather_recent_signal(db, angles_filter=angles, limit=20)
-
-        user = INDUSTRY_USER_PROMPT_TEMPLATE.format(
-            industry_label=label,
-            n_items=len(signal["recent_items"]),
-            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
-        )
-
-        client = OpenAI(api_key=settings.openai_api_key)
-        raw, usage = _premium_call(client, system=INDUSTRY_SYSTEM_PROMPT, user=user, max_tokens=8000)
-        payload = json.loads(raw)
-
-        fields = _payload_to_landing_row(
-            payload,
-            page_key=page_key,
-            page_type="sector",
-            canonical_path=f"/responsible-ai/{industry_slug}/",
-            sector_slug=industry_slug,
-            usage=usage,
-        )
-        row = _upsert_landing(db, fields)
-        logger.info(
-            "industry page %s generated: %d words, model=%s, cost=$%.4f",
-            industry_slug, row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
-        )
-        return row
-    finally:
-        db.close()
-
-
-def generate_all_industry_pages(*, force: bool = False) -> list[LandingPage]:
-    """Generate (or refresh) all 8 industry pages."""
-    results = []
-    for slug in INDUSTRY_SLUGS:
-        try:
-            page = generate_industry_page(slug, force=force)
-            results.append(page)
-        except Exception as exc:
-            logger.error("industry page %s failed: %s", slug, exc, exc_info=True)
-    return results
-
-
-def generate_explainer(
-    slug: str,
-    *,
-    topic_title: str,
-    search_intent: str,
-    research_context: str = "",
-    force: bool = False,
-) -> LandingPage:
-    """Generate (or regenerate) a /explainers/{slug} evergreen explainer."""
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY not set; cannot generate explainer")
-
-    init_db()
-    db = SessionLocal()
-    try:
-        page_key = f"explainer:{slug}"
-        if not force:
-            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if existing and existing.last_generated_at and (
-                datetime.utcnow() - existing.last_generated_at < timedelta(days=21)
-            ):
-                logger.info("explainer %s is fresh; skipping", slug)
-                return existing
-
-        signal = _gather_recent_signal(db, limit=15)
-
-        user = EXPLAINER_USER_PROMPT_TEMPLATE.format(
-            topic_title=topic_title,
-            search_intent=search_intent,
-            research_context=research_context or "No pre-gathered research provided — rely on your training knowledge and the live briefing context below.",
-            n_items=len(signal["recent_items"]),
-            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
-        )
-
-        client = OpenAI(api_key=settings.openai_api_key)
-        raw, usage = _premium_call(client, system=EXPLAINER_SYSTEM_PROMPT, user=user, max_tokens=8000)
-        payload = json.loads(raw)
-
-        fields = _payload_to_landing_row(
-            payload,
-            page_key=page_key,
-            page_type="explainer",
-            canonical_path=f"/explainers/{slug}",
-            sector_slug=None,
-            usage=usage,
-        )
-        row = _upsert_landing(db, fields)
-        logger.info(
-            "explainer %s generated: %d words, model=%s, cost=$%.4f",
-            slug, row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
-        )
-        return row
-    finally:
-        db.close()
-
-
-PARENT_SPOKE_SLUGS: tuple[str, ...] = (
-    "screen-time",
-    "what-to-study",
-    "ai-safety",
-    "how-to-use-ai-for-good",
-    "social-media",
-)
-
-PARENT_SPOKE_LABELS: dict[str, str] = {
-    "screen-time": "AI & Screen Time",
-    "what-to-study": "What Should My Kids Study?",
-    "ai-safety": "AI Safety for Kids",
-    "how-to-use-ai-for-good": "Using AI for Good",
-    "social-media": "AI & Social Media",
+PAGE_TTLS = {
+    "pillar": 7,
+    "spoke": 14,
+    "condition": 21,
+    "state": 30,
+    "explainer": 21,
+    "tool": 30,
 }
 
-PARENT_SYSTEM_PROMPT = """You are a senior writer for "Ban the Bots," writing content for parents of school-age children (ages 6–18).
+PILLARS = [
+    "va-claims",
+    "va-disability",
+    "military-retirement",
+    "military-pay",
+    "state-benefits",
+    "explainers",
+]
 
-Audience: parents who are worried about AI's effect on their kids — not from a tech perspective, but from a parenting one. They want to know: Is my kid safe? Are they falling behind or getting ahead? What do I actually say to them about AI? They use Google, not Hacker News. Write warmly but credibly. Use plain English. Avoid jargon.
+VA_CLAIMS_SPOKES = [
+    "how-to-file-a-va-claim",
+    "service-connection-requirements",
+    "nexus-letter-guide",
+    "c-and-p-exam-tips",
+    "va-claim-timeline",
+    "buddy-statement-guide",
+    "va-claim-checklist",
+    "secondary-conditions",
+    "va-rating-increase",
+    "claim-for-increase",
+]
 
-Tone: like a knowledgeable friend who happens to have read the research — not a tech blogger, not a consultant. Concerned, honest, practical.
+CONDITIONS = [
+    "tinnitus", "ptsd", "lumbar-spine-strain", "sleep-apnea", "knee-pain",
+    "migraines", "depression", "anxiety", "tbi", "hearing-loss",
+    "shoulder-impingement", "hypertension", "diabetes-mellitus-type-2",
+    "burn-pit-exposure", "agent-orange-exposure", "mst-military-sexual-trauma",
+    "chronic-fatigue-syndrome", "fibromyalgia", "cervical-spine-strain",
+    "plantar-fasciitis", "pes-planus-flat-feet", "bilateral-knee",
+    "bilateral-hearing-loss", "Gulf-war-illness", "radiculopathy-lower",
+    "radiculopathy-upper", "degenerative-disc-disease", "hemorrhoids",
+    "irritable-bowel-syndrome", "gerd", "rhinitis", "sinusitis",
+    "skin-conditions-dermatitis",
+]
 
-Cover real research. Name real platforms and products (TikTok, ChatGPT, Instagram, YouTube, Khan Academy, etc.). Give practical actions parents can take this week, not abstract advice.
+RETIREMENT_SPOKES = [
+    "final-pay-retirement",
+    "high-36-retirement",
+    "blended-retirement-system",
+    "disability-retirement-vs-chapter61",
+    "reserve-retirement-points",
+    "survivor-benefit-plan",
+    "concurrent-receipt-crsc-crdp",
+]
 
-Valid internal URLs (use these naturally to connect content — do NOT use external links except for sources):
-/parents/ — parenting hub homepage
-/parents/screen-time/ — AI and kids' screen time
-/parents/what-to-study/ — what to encourage kids to study
-/parents/ai-safety/ — deepfakes, inappropriate content, AI safety
-/parents/how-to-use-ai-for-good/ — AI as homework helper vs crutch
-/parents/social-media/ — AI recommendation engines and children
-/ai-proof-jobs/ — AI-proof jobs guide
-/will-ai-replace-my-job/ — job risk checker
-/explainers/what-to-study — explainer on future-proof studies
-/explainers/ai-regulation — AI laws and regulations
-/briefing — daily AI briefings
-/ai-backlash/ — AI backlash explainer
+EXPLAINER_SLUGS = [
+    "what-is-a-nexus-letter",
+    "va-disability-rating-explained",
+    "pact-act-explained",
+    "cdr-explained",
+    "tdiu-explained",
+    "va-appeals-process",
+    "blended-retirement-system",
+    "bah-explained",
+    "tricare-options-explained",
+    "government-shutdown-veterans",
+    "military-retirement-pay-calculator-guide",
+    "va-ebenefits-vs-va-gov",
+    "va-buddy-statement-guide",
+    "va-disability-back-pay",
+]
 
-Return a JSON object with these exact keys:
-{
-  "title": "...",
-  "subtitle": "...",
-  "meta_description": "...",
-  "body_html": "...",
-  "key_takeaways": ["...", "...", "..."],
-  "keywords": ["...", "..."],
-  "table_of_contents": [{"id": "...", "text": "..."}, ...],
-  "faq_json": [{"question": "...", "answer": "..."}, ...]
-}"""
+CONDITION_RESEARCH = {
+    "tinnitus": {
+        "display_name": "Tinnitus",
+        "cfr_citation": "38 CFR Part 4, DC 6260",
+        "typical_rating_pct": 10,
+        "short_description": "Ringing or buzzing in the ears — the most commonly claimed VA disability.",
+    },
+    "ptsd": {
+        "display_name": "PTSD",
+        "cfr_citation": "38 CFR Part 4, DC 9411",
+        "typical_rating_pct": 50,
+        "short_description": "Post-Traumatic Stress Disorder from in-service trauma, combat, or MST.",
+    },
+    "sleep-apnea": {
+        "display_name": "Sleep Apnea",
+        "cfr_citation": "38 CFR Part 4, DC 6847",
+        "typical_rating_pct": 50,
+        "short_description": "Obstructive sleep apnea requiring CPAP often rated 50%.",
+    },
+    "lumbar-spine-strain": {
+        "display_name": "Lumbar Spine Strain",
+        "cfr_citation": "38 CFR Part 4, DC 5237",
+        "typical_rating_pct": 20,
+        "short_description": "Lower-back pain from in-service injury, one of the most common claims.",
+    },
+    "knee-pain": {
+        "display_name": "Knee Conditions",
+        "cfr_citation": "38 CFR Part 4, DC 5257–5260",
+        "typical_rating_pct": 10,
+        "short_description": "Knee instability, limitation of flexion/extension, and residuals of surgery.",
+    },
+}
 
-PARENT_HUB_USER_PROMPT = """Write the hub/overview page for the "Parenting in the Age of AI" section of Ban the Bots.
+STATE_RESEARCH = {
+    "texas": {
+        "display_name": "Texas",
+        "headline_benefit": "100% P&T veterans pay no property taxes in Texas.",
+    },
+    "florida": {
+        "display_name": "Florida",
+        "headline_benefit": "Florida exempts 100% P&T veterans from property taxes and sales tax on adaptive equipment.",
+    },
+    "california": {
+        "display_name": "California",
+        "headline_benefit": "California offers property tax exemptions up to $150,000 for 100% disabled veterans.",
+    },
+    "virginia": {
+        "display_name": "Virginia",
+        "headline_benefit": "Virginia exempts 100% P&T veterans from real property taxes.",
+    },
+}
 
-This hub page should:
-- Open with an honest, warm framing: AI is reshaping childhood fast, parents are right to have questions, and this section is here to help
-- Briefly introduce each of the 5 sub-topics: screen time, what to study, AI safety, using AI for good, social media
-- Give a 2–3 sentence preview of what each spoke covers and why it matters for parents
-- Link naturally to each spoke page: /parents/screen-time/, /parents/what-to-study/, /parents/ai-safety/, /parents/how-to-use-ai-for-good/, /parents/social-media/
-- Close with practical encouragement: the goal isn't to fear AI but to navigate it as a family
-
-Keep it relatively concise — this is a navigation hub, not a deep-dive article. ~600–900 words body."""
-
-PARENT_SPOKE_USER_PROMPT_TEMPLATE = """Write a deep-dive article for the "Parenting in the Age of AI" section of Ban the Bots.
-
-Topic: {spoke_label}
-URL: /parents/{spoke_slug}/
-
-LIVE CONTEXT ({n_items} recent high-relevance items from our article database — use these to ground your analysis in real, dated events):
-
-{context_json}
-
-This article should:
-- Open with a specific, relatable scenario a parent would recognize
-- Cite real research, studies, or expert recommendations (name the source)
-- Name real products and platforms parents and kids actually use
-- Give 5–7 concrete actions a parent can take (not vague advice)
-- Connect to other spoke pages where relevant
-- Avoid condescension — parents reading this are smart; they just need the information
-
-SPOKE-SPECIFIC REQUIREMENTS:
-- If spoke is "ai-safety": explicitly address "is Character AI safe for kids?" — it is one of the
-  top-searched parenting+AI questions. Discuss the lawsuit (Garcia v. Character.AI), the lack of
-  age verification, and the grooming/self-harm incident reports. Also cover ChatGPT, Snapchat My AI,
-  and Replika's child safety policies. IMPORTANT: dedicate a section to the Sewell Setzer case
-  (the 14-year-old who died by suicide after conversations with a Character.AI chatbot) — this is
-  the most-searched child AI safety story and parents deserve a clear, sensitive account of what
-  happened and what it means. Also cover AI companion apps broadly: explain what they are, why
-  kids are drawn to them, and the emotional dependency risks. Use "chatgpt suicide" and
-  "ai companions" as keyword anchors in their respective sections.
-- If spoke is "what-to-study": explicitly address "what should my kids study" and "what majors are
-  ai proof" — name specific subjects (trades, healthcare, social work, creative arts, law) and explain
-  why they are resilient. Reference BLS or McKinsey data.
-- If spoke is "social-media": address TikTok's algorithm (ForYou Page), YouTube autoplay, and
-  Instagram Reels — explain how AI recommendation systems work and what parents can do about them.
-- If spoke is "screen-time": address how AI apps differ from regular apps (they adapt to the child,
-  making them more engaging) and what current research says about recommended limits.
-- If spoke is "how-to-use-ai-for-good": address the "is my kid cheating?" question directly. Explain
-  the difference between using AI to avoid thinking vs. using AI as a Socratic tutor.
-
-Target length: 1,200–1,800 words body."""
+EXPLAINER_RESEARCH = {
+    "what-is-a-nexus-letter": {
+        "title": "What Is a Nexus Letter?",
+        "subtitle": "The medical opinion that connects your condition to military service",
+        "key_points": [
+            "A nexus letter is a written medical opinion linking your current condition to an in-service event.",
+            "It must state the link is 'at least as likely as not' (50%+ probability).",
+            "Private nexus letters often carry more weight than VA C&P exams.",
+        ],
+    },
+    "va-disability-rating-explained": {
+        "title": "VA Disability Rating Explained",
+        "subtitle": "How the combined rating formula works — and why it's not simple addition",
+        "key_points": [
+            "VA uses a 'whole person' method: each rating reduces the remaining able-bodied percentage.",
+            "50% + 50% does NOT equal 100% under VA math.",
+            "The final rating is rounded to the nearest 10%.",
+        ],
+    },
+    "pact-act-explained": {
+        "title": "PACT Act Explained",
+        "subtitle": "What the Sergeant First Class Heath Robinson PACT Act means for burn-pit veterans",
+        "key_points": [
+            "Signed into law August 2022, the PACT Act is the largest expansion of VA benefits in decades.",
+            "It establishes presumptive service connection for 23 burn-pit/toxic-exposure cancers.",
+            "Veterans who deployed to Southwest Asia on or after August 2, 1990 may qualify.",
+        ],
+    },
+}
 
 
-def generate_parent_hub(*, force: bool = False) -> LandingPage:
-    """Generate (or regenerate) the /parents/ hub page."""
+def _llm_generate(prompt: str, settings, max_tokens: int = 1200) -> Optional[str]:
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY not set; cannot generate parent hub")
-
-    init_db()
-    db = SessionLocal()
+        return None
     try:
-        page_key = "parent:hub"
-        if not force:
-            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if existing and existing.last_generated_at and (
-                datetime.utcnow() - existing.last_generated_at < timedelta(days=14)
-            ):
-                logger.info("parent hub is fresh (regenerated %s); skipping", existing.last_generated_at)
-                return existing
+        from openai import OpenAI
 
         client = OpenAI(api_key=settings.openai_api_key)
-        raw, usage = _premium_call(
-            client, system=PARENT_SYSTEM_PROMPT, user=PARENT_HUB_USER_PROMPT, max_tokens=6000
+        resp = client.chat.completions.create(
+            model=settings.fast_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an SEO content writer for VA Claims Workspace. "
+                        "Write factual, helpful content for veterans. "
+                        "Use plain HTML (h2, h3, p, ul/li only). No markdown. No disclaimers."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.4,
+            max_tokens=max_tokens,
         )
-        payload = json.loads(raw)
+        return (resp.choices[0].message.content or "").strip()
+    except Exception as exc:
+        logger.warning("landing_generator: LLM call failed: %s", exc)
+        return None
 
-        fields = _payload_to_landing_row(
-            payload,
-            page_key=page_key,
+
+def _upsert_page(
+    session: Session,
+    *,
+    slug: str,
+    canonical_path: str,
+    page_type: str,
+    title: str,
+    h1: str,
+    subtitle: str = "",
+    seo_description: str = "",
+    body_html: str = "",
+    faq_json: Optional[list] = None,
+    key_takeaways: Optional[list] = None,
+    cache_ttl_hours: Optional[int] = None,
+) -> LandingPage:
+    existing = session.query(LandingPage).filter_by(slug=slug).first()
+    if existing:
+        existing.title = title
+        existing.h1 = h1
+        existing.subtitle = subtitle
+        existing.seo_description = seo_description
+        existing.body_html = body_html
+        if faq_json is not None:
+            existing.faq_json = json.dumps(faq_json)
+        if key_takeaways is not None:
+            existing.key_takeaways_json = json.dumps(key_takeaways)
+        if cache_ttl_hours is not None:
+            existing.cache_ttl_hours = cache_ttl_hours
+        session.add(existing)
+        return existing
+
+    page = LandingPage(
+        slug=slug,
+        canonical_path=canonical_path,
+        page_type=page_type,
+        title=title,
+        h1=h1,
+        subtitle=subtitle,
+        seo_description=seo_description,
+        body_html=body_html,
+        faq_json=json.dumps(faq_json or []),
+        key_takeaways_json=json.dumps(key_takeaways or []),
+        cache_ttl_hours=cache_ttl_hours or PAGE_TTLS.get(page_type, 24) * 24,
+    )
+    session.add(page)
+    return page
+
+
+def generate_pillar_page(slug: str, dry_run: bool = False) -> Optional[LandingPage]:
+    from src.config import settings
+
+    titles = {
+        "va-claims": ("VA Claims Guide", "How to File a VA Claim", "A complete guide to filing and winning your VA disability claim"),
+        "va-disability": ("VA Disability Ratings", "VA Disability Ratings Explained", "How VA rates disabilities and calculates your combined rating"),
+        "military-retirement": ("Military Retirement Pay", "Military Retirement Pay Guide", "Everything you need to know about military retirement and the BRS"),
+        "military-pay": ("Military Pay Charts", "Military Pay Tables & BAH Rates", "Current military pay tables, BAH rates, and BAS allowances"),
+        "state-benefits": ("State Veterans Benefits", "State Veterans Benefits by State", "Property tax exemptions, tuition waivers, and more — by state"),
+        "explainers": ("VA & Military Benefits Explainers", "VA & Military Benefits Explained", "Plain-English guides to the most confusing benefits topics"),
+    }
+    if slug not in titles:
+        logger.warning("generate_pillar_page: unknown pillar %r", slug)
+        return None
+
+    title, h1, subtitle = titles[slug]
+    prompt = (
+        f"Write a 400-word pillar page introduction for '{h1}'. "
+        "Explain the topic, why it matters to veterans, and what the reader will learn. "
+        "Use h2, p, and ul/li HTML only. Link internally where relevant."
+    )
+    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+
+    with Session(engine) as session:
+        page = _upsert_page(
+            session,
+            slug=slug,
+            canonical_path=f"/{slug}/",
             page_type="pillar",
-            canonical_path="/parents/",
-            sector_slug=None,
-            usage=usage,
+            title=f"{title} | VA Claims Workspace",
+            h1=h1,
+            subtitle=subtitle,
+            seo_description=subtitle,
+            body_html=body,
+            cache_ttl_hours=PAGE_TTLS["pillar"] * 24,
         )
-        row = _upsert_landing(db, fields)
-        logger.info(
-            "parent hub generated: %d words, model=%s, cost=$%.4f",
-            row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
+        session.commit()
+        session.refresh(page)
+    return page
+
+
+def generate_spoke_page(pillar: str, spoke_slug: str, dry_run: bool = False) -> Optional[LandingPage]:
+    from src.config import settings
+
+    display = spoke_slug.replace("-", " ").title()
+    prompt = (
+        f"Write a 600-word guide about '{display}' for veterans. "
+        "Include: why it matters, step-by-step guidance, common mistakes, and tips. "
+        "Use h2, h3, p, ul/li HTML only."
+    )
+    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+
+    slug = f"{pillar}-{spoke_slug}"
+    with Session(engine) as session:
+        page = _upsert_page(
+            session,
+            slug=slug,
+            canonical_path=f"/{pillar}/{spoke_slug}/",
+            page_type="spoke",
+            title=f"{display} | VA Claims Workspace",
+            h1=display,
+            subtitle=f"A complete guide to {display.lower()} for veterans.",
+            seo_description=f"Learn everything about {display.lower()} for your VA claim.",
+            body_html=body,
+            cache_ttl_hours=PAGE_TTLS["spoke"] * 24,
         )
-        return row
-    finally:
-        db.close()
+        session.commit()
+        session.refresh(page)
+    return page
 
 
-def generate_parent_spoke(spoke_slug: str, *, force: bool = False) -> LandingPage:
-    """Generate (or regenerate) a /parents/{spoke_slug}/ article."""
-    if spoke_slug not in PARENT_SPOKE_SLUGS:
-        raise ValueError(f"Unknown parent spoke: {spoke_slug!r}. Valid slugs: {PARENT_SPOKE_SLUGS}")
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY not set; cannot generate parent spoke")
+def generate_condition_page(condition_slug: str, dry_run: bool = False) -> Optional[LandingPage]:
+    from src.config import settings
 
-    init_db()
-    db = SessionLocal()
-    try:
-        page_key = f"parent:{spoke_slug}"
-        if not force:
-            existing = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if existing and existing.last_generated_at and (
-                datetime.utcnow() - existing.last_generated_at < timedelta(days=14)
-            ):
-                logger.info("parent spoke %s is fresh; skipping", spoke_slug)
-                return existing
+    research = CONDITION_RESEARCH.get(condition_slug, {})
+    display_name = research.get("display_name") or condition_slug.replace("-", " ").title()
 
-        signal = _gather_recent_signal(db, limit=15, angles_filter=["jobs_labor", "ai_incidents", "regulation_policy"])
-        label = PARENT_SPOKE_LABELS[spoke_slug]
-        user = PARENT_SPOKE_USER_PROMPT_TEMPLATE.format(
-            spoke_label=label,
-            spoke_slug=spoke_slug,
-            n_items=len(signal["recent_items"]),
-            context_json=json.dumps(signal["recent_items"], ensure_ascii=False, indent=2),
+    prompt = (
+        f"Write a 700-word VA disability guide for veterans with '{display_name}'. "
+        "Cover: how VA rates this condition, what evidence is needed, common secondary conditions, "
+        "and tips to get the right rating. Use h2, h3, p, ul/li HTML only."
+    )
+    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+
+    faq = [
+        {"question": f"What is the VA rating for {display_name}?", "answer": f"VA rates {display_name} based on the severity of symptoms. Ratings typically range from 0% to {research.get('typical_rating_pct', 100)}%."},
+        {"question": f"How do I service-connect {display_name}?", "answer": f"You need medical evidence and a nexus letter linking {display_name} to an in-service event or condition."},
+    ]
+
+    slug = f"condition-{condition_slug}"
+    with Session(engine) as session:
+        page = _upsert_page(
+            session,
+            slug=slug,
+            canonical_path=f"/va-disability/{condition_slug}/",
+            page_type="condition",
+            title=f"VA Disability for {display_name} | VA Claims Workspace",
+            h1=f"VA Disability: {display_name}",
+            subtitle=research.get("short_description", ""),
+            seo_description=f"How VA rates {display_name}, what evidence you need, and tips to maximize your rating.",
+            body_html=body,
+            faq_json=faq,
+            cache_ttl_hours=PAGE_TTLS["condition"] * 24,
         )
+        session.commit()
+        session.refresh(page)
+    return page
 
-        client = OpenAI(api_key=settings.openai_api_key)
-        raw, usage = _premium_call(client, system=PARENT_SYSTEM_PROMPT, user=user, max_tokens=10000)
-        payload = json.loads(raw)
 
-        fields = _payload_to_landing_row(
-            payload,
-            page_key=page_key,
-            page_type="pillar",
-            canonical_path=f"/parents/{spoke_slug}/",
-            sector_slug=None,
-            usage=usage,
+def generate_state_page(state_slug: str, dry_run: bool = False) -> Optional[LandingPage]:
+    from src.config import settings
+
+    research = STATE_RESEARCH.get(state_slug, {})
+    display_name = research.get("display_name") or state_slug.replace("-", " ").title()
+
+    prompt = (
+        f"Write a 600-word guide to veteran benefits in {display_name}. "
+        "Cover: property tax exemptions, income tax exemptions for military retirement, "
+        "education benefits, vehicle registration discounts, and hunting/fishing licenses. "
+        "Use h2, p, ul/li HTML only. Be specific to {display_name} state law."
+    )
+    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+
+    headline = research.get("headline_benefit", f"{display_name} offers several property tax and income tax exemptions for qualifying veterans.")
+    key_takeaways = [headline]
+
+    slug = f"state-{state_slug}"
+    with Session(engine) as session:
+        page = _upsert_page(
+            session,
+            slug=slug,
+            canonical_path=f"/state-benefits/{state_slug}/",
+            page_type="state",
+            title=f"{display_name} Veterans Benefits | VA Claims Workspace",
+            h1=f"Veterans Benefits in {display_name}",
+            subtitle=f"Property tax exemptions, education benefits, and more for {display_name} veterans.",
+            seo_description=f"Complete guide to {display_name} state veterans benefits: property taxes, education, vehicle registration, and more.",
+            body_html=body,
+            key_takeaways=key_takeaways,
+            cache_ttl_hours=PAGE_TTLS["state"] * 24,
         )
-        row = _upsert_landing(db, fields)
-        logger.info(
-            "parent spoke %s generated: %d words, model=%s, cost=$%.4f",
-            spoke_slug, row.word_count, row.llm_model, row.llm_cost_usd or 0.0,
+        session.commit()
+        session.refresh(page)
+    return page
+
+
+def generate_explainer_page(explainer_slug: str, dry_run: bool = False) -> Optional[LandingPage]:
+    from src.config import settings
+
+    research = EXPLAINER_RESEARCH.get(explainer_slug, {})
+    title = research.get("title") or explainer_slug.replace("-", " ").title()
+    key_points = research.get("key_points", [])
+
+    prompt = (
+        f"Write a 700-word explainer about '{title}' for veterans. "
+        "Be clear, factual, and practical. Include key facts, a step-by-step section if applicable, "
+        "and common misconceptions. Use h2, h3, p, ul/li HTML only."
+    )
+    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+
+    slug = f"explainer-{explainer_slug}"
+    with Session(engine) as session:
+        page = _upsert_page(
+            session,
+            slug=slug,
+            canonical_path=f"/explainers/{explainer_slug}/",
+            page_type="explainer",
+            title=f"{title} | VA Claims Workspace",
+            h1=title,
+            subtitle=research.get("subtitle", ""),
+            seo_description=f"{title} — plain-English guide for veterans and military families.",
+            body_html=body,
+            key_takeaways=key_points,
+            cache_ttl_hours=PAGE_TTLS["explainer"] * 24,
         )
-        return row
-    finally:
-        db.close()
+        session.commit()
+        session.refresh(page)
+    return page
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(name)-30s  %(levelname)-8s  %(message)s")
-    page = generate_pillar_page(force=True)
-    print({"slug": page.canonical_path, "words": page.word_count, "cost": page.llm_cost_usd})
+US_STATES = [
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado",
+    "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho",
+    "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana",
+    "maine", "maryland", "massachusetts", "michigan", "minnesota",
+    "mississippi", "missouri", "montana", "nebraska", "nevada",
+    "new-hampshire", "new-jersey", "new-mexico", "new-york",
+    "north-carolina", "north-dakota", "ohio", "oklahoma", "oregon",
+    "pennsylvania", "rhode-island", "south-carolina", "south-dakota",
+    "tennessee", "texas", "utah", "vermont", "virginia",
+    "washington", "west-virginia", "wisconsin", "wyoming",
+]
+
+
+def generate_all_landing_pages(
+    dry_run: bool = False,
+    pillars: bool = True,
+    spokes: bool = True,
+    conditions: bool = True,
+    states: bool = True,
+    explainers: bool = True,
+) -> dict:
+    counts = {"pillars": 0, "spokes": 0, "conditions": 0, "states": 0, "explainers": 0, "errors": 0}
+
+    if pillars:
+        for slug in PILLARS:
+            try:
+                generate_pillar_page(slug, dry_run=dry_run)
+                counts["pillars"] += 1
+            except Exception as exc:
+                logger.error("pillar %s: %s", slug, exc)
+                counts["errors"] += 1
+
+    if spokes:
+        for slug in VA_CLAIMS_SPOKES:
+            try:
+                generate_spoke_page("va-claims", slug, dry_run=dry_run)
+                counts["spokes"] += 1
+            except Exception as exc:
+                logger.error("spoke va-claims/%s: %s", slug, exc)
+                counts["errors"] += 1
+        for slug in RETIREMENT_SPOKES:
+            try:
+                generate_spoke_page("military-retirement", slug, dry_run=dry_run)
+                counts["spokes"] += 1
+            except Exception as exc:
+                logger.error("spoke military-retirement/%s: %s", slug, exc)
+                counts["errors"] += 1
+
+    if conditions:
+        for slug in CONDITIONS:
+            try:
+                generate_condition_page(slug, dry_run=dry_run)
+                counts["conditions"] += 1
+            except Exception as exc:
+                logger.error("condition %s: %s", slug, exc)
+                counts["errors"] += 1
+
+    if states:
+        for slug in US_STATES:
+            try:
+                generate_state_page(slug, dry_run=dry_run)
+                counts["states"] += 1
+            except Exception as exc:
+                logger.error("state %s: %s", slug, exc)
+                counts["errors"] += 1
+
+    if explainers:
+        for slug in EXPLAINER_SLUGS:
+            try:
+                generate_explainer_page(slug, dry_run=dry_run)
+                counts["explainers"] += 1
+            except Exception as exc:
+                logger.error("explainer %s: %s", slug, exc)
+                counts["errors"] += 1
+
+    logger.info("generate_all_landing_pages: %s", counts)
+    return counts

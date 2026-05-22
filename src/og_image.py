@@ -1,361 +1,106 @@
-"""
-Per-briefing Open Graph card generator.
-
-Renders the 1200x630 PNG that X / LinkedIn / iMessage / Slack
-display when a briefing URL is shared. One unique card per briefing,
-with the headline, category, and date burned into the image so the
-preview tile stops being the same generic "Ban the Bots" tile for
-every link.
-
-Design = Concept 3 ("Modern Sans"):
-
-  +--------------------------------------------------------+
-  | navy  |                       (red 6px rule)           |
-  |       |                                                |
-  | BAN   |  DAILY BRIEFING · MAR 13, 2026                 |
-  | THE   |                                                |
-  | BOTS  |  [ AI REGULATION ]                             |
-  |       |                                                |
-  |       |  Headline goes here, in big                    |
-  |       |  modern Inter Display Bold,                    |
-  |       |  three or four lines max                       |
-  |       |                                                |
-  |       |                         banthebots.org         |
-  +--------------------------------------------------------+
-
-Pure-Python (Pillow). No headless browser, no native deps on Render.
-
-Usage:
-    from src.og_image import render_briefing_card
-    png_bytes = render_briefing_card(
-        title=post.title,
-        category=post.primary_sector or post.category_label,
-        published_date=post.published_date,
-    )
-    # write to BlogPost.og_image_bytes; serve via /og/briefing/<slug>.png
-"""
-
+"""OG image generation — 1200×630 PNG with navy/red palette."""
 from __future__ import annotations
-
 import io
 import logging
 import textwrap
-from datetime import date, datetime
-from functools import lru_cache
-from pathlib import Path
 from typing import Optional
-
-from PIL import Image, ImageDraw, ImageFont
-
 
 logger = logging.getLogger(__name__)
 
-
-# ── Layout constants ──────────────────────────────────────────────────
-WIDTH, HEIGHT = 1200, 630
-LEFT_PANEL_W = 450
-RIGHT_PANEL_X = LEFT_PANEL_W
-
-# ── Brand palette (matches caracasresearch.com) ───────────────────────
-NAVY = (0, 31, 68)            # left panel + headline ink
-NAVY_DEEP = (0, 19, 44)       # top of vertical gradient
-RED = (204, 0, 0)             # accent — chip, rule, "RESEARCH" wordmark
-WHITE = (255, 255, 255)
-INK = (15, 23, 42)            # near-black for headline
-GRAY_500 = (100, 116, 139)    # eyebrow + footer
-GRAY_200 = (226, 232, 240)    # subtle dividers
-NAVY_MUTED = (160, 180, 210)  # left-panel secondary text
+_W, _H = 1200, 630
+_NAVY = (0, 43, 94)
+_RED = (200, 16, 46)
+_WHITE = (255, 255, 255)
+_LIGHT = (230, 235, 242)
 
 
-# ── Font loading ──────────────────────────────────────────────────────
-_FONT_DIR = Path(__file__).resolve().parent.parent / "static" / "fonts"
-_BUNDLED_FONTS = {
-    "inter_bold": _FONT_DIR / "Inter-Bold.ttf",
-    "inter_semibold": _FONT_DIR / "Inter-SemiBold.ttf",
-    "inter_regular": _FONT_DIR / "Inter-Regular.ttf",
-    "inter_display_bold": _FONT_DIR / "InterDisplay-Bold.ttf",
-}
+def _draw(title: str, subtitle: str = "") -> bytes:
+    from PIL import Image, ImageDraw, ImageFont
 
-# System fallbacks — we only hit these if the bundled ttf isn't
-# present (e.g. someone deleted static/fonts/ or a slimmed-down deploy).
-_SYSTEM_FALLBACKS = {
-    "bold": [
-        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    ],
-    "regular": [
-        "/System/Library/Fonts/Supplemental/Arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ],
-}
-
-
-@lru_cache(maxsize=64)
-def _font(weight: str, size: int) -> ImageFont.ImageFont:
-    """weight ∈ {inter_bold, inter_semibold, inter_regular, inter_display_bold}"""
-    bundled = _BUNDLED_FONTS.get(weight)
-    if bundled and bundled.exists():
-        return ImageFont.truetype(str(bundled), size=size)
-    system_chain = _SYSTEM_FALLBACKS["bold"] if "bold" in weight else _SYSTEM_FALLBACKS["regular"]
-    for path in system_chain:
-        if Path(path).exists():
-            return ImageFont.truetype(path, size=size)
-    return ImageFont.load_default()
-
-
-# ── Drawing helpers ───────────────────────────────────────────────────
-
-def _vertical_gradient(width: int, height: int, top: tuple, bottom: tuple) -> Image.Image:
-    """Cheap top→bottom gradient by row-fill (avoids a per-pixel loop)."""
-    img = Image.new("RGB", (width, height), top)
-    draw = ImageDraw.Draw(img)
-    for y in range(height):
-        ratio = y / max(1, height - 1)
-        r = int(top[0] + (bottom[0] - top[0]) * ratio)
-        g = int(top[1] + (bottom[1] - top[1]) * ratio)
-        b = int(top[2] + (bottom[2] - top[2]) * ratio)
-        draw.line([(0, y), (width, y)], fill=(r, g, b))
-    return img
-
-
-def _measure(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[int, int]:
-    """Return (width, height) of `text` using the given font."""
-    bbox = draw.textbbox((0, 0), text, font=font)
-    return bbox[2] - bbox[0], bbox[3] - bbox[1]
-
-
-def _wrap_to_width(
-    draw: ImageDraw.ImageDraw,
-    text: str,
-    font: ImageFont.ImageFont,
-    max_width: int,
-) -> list[str]:
-    """Greedy word-wrap so each line fits inside `max_width` pixels."""
-    words = (text or "").split()
-    if not words:
-        return [""]
-    lines: list[str] = []
-    current = words[0]
-    for word in words[1:]:
-        candidate = f"{current} {word}"
-        if _measure(draw, candidate, font)[0] <= max_width:
-            current = candidate
-        else:
-            lines.append(current)
-            current = word
-    lines.append(current)
-    return lines
-
-
-def _fit_headline(
-    draw: ImageDraw.ImageDraw,
-    text: str,
-    *,
-    max_width: int,
-    max_lines: int,
-    initial_size: int,
-    min_size: int,
-) -> tuple[ImageFont.ImageFont, list[str], int]:
-    """Auto-shrink the font until the headline fits in `max_lines` lines.
-
-    Returns (font, wrapped_lines, font_size_used). If even at min_size the
-    headline still overflows, the last line gets truncated with an
-    ellipsis — we always return exactly <= max_lines lines.
-    """
-    size = initial_size
-    while size >= min_size:
-        font = _font("inter_display_bold", size)
-        lines = _wrap_to_width(draw, text, font, max_width)
-        if len(lines) <= max_lines:
-            return font, lines, size
-        size -= 4
-
-    # Last resort: take the first max_lines-1 wrapped lines + truncated tail.
-    font = _font("inter_display_bold", min_size)
-    lines = _wrap_to_width(draw, text, font, max_width)
-    head = lines[: max_lines - 1]
-    tail = " ".join(lines[max_lines - 1:])
-    while tail and _measure(draw, tail + "…", font)[0] > max_width:
-        tail = tail.rsplit(" ", 1)[0] if " " in tail else tail[:-1]
-    head.append((tail + "…") if tail else "…")
-    return font, head, min_size
-
-
-def _rounded_chip(
-    draw: ImageDraw.ImageDraw,
-    *,
-    text: str,
-    x: int,
-    y: int,
-    pad_x: int = 18,
-    pad_y: int = 9,
-    radius: int = 6,
-    fill: tuple = RED,
-    text_color: tuple = WHITE,
-    font: Optional[ImageFont.ImageFont] = None,
-) -> tuple[int, int]:
-    """Draw a small filled chip (red category pill) and return its (w, h)."""
-    if font is None:
-        font = _font("inter_bold", 22)
-    tw, th = _measure(draw, text, font)
-    w = tw + pad_x * 2
-    h = th + pad_y * 2
-    draw.rounded_rectangle([(x, y), (x + w, y + h)], radius=radius, fill=fill)
-    draw.text((x + pad_x, y + pad_y - 2), text, font=font, fill=text_color)
-    return w, h
-
-
-# ── Display formatting ────────────────────────────────────────────────
-
-def _format_category(category: Optional[str]) -> str:
-    if not category:
-        return "BRIEFING"
-    cleaned = category.replace("_", " ").replace("-", " ").strip()
-    # Map common internal slugs to nicer display names.
-    aliases = {
-        "JOBS_LABOR": "LABOR & JOBS",
-        "REGULATION_POLICY": "AI REGULATION",
-        "ENVIRONMENT_ENERGY": "ENERGY & WATER",
-        "CONTENT_QUALITY": "CONTENT QUALITY",
-        "AI_INCIDENTS": "AI INCIDENTS",
-        "RESPONSIBLE_AI": "RESPONSIBLE AI",
-        "BACKLASH_PROTEST": "AI BACKLASH",
-    }
-    upper = cleaned.upper()
-    return aliases.get(upper, upper)[:24]
-
-
-def _format_date(d: date | datetime | None) -> str:
-    if d is None:
-        d = date.today()
-    if isinstance(d, datetime):
-        d = d.date()
-    return d.strftime("%b %d, %Y").upper().replace(" 0", " ")
-
-
-# ── Public API ────────────────────────────────────────────────────────
-
-def render_briefing_card(
-    *,
-    title: str,
-    category: Optional[str] = None,
-    published_date: date | datetime | None = None,
-) -> bytes:
-    """Render a per-briefing OG card and return PNG bytes.
-
-    Designed to be called once at blog-creation time and the bytes
-    persisted on `BlogPost.og_image_bytes` for the lifetime of the post.
-    """
-    img = Image.new("RGB", (WIDTH, HEIGHT), WHITE)
-
-    # ── LEFT NAVY PANEL ───────────────────────────────────────────────
-    left_panel = _vertical_gradient(LEFT_PANEL_W, HEIGHT, NAVY_DEEP, NAVY)
-    img.paste(left_panel, (0, 0))
-
+    img = Image.new("RGB", (_W, _H), _NAVY)
     draw = ImageDraw.Draw(img)
 
-    # Thin red accent at the very top of the left panel.
-    draw.rectangle([(0, 0), (LEFT_PANEL_W, 8)], fill=RED)
+    # Red accent stripe at top
+    draw.rectangle([0, 0, _W, 8], fill=_RED)
 
-    # Wordmark
-    wm_x = 60
-    wm_y = 90
-    wm_font = _font("inter_bold", 44)
-    draw.text((wm_x, wm_y), "BAN THE", font=wm_font, fill=WHITE)
-    _, wm_h = _measure(draw, "BAN THE", wm_font)
-    draw.text((wm_x, wm_y + wm_h + 2), "BOTS", font=wm_font, fill=RED)
+    # Branding row
+    brand_y = 48
+    try:
+        font_brand = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
+    except Exception:
+        font_brand = ImageFont.load_default()
+    draw.text((72, brand_y), "VA Claims Workspace", font=font_brand, fill=_WHITE)
 
-    # Tagline under the wordmark
-    tag_font = _font("inter_regular", 18)
-    draw.text(
-        (wm_x, wm_y + (wm_h + 2) * 2 + 14),
-        "AI risk · daily briefings",
-        font=tag_font,
-        fill=NAVY_MUTED,
-    )
+    # Title — word-wrap at ~38 chars per line, up to 3 lines
+    try:
+        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 64)
+    except Exception:
+        font_title = ImageFont.load_default()
 
-    # ── RIGHT WHITE PANEL (no stat block on left) ────────────────────
-    # Red rule across the top of the white area.
-    draw.rectangle([(RIGHT_PANEL_X, 0), (WIDTH, 6)], fill=RED)
+    lines = textwrap.wrap(title, width=30)[:3]
+    ty = 160
+    for line in lines:
+        draw.text((72, ty), line, font=font_title, fill=_WHITE)
+        ty += 80
 
-    inner_x = RIGHT_PANEL_X + 60
-    inner_right = WIDTH - 60
-    inner_w = inner_right - inner_x
+    # Subtitle
+    if subtitle:
+        try:
+            font_sub = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 32)
+        except Exception:
+            font_sub = ImageFont.load_default()
+        draw.text((72, ty + 20), subtitle[:80], font=font_sub, fill=_LIGHT)
 
-    # Eyebrow: "DAILY BRIEFING · <DATE>"
-    eyebrow_font = _font("inter_bold", 18)
-    eyebrow_text = f"DAILY BRIEFING  ·  {_format_date(published_date)}"
-    draw.text((inner_x, 70), eyebrow_text, font=eyebrow_font, fill=GRAY_500)
+    # Bottom bar
+    draw.rectangle([0, _H - 56, _W, _H], fill=_RED)
+    try:
+        font_footer = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
+    except Exception:
+        font_footer = ImageFont.load_default()
+    draw.text((72, _H - 40), "vaclaimsworkspace.com", font=font_footer, fill=_WHITE)
 
-    # Category chip (red pill)
-    chip_text = _format_category(category)
-    chip_font = _font("inter_bold", 20)
-    _rounded_chip(
-        draw,
-        text=chip_text,
-        x=inner_x,
-        y=110,
-        font=chip_font,
-        fill=RED,
-        text_color=WHITE,
-        radius=4,
-    )
-
-    # Headline — auto-fit so it never spills past 4 lines
-    headline = (title or "").strip()
-    headline_font, lines, _ = _fit_headline(
-        draw,
-        headline,
-        max_width=inner_w,
-        max_lines=4,
-        initial_size=64,
-        min_size=40,
-    )
-    line_height = headline_font.size + 12
-    headline_top = 200
-    for i, line in enumerate(lines):
-        draw.text(
-            (inner_x, headline_top + i * line_height),
-            line,
-            font=headline_font,
-            fill=INK,
-        )
-
-    # Footer rule + URL
-    footer_y = HEIGHT - 70
-    draw.line(
-        [(inner_x, footer_y - 18), (inner_right, footer_y - 18)],
-        fill=GRAY_200,
-        width=1,
-    )
-    footer_font = _font("inter_semibold", 22)
-    url_text = "banthebots.org"
-    url_w, _ = _measure(draw, url_text, footer_font)
-    draw.text(
-        (inner_right - url_w, footer_y),
-        url_text,
-        font=footer_font,
-        fill=NAVY,
-    )
-    # Left side of footer: small tagline
-    note_font = _font("inter_regular", 18)
-    draw.text(
-        (inner_x, footer_y + 2),
-        "Independent · AI risk intelligence",
-        font=note_font,
-        fill=GRAY_500,
-    )
-
-    # ── encode ────────────────────────────────────────────────────────
     buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
+    img.save(buf, "PNG", optimize=True)
     return buf.getvalue()
 
 
-def render_default_card() -> bytes:
-    """Render the generic homepage / share-fallback card."""
-    return render_briefing_card(
-        title="AI risk intelligence — daily briefings for business owners navigating the AI backlash",
-        category="DAILY BRIEFING",
-        published_date=date.today(),
-    )
+def generate_og_image(title: str, subtitle: str = "") -> Optional[bytes]:
+    try:
+        return _draw(title, subtitle)
+    except ImportError:
+        logger.warning("og_image: Pillow not installed; skipping")
+        return None
+    except Exception as exc:
+        logger.error("og_image: error generating %r: %s", title[:60], exc)
+        return None
+
+
+def backfill_og_images(force: bool = False, limit: int = 50) -> dict:
+    from sqlalchemy.orm import Session
+    from src.models import BlogPost, engine
+
+    generated = 0
+    skipped = 0
+    errors = 0
+
+    with Session(engine) as session:
+        q = session.query(BlogPost)
+        if not force:
+            q = q.filter(
+                (BlogPost.og_image_bytes == None) | (BlogPost.og_image_bytes == b"")
+            )
+        posts = q.order_by(BlogPost.published_date.desc()).limit(limit).all()
+
+        for post in posts:
+            data = generate_og_image(post.title, post.primary_sector or "")
+            if data is None:
+                errors += 1
+                continue
+            post.og_image_bytes = data
+            session.add(post)
+            generated += 1
+
+        session.commit()
+
+    logger.info("backfill_og_images: generated=%d skipped=%d errors=%d", generated, skipped, errors)
+    return {"generated": generated, "skipped": skipped, "errors": errors}

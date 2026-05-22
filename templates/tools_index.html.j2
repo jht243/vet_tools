@@ -1,77 +1,41 @@
 {% extends "_base.html.j2" %}
-
-{% block head_extra %}
-<style>
-  .tools-index-grid .index-card { border-top: 4px solid #8aa0bc; }
-  .tools-index-grid .index-card[data-category="Travel"] { border-top-color: #0d9488; }
-  .tools-index-grid .index-card[data-category="Travel service"] { border-top-color: #cc0000; }
-  .tools-index-grid .index-card[data-category="Compliance"] { border-top-color: #1d4ed8; }
-  .tools-index-grid .index-card[data-category="Trade"] { border-top-color: #7c3aed; }
-  .tools-index-grid .index-card[data-category="Markets"] { border-top-color: #0f766e; }
-  .tools-index-grid .index-card[data-category="Modelling"] { border-top-color: #9a3412; }
-  .tools-index-grid .index-card[data-category="Real estate"] { border-top-color: #475569; }
-  .tools-index-grid .meta {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    border-radius: 4px;
-    padding: 5px 9px;
-    background: #eef2ff;
-    color: #1e40af;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1.3px;
-    margin-bottom: 12px;
-  }
-  .tools-index-grid .index-card[data-category="Travel"] .meta { background: #ccfbf1; color: #0f766e; }
-  .tools-index-grid .index-card[data-category="Travel service"] .meta { background: #fee2e2; color: #991b1b; }
-  .tools-index-grid .index-card[data-category="Compliance"] .meta { background: #dbeafe; color: #1d4ed8; }
-  .tools-index-grid .index-card[data-category="Trade"] .meta { background: #ede9fe; color: #6d28d9; }
-  .tools-index-grid .index-card[data-category="Markets"] .meta { background: #dcfce7; color: #166534; }
-  .tools-index-grid .index-card[data-category="Modelling"] .meta { background: #ffedd5; color: #9a3412; }
-  .tools-index-grid .index-card[data-category="Real estate"] .meta { background: #e2e8f0; color: #334155; }
-</style>
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ seo.title | e }}">
+<meta property="og:description" content="{{ seo.description | e }}">
+<meta property="og:url" content="{{ seo.canonical }}">
+<meta property="og:type" content="website">
 {% endblock %}
 
 {% block content %}
-<section class="container">
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>Free VA &amp; Military Benefits Tools</h1>
+    <p>Calculators and guides to help you understand your VA disability rating, military retirement pay, and BAH — no signup required.</p>
+  </div>
+</section>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a href="/">Home</a><span>/</span>
-    <span>Tools</span>
-  </nav>
+<main class="container" style="max-width:1000px;margin:2rem auto;padding:0 1.25rem;">
 
-  <header style="margin: 16px 0 24px;">
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      Tools & services · Built on our live data
-    </div>
-    <h1 style="font-family:var(--font-serif); font-size:36px; color:var(--sr-blue-dark); margin:8px 0 12px;">
-      Venezuela Investor Tools & Services
-    </h1>
-    <p style="font-family:var(--font-serif); font-style:italic; color:var(--sr-gray-text); font-size:18px;">
-      A growing toolkit for anyone evaluating Venezuelan exposure: live OFAC
-      screening, the official BCV exchange rate, sector ROI modelling, visa
-      filing help, travel context, and on-the-ground safety data for Caracas.
-    </p>
-  </header>
-
-  <div class="index-grid tools-index-grid" id="tools-grid">
-    {% for t in tools %}
-    <article class="index-card" data-tool-card data-category="{{ t.category }}">
-      <a class="card-link" href="{{ t.url }}" aria-label="{{ t.name }}"></a>
-      <a class="title-link" href="{{ t.url }}">{{ t.name }}</a>
-      <div class="meta">{{ t.category }}</div>
-      <p class="summary">{{ t.summary }}</p>
-    </article>
+  <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
+    {% for tool in tools %}
+    <a href="/tools/{{ tool.slug }}/" class="cluster-card" style="text-decoration:none;color:inherit;">
+      <span class="tool-icon">{{ tool.icon }}</span>
+      <h2 style="font-size:1rem;margin-bottom:0.3rem;">{{ tool.title }}</h2>
+      <p>{{ tool.description }}</p>
+      <span class="status-pill {% if tool.live %}status-pill--live{% endif %}">
+        {{ 'Live' if tool.live else 'Coming soon' }}
+      </span>
+    </a>
     {% endfor %}
   </div>
 
-  {% from "_recent_briefings.html.j2" import recent_briefings_rail %}
-  {{ recent_briefings_rail(
-       recent_briefings,
-       heading="Latest analysis",
-       intro="Recent investor briefings on Venezuelan markets, sanctions, and policy moves.",
-  ) }}
+  <div class="page-disclaimer" style="margin-top:2.5rem;">
+    <strong>Note:</strong> These tools provide estimates only. Actual VA ratings, retirement pay, and
+    allowances are determined by the VA and DoD. Always confirm results with official sources.
+  </div>
 
-</section>
+</main>
 {% endblock %}

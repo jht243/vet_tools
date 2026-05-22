@@ -1,122 +1,95 @@
 {% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ seo.title | e }}">
+<meta property="og:description" content="{{ seo.description | e }}">
+<meta property="og:url" content="{{ seo.canonical }}">
+<meta property="og:type" content="website">
+{% endblock %}
 
 {% block content %}
-<section class="container">
-
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a href="/">Home</a><span>/</span>
-    <span>{{ tool.title }}</span>
-  </nav>
-
-  <header style="margin: 24px 0 32px; max-width: 680px;">
-    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:#cc0000; font-weight:700;">
-      Ban the Bots · Coming soon
-    </div>
-    <h1 style="font-family:var(--font-serif); font-size:38px; color:var(--sr-blue-dark); margin:10px 0 14px; line-height:1.15;">
-      {{ tool.title }}
-    </h1>
-    <p style="font-family:var(--font-serif); font-style:italic; font-size:20px; color:var(--sr-gray-text); margin-bottom:20px; line-height:1.4;">
-      {{ tool.subtitle }}
-    </p>
-    <p style="font-size:16px; color:var(--sr-dark-text); line-height:1.65;">
-      {{ tool.description }}
-    </p>
-  </header>
-
-  {# Email capture #}
-  <div style="background:var(--sr-gray-bg); border:1px solid var(--sr-gray-light); border-left:4px solid var(--sr-blue); border-radius:4px; padding:28px 32px; max-width:520px; margin-bottom:48px;">
-    <h2 style="font-family:var(--font-serif); font-size:20px; color:var(--sr-blue-dark); margin:0 0 8px;">
-      Get notified when this launches
-    </h2>
-    <p style="font-size:14px; color:var(--sr-gray-text); margin:0 0 18px;">
-      We'll send one email when it's ready. No spam.
-    </p>
-    <form id="tool-waitlist-form" style="display:flex; flex-wrap:wrap; gap:10px;">
-      <input
-        type="email"
-        id="waitlist-email"
-        name="email"
-        placeholder="your@email.com"
-        required
-        autocomplete="email"
-        style="flex:1 1 240px; min-width:0; padding:12px 14px; border:2px solid var(--sr-blue); border-radius:3px; font-family:var(--font-sans); font-size:15px;"
-      >
-      <button
-        type="submit"
-        style="padding:12px 22px; background:var(--sr-blue); color:var(--white); border:0; border-radius:3px; font-family:var(--font-sans); font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;"
-      >
-        Notify me
-      </button>
-    </form>
-    <div id="waitlist-status" role="status" aria-live="polite" style="min-height:20px; margin-top:10px; font-size:13px; color:var(--sr-gray-text);"></div>
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>{{ tool.title }}</h1>
+    <p>{{ tool.description }}</p>
   </div>
-
-  {# Related resources #}
-  <div style="border-top:1px solid var(--sr-gray-light); padding-top:28px; margin-bottom:48px;">
-    <h3 style="font-family:var(--font-serif); font-size:18px; color:var(--sr-blue-dark); margin-bottom:12px;">
-      While you wait, explore our free resources
-    </h3>
-    <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;">
-      <li>
-        <a href="/ai-backlash/" style="font-weight:600;">AI Backlash Explained</a>
-        <span style="color:var(--sr-gray-text); font-size:14px;"> — what's happening with AI and why ordinary people are pushing back</span>
-      </li>
-      <li>
-        <a href="/ai-layoffs/" style="font-weight:600;">AI Layoffs Tracker</a>
-        <span style="color:var(--sr-gray-text); font-size:14px;"> — companies that have cut jobs because of AI, searchable by industry</span>
-      </li>
-      <li>
-        <a href="/ai-incidents/" style="font-weight:600;">AI Incident Tracker</a>
-        <span style="color:var(--sr-gray-text); font-size:14px;"> — real harms caused by AI systems, updated daily</span>
-      </li>
-      <li>
-        <a href="/briefing" style="font-weight:600;">Daily Briefings</a>
-        <span style="color:var(--sr-gray-text); font-size:14px;"> — AI news that affects real people, in plain English</span>
-      </li>
-    </ul>
-  </div>
-
 </section>
 
+<main class="container" style="max-width:680px;margin:2rem auto;padding:0 1.25rem;text-align:center;">
+
+  <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:2.5rem 2rem;margin-bottom:2rem;">
+    <span style="font-size:3rem;display:block;margin-bottom:1rem;">{{ tool.icon }}</span>
+    <h2 style="font-size:1.2rem;margin-bottom:0.5rem;">{{ tool.title }} — Coming Soon</h2>
+    <p style="color:var(--sr-gray-text);margin-bottom:1.5rem;line-height:1.6;">
+      We're building this tool now. Enter your email and we'll notify you the moment it goes live — free, no spam.
+    </p>
+
+    <form action="/api/email-capture" method="POST" id="waitlist-form" style="max-width:380px;margin:0 auto;">
+      <input type="hidden" name="tool_slug" value="{{ tool.slug }}">
+      <input type="hidden" name="source" value="tool_waitlist">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">
+        <input type="email" name="email" placeholder="your@email.com" required
+               style="flex:1;min-width:200px;padding:0.6rem 0.9rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.9rem;">
+        <button type="submit" class="btn btn--primary">Notify me</button>
+      </div>
+      <!-- Honeypot -->
+      <input type="text" name="website" style="display:none !important;" tabindex="-1" autocomplete="off">
+    </form>
+
+    <p id="waitlist-success" style="display:none;color:#155724;font-weight:600;margin-top:1rem;">
+      You're on the list! We'll email you when {{ tool.title }} is live.
+    </p>
+  </div>
+
+  <!-- Why this tool matters -->
+  {% if tool.why_matters %}
+  <div style="text-align:left;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.5rem;">Why this tool matters</h3>
+    <p style="color:var(--sr-gray-text);line-height:1.6;">{{ tool.why_matters }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Related tools -->
+  {% if related_tools %}
+  <div style="text-align:left;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Other tools</h3>
+    <ul style="list-style:none;padding:0;margin:0;">
+      {% for rt in related_tools %}
+      <li style="margin-bottom:0.4rem;">
+        <a href="/tools/{{ rt.slug }}/" style="color:var(--sr-blue);">{{ rt.title }}</a>
+        <span class="status-pill" style="margin-left:0.4rem;">{{ 'Live' if rt.live else 'Soon' }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <p style="font-size:0.875rem;"><a href="/tools/">&larr; All tools</a></p>
+
+</main>
+
 <script>
-(function () {
-  var form = document.getElementById('tool-waitlist-form');
-  var statusEl = document.getElementById('waitlist-status');
-  var slug = {{ tool.slug | tojson }};
-  if (!form) return;
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var email = (document.getElementById('waitlist-email') || {}).value || '';
-    if (!email) return;
-    var btn = form.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-    statusEl.textContent = '';
-    statusEl.style.color = '';
-
-    fetch('/api/subscribe-tool/' + slug, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    })
-    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-    .then(function (result) {
-      if (result.ok && result.data.ok) {
-        statusEl.textContent = "You're on the list. We'll email you when it launches.";
-        statusEl.style.color = '#166534';
-        form.reset();
-      } else {
-        throw new Error(result.data.error || 'Something went wrong.');
-      }
-    })
-    .catch(function (err) {
-      statusEl.textContent = err.message || 'Could not add you — please try again.';
-      statusEl.style.color = '#b42318';
-    })
-    .finally(function () {
-      if (btn) { btn.disabled = false; btn.textContent = 'Notify me'; }
+  (function () {
+    var form = document.getElementById('waitlist-form');
+    var success = document.getElementById('waitlist-success');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var honeypot = form.querySelector('[name="website"]');
+      if (honeypot && honeypot.value) return;
+      var data = new FormData(form);
+      fetch(form.action, { method: 'POST', body: data })
+        .then(function () {
+          form.style.display = 'none';
+          if (success) success.style.display = 'block';
+        })
+        .catch(function () {
+          form.style.display = 'none';
+          if (success) success.style.display = 'block';
+        });
     });
-  });
-})();
+  })();
 </script>
 {% endblock %}

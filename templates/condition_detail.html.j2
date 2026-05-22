@@ -14,47 +14,64 @@
 {% block content %}
 <section class="hero" style="padding:2.5rem 0 2rem;">
   <div class="container">
-    <h1>{{ page.h1 or page.title }}</h1>
-    {% if page.subtitle %}<p style="opacity:0.9;max-width:600px;margin:0.5rem auto 0;">{{ page.subtitle }}</p>{% endif %}
+    <h1>VA Disability: {{ condition.display_name }}</h1>
+    {% if condition.short_description %}
+    <p style="opacity:0.9;max-width:600px;margin:0.5rem auto 0;">{{ condition.short_description }}</p>
+    {% endif %}
   </div>
 </section>
 
 <main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
   <div class="layout-with-sidebar">
 
-    <!-- Main content -->
     <div>
       <!-- Breadcrumb -->
-      {% if breadcrumbs %}
       <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.25rem;color:var(--sr-gray-text);">
-        {% for crumb in breadcrumbs %}
-        {% if not loop.last %}
-        <a href="{{ crumb.url }}">{{ crumb.label }}</a> &rsaquo;
-        {% else %}
-        <span>{{ crumb.label }}</span>
-        {% endif %}
-        {% endfor %}
+        <a href="/">Home</a> &rsaquo;
+        <a href="/va-disability/">VA Disability</a> &rsaquo;
+        <span>{{ condition.display_name }}</span>
       </nav>
+
+      <!-- Quick stats -->
+      {% if condition.typical_rating_pct or condition.cfr_citation %}
+      <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;">
+        {% if condition.typical_rating_pct %}
+        <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem 1.25rem;flex:1;min-width:140px;">
+          <span style="display:block;font-size:1.6rem;font-weight:700;color:var(--sr-blue);font-family:var(--font-serif);">{{ condition.typical_rating_pct }}%</span>
+          <span style="font-size:0.8rem;color:var(--sr-gray-text);">Typical VA rating</span>
+        </div>
+        {% endif %}
+        {% if condition.cfr_citation %}
+        <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem 1.25rem;flex:2;min-width:200px;">
+          <span style="display:block;font-size:0.9rem;font-weight:600;">{{ condition.cfr_citation }}</span>
+          <span style="font-size:0.8rem;color:var(--sr-gray-text);">CFR Citation (Diagnostic Code)</span>
+        </div>
+        {% endif %}
+      </div>
       {% endif %}
 
       <!-- Key takeaways -->
-      {% if page.key_takeaways %}
+      {% if key_takeaways %}
       <aside style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-left:4px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.75rem;">
         <h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-gray-text);margin-bottom:0.75rem;">Key Takeaways</h2>
         <ul style="margin:0;padding-left:1.25rem;">
-          {% for t in page.key_takeaways %}
+          {% for t in key_takeaways %}
           <li style="margin-bottom:0.35rem;font-size:0.9rem;line-height:1.5;">{{ t }}</li>
           {% endfor %}
         </ul>
       </aside>
       {% endif %}
 
-      <!-- Body -->
+      <!-- Body from LandingPage or condition.long_description -->
+      {% if body_html %}
+      <div class="article-body" style="line-height:1.75;">{{ body_html | safe }}</div>
+      {% elif condition.long_description %}
       <div class="article-body" style="line-height:1.75;">
-        {{ page.body_html | safe }}
+        <p>{{ condition.long_description }}</p>
       </div>
+      {% endif %}
 
-      <!-- FAQ accordion -->
+      <!-- FAQ -->
       {% if faq %}
       <section style="margin-top:2.5rem;" aria-labelledby="faq-heading">
         <h2 id="faq-heading">Frequently Asked Questions</h2>
@@ -65,64 +82,40 @@
               {{ item.question }}
               <span style="font-size:1.2rem;color:var(--sr-blue);margin-left:0.5rem;flex-shrink:0;">+</span>
             </summary>
-            <div style="padding:0.75rem 0 0.25rem;font-size:0.9rem;line-height:1.6;color:var(--sr-dark-text);">
-              {{ item.answer }}
-            </div>
+            <div style="padding:0.75rem 0 0.25rem;font-size:0.9rem;line-height:1.6;">{{ item.answer }}</div>
           </details>
           {% endfor %}
         </div>
       </section>
       {% endif %}
 
-      <!-- Spoke links (for pillar pages) -->
-      {% if spokes %}
+      <!-- Related conditions -->
+      {% if related_conditions %}
       <section style="margin-top:2.5rem;">
-        <h2>In This Guide</h2>
-        <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
-          {% for s in spokes %}
-          <a href="{{ s.url }}" class="cluster-card" style="text-decoration:none;color:inherit;">
-            <h3 style="font-size:0.95rem;color:var(--sr-blue);">{{ s.label }}</h3>
-            {% if s.description %}<p>{{ s.description }}</p>{% endif %}
-          </a>
+        <h2 style="font-size:1rem;">Related Conditions</h2>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:0.5rem;">
+          {% for rc in related_conditions %}
+          <li><a href="/va-disability/{{ rc.slug }}/" class="tag" style="display:inline-block;padding:0.3rem 0.75rem;background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:20px;font-size:0.82rem;color:var(--sr-blue);text-decoration:none;">{{ rc.display_name }}</a></li>
           {% endfor %}
-        </div>
+        </ul>
       </section>
       {% endif %}
 
-      <!-- Last updated -->
-      {% if page.updated_at %}
-      <p style="font-size:0.78rem;color:var(--sr-gray-text);margin-top:2rem;">
-        Last updated: {{ page.updated_at.strftime('%B %d, %Y') }}
-      </p>
-      {% endif %}
-
       <!-- Disclaimer -->
-      <div class="page-disclaimer">
-        <strong>Disclaimer:</strong> VA Claims Workspace provides general information only and is not a
-        law firm. Nothing on this site constitutes legal, financial, or benefits advice. Always
-        verify information with the VA or an accredited claims agent.
+      <div class="page-disclaimer" style="margin-top:2rem;">
+        <strong>Disclaimer:</strong> Rating percentages shown are illustrative. Actual VA ratings depend on your specific medical evidence, nexus letter, and C&P exam results. Consult an accredited VSO or claims agent for guidance on your claim.
       </div>
+
+      <p style="margin-top:1.5rem;font-size:0.875rem;"><a href="/va-disability/">&larr; All VA Disability conditions</a></p>
     </div>
 
     <!-- Sidebar -->
     <aside class="layout-sidebar">
-      {% if toc %}
-      <div class="toc-aside">
-        <h3>On This Page</h3>
-        <ol>
-          {% for item in toc %}
-          <li><a href="#{{ item.anchor }}">{{ item.label }}</a></li>
-          {% endfor %}
-        </ol>
-      </div>
-      {% endif %}
-
       {{ cluster_nav(cluster_ctx) }}
 
-      <!-- Email capture widget -->
       <div style="background:var(--sr-blue);color:var(--white);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-top:1.5rem;">
-        <h3 style="color:var(--white);font-size:0.95rem;margin-bottom:0.4rem;">Get free daily updates</h3>
-        <p style="font-size:0.82rem;opacity:0.85;margin-bottom:0.75rem;line-height:1.5;">VA policy changes and benefit rate updates — delivered to your inbox.</p>
+        <h3 style="color:var(--white);font-size:0.95rem;margin-bottom:0.4rem;">Get free updates</h3>
+        <p style="font-size:0.82rem;opacity:0.85;margin-bottom:0.75rem;line-height:1.5;">Rate changes, new rulings, and claim tips — free.</p>
         <form action="/api/subscribe" method="POST" style="display:flex;flex-direction:column;gap:0.5rem;">
           <input type="email" name="email" placeholder="you@example.com" required
                  style="padding:0.5rem 0.75rem;border-radius:var(--radius);border:none;font-size:0.875rem;">

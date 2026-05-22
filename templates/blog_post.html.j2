@@ -1,119 +1,109 @@
 {% extends "_base.html.j2" %}
-{% from "_base.html.j2" import share_button %}
-{% from "_card_grid.html.j2" import card_grid_section %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ seo.title | e }}">
+<meta property="og:description" content="{{ seo.description | e }}">
+<meta property="og:url" content="{{ seo.canonical }}">
+<meta property="og:type" content="article">
+<meta property="og:image" content="{{ seo.og_image }}">
+<meta property="article:published_time" content="{{ seo.published_iso }}">
+{% if seo.modified_iso %}<meta property="article:modified_time" content="{{ seo.modified_iso }}">{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ seo.title | e }}">
+<meta name="twitter:description" content="{{ seo.description | e }}">
+<meta name="twitter:image" content="{{ seo.og_image }}">
+{% endblock %}
+{% block jsonld %}<script type="application/ld+json">{{ jsonld | tojson }}</script>{% endblock %}
 
 {% block content %}
-<article class="container">
+<main>
+  <article class="container" style="max-width:760px;margin:2rem auto;padding:0 1.25rem;">
 
-  <nav class="breadcrumbs" data-no-breadcrumb-share aria-label="Breadcrumb">
-    <a href="/">Home</a><span>/</span>
-    <a href="/briefing">Analysis</a><span>/</span>
-    <span>{{ post.title }}</span>
-  </nav>
+    <!-- Breadcrumb -->
+    <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.25rem;color:var(--sr-gray-text);">
+      <a href="/">Home</a> &rsaquo;
+      <a href="/briefing/">Briefings</a> &rsaquo;
+      <span>{{ post.title | truncate(50) }}</span>
+    </nav>
 
-  <header>
-    {% if post.primary_sector %}
-    <div class="article-eyebrow">{{ post.primary_sector|replace('_',' ')|title }}</div>
-    {% endif %}
-    <h1>{{ post.title }}</h1>
-    {% if post.subtitle %}<p class="subtitle">{{ post.subtitle }}</p>{% endif %}
-    <div class="meta">
-      <span><strong>Published</strong> {{ post.published_date.strftime('%B %d, %Y') }}</span>
-      {% if post.reading_minutes %}<span><strong>Read</strong> {{ post.reading_minutes }} min</span>{% endif %}
-      {% if post.word_count %}<span>{{ post.word_count }} words</span>{% endif %}
-      <span><strong>By</strong> Ban the Bots</span>
-      {% if post.canonical_source_url %}
-      <a class="source-pill" href="{{ post.canonical_source_url }}" rel="nofollow noopener" target="_blank"
-         title="Read the original article at {{ source_label|default('source') }}">
-        Via {{ source_label|default('source') }} ↗
-      </a>
+    <!-- Header -->
+    <header style="margin-bottom:1.5rem;">
+      <div class="post-list-meta" style="margin-bottom:0.6rem;">
+        <span class="post-list-date">{{ post.published_date.strftime('%B %d, %Y') }}</span>
+        {% if post.primary_sector %}
+        <span class="tag">{{ post.primary_sector | replace('_', ' ') | title }}</span>
+        {% endif %}
+      </div>
+      <h1 style="font-size:clamp(1.5rem,3.5vw,2.1rem);line-height:1.25;">{{ post.title }}</h1>
+      {% if post.summary %}
+      <p style="font-size:1.05rem;color:var(--sr-gray-text);margin-top:0.6rem;line-height:1.6;">{{ post.summary }}</p>
       {% endif %}
-      <span style="margin-left:auto;">{{ share_button(canonical_url, post.title) }}</span>
+    </header>
+
+    <!-- Share bar -->
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.75rem;align-items:center;">
+      <span style="font-size:0.8rem;color:var(--sr-gray-text);font-weight:600;">Share:</span>
+      <a class="btn btn--secondary" style="font-size:0.8rem;padding:0.3rem 0.8rem;"
+         href="https://twitter.com/intent/tweet?url={{ seo.canonical | urlencode }}&text={{ post.title | urlencode }}"
+         target="_blank" rel="noopener">Twitter/X</a>
+      <a class="btn btn--secondary" style="font-size:0.8rem;padding:0.3rem 0.8rem;"
+         href="https://www.facebook.com/sharer/sharer.php?u={{ seo.canonical | urlencode }}"
+         target="_blank" rel="noopener">Facebook</a>
+      <button class="btn btn--secondary share-btn--copy" style="font-size:0.8rem;padding:0.3rem 0.8rem;"
+              data-url="{{ seo.canonical }}">Copy link</button>
     </div>
-  </header>
 
-  {% if takeaways %}
-  <aside class="takeaways" aria-label="Key takeaways">
-    <h3>Key takeaways</h3>
-    <ul>
-      {% for t in takeaways %}<li>{{ t }}</li>{% endfor %}
-    </ul>
-  </aside>
-  {% endif %}
+    <!-- Key takeaways -->
+    {% if takeaways %}
+    <aside style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-left:4px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.75rem;">
+      <h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-gray-text);margin-bottom:0.75rem;">Key Takeaways</h2>
+      <ul style="margin:0;padding-left:1.25rem;">
+        {% for t in takeaways %}
+        <li style="margin-bottom:0.35rem;font-size:0.9rem;line-height:1.5;">
+          {{ t.answer if t is mapping else t }}
+        </li>
+        {% endfor %}
+      </ul>
+    </aside>
+    {% endif %}
 
-  <div class="body">
-    {{ post.body_html | link_people | safe }}
-  </div>
+    <!-- Body -->
+    <div class="article-body" style="line-height:1.75;font-size:1rem;">
+      {{ post.content | safe }}
+    </div>
 
-  {#
-    Primary source citation. Historical bug (fixed 2026-04): the source
-    URL was rendered as its own anchor text, which for Google News RSS
-    links produced a wall of ~400 opaque base64-looking characters
-    inside the citation box ("horrible UX" — 2026-04 design review).
-    We now render a short, human-readable publisher label (resolved
-    server-side in src/page_renderer.py::_source_display_name) as the
-    anchor text and keep the underlying URL as the href. The full URL
-    is still reachable with one click and still present in the page's
-    JSON-LD `citation` field for structured-data consumers.
-  #}
-  {% if post.canonical_source_url %}
-  <div class="source-citation">
-    <strong>Primary source:</strong>
-    <a href="{{ post.canonical_source_url }}" rel="nofollow noopener" target="_blank">{{ source_label|default('source') }}</a>
-    — referenced for fact-checking; this analysis is independent commentary by the
-    Ban the Bots editorial team.
-  </div>
-  {% endif %}
+    <!-- Source attribution -->
+    {% if post.source_url %}
+    <div class="source-attribution" style="margin-top:2rem;">
+      <strong>Source:</strong>
+      <a href="{{ post.source_url }}" target="_blank" rel="noopener nofollow">{{ post.source_name or post.source_url }}</a>
+    </div>
+    {% endif %}
 
-  <div style="display:flex; align-items:center; gap:14px; margin: 24px 0 8px; padding: 14px 0; border-top: 1px solid var(--sr-gray-light);">
-    <span style="font-size:13px; color: var(--sr-gray-text);">Found this useful?</span>
-    {{ share_button(canonical_url, post.title, label='Share analysis') }}
-  </div>
+    <!-- Related briefings -->
+    {% if related %}
+    <section style="margin-top:2.5rem;border-top:1px solid var(--sr-gray-light);padding-top:1.5rem;">
+      <h2 style="font-size:1.05rem;margin-bottom:1rem;">Related Briefings</h2>
+      <div class="card-grid">
+        {% for rp in related %}
+        <article class="briefing-card">
+          <div class="briefing-card-meta">
+            <span class="briefing-card-date">{{ rp.published_date.strftime('%b %d, %Y') }}</span>
+          </div>
+          <h3><a href="/briefing/{{ rp.slug }}/">{{ rp.title }}</a></h3>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
-  {% if faq_items %}
-  <section class="faq" aria-label="Frequently Asked Questions">
-    <h2>Frequently Asked Questions</h2>
-    {% for item in faq_items %}
-    <details>
-      <summary>{{ item.question }}</summary>
-      <p>{{ item.answer }}</p>
-    </details>
-    {% endfor %}
-  </section>
-  {% endif %}
+    <!-- Back nav -->
+    <p style="margin-top:2rem;font-size:0.875rem;">
+      <a href="/briefing/">&larr; All briefings</a>
+    </p>
 
-  {#
-    "More on this sector" — related briefings from the same primary
-    sector, filled with recency fallbacks when the sector is thin. This
-    block used to be a bullet list; it now uses the canonical 3-card
-    discovery grid so it matches every other "related pages" section on
-    the site (tool-page briefing rails, sanctions surname clusters,
-    etc.). See templates/_card_grid.html.j2 for the shared component.
-  #}
-  {% if related %}
-  {% set _related_cards = [] %}
-  {% for r in related %}
-    {% set _eyebrow = (r.primary_sector|replace('_',' ')|upper) if r.primary_sector else 'ANALYSIS' %}
-    {% set _meta_rows = [] %}
-    {% if r.published_date %}{% set _ = _meta_rows.append('<strong>' ~ r.published_date.strftime('%b %d, %Y') ~ '</strong>') %}{% endif %}
-    {% if r.reading_minutes %}{% set _ = _meta_rows.append(r.reading_minutes|string ~ ' min read') %}{% endif %}
-    {% set _ = _related_cards.append({
-        'href': '/briefing/' ~ r.slug,
-        'eyebrow': _eyebrow,
-        'title': r.title,
-        'tagline': r.summary or '',
-        'meta_rows': _meta_rows,
-        'cta': 'Read analysis'
-      }) %}
-  {% endfor %}
-  {{ card_grid_section(
-       heading='More on this topic',
-       cards=_related_cards,
-       aria_label='Related briefings',
-       footer_link={'href': '/briefing', 'label': 'Browse all daily briefings'},
-       footer_mode='always'
-  ) }}
-  {% endif %}
-
-</article>
+  </article>
+</main>
 {% endblock %}

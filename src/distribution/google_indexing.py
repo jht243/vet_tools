@@ -1,156 +1,75 @@
-"""
-Google Indexing API client.
-
-Mints an OAuth2 access token from the service-account JSON in the
-GOOGLE_INDEXING_SA_JSON env var and POSTs URL_UPDATED notifications to
-https://indexing.googleapis.com/v3/urlNotifications:publish.
-
-Quota: 200 URLs/day per GCP project (default). The runner passes a
-small batch each cron run; we never approach this limit.
-
-Token caching: a single GoogleIndexingClient instance is cached at
-module level; google-auth handles automatic token refresh internally
-when .token expires.
-"""
-
+"""Google Indexing API client."""
 from __future__ import annotations
-
 import json
 import logging
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Iterable
-
+from typing import Optional
 import httpx
-
 from src.config import settings
 
-
 logger = logging.getLogger(__name__)
-
-
-_SCOPES = ["https://www.googleapis.com/auth/indexing"]
-_ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
-
+_INDEXING_SCOPE = "https://www.googleapis.com/auth/indexing"
+_INDEXING_ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
 
 @dataclass
 class IndexingResult:
-    url: str
     success: bool
     status_code: int | None
-    response_snippet: str  # truncated to 500 chars for log storage
+    response_snippet: str
 
+def is_enabled() -> bool:
+    return bool(settings.google_indexing_sa_json or settings.google_indexing_sa_file)
+
+def _load_sa_credentials():
+    from google.oauth2 import service_account
+    raw = (settings.google_indexing_sa_json or "").strip()
+    if raw:
+        info = json.loads(raw)
+        return service_account.Credentials.from_service_account_info(info, scopes=[_INDEXING_SCOPE])
+    path = (settings.google_indexing_sa_file or "").strip()
+    if path:
+        return service_account.Credentials.from_service_account_file(path, scopes=[_INDEXING_SCOPE])
+    return None
 
 class GoogleIndexingClient:
-    """Thin wrapper around the Indexing API v3 publish endpoint."""
+    def __init__(self, credentials):
+        self._creds = credentials
 
-    def __init__(self, credentials_info: dict):
-        # Imported lazily so the module is importable on a host that
-        # hasn't installed google-auth yet (the cron only fails when it
-        # actually tries to use this).
-        from google.oauth2 import service_account
-        from google.auth.transport.requests import Request as GoogleAuthRequest
-
-        self._creds = service_account.Credentials.from_service_account_info(
-            credentials_info, scopes=_SCOPES
-        )
-        self._request = GoogleAuthRequest()
-
-    def _ensure_token(self) -> str:
+    def _get_token(self) -> str:
+        import google.auth.transport.requests
+        req = google.auth.transport.requests.Request()
         if not self._creds.valid:
-            self._creds.refresh(self._request)
+            self._creds.refresh(req)
         return self._creds.token
 
     def publish_url_updated(self, url: str) -> IndexingResult:
-        """POST one URL_UPDATED notification. Network errors are caught
-        and returned as a failed IndexingResult; nothing raises."""
         try:
-            token = self._ensure_token()
-        except Exception as exc:
-            logger.warning("indexing: token refresh failed for %s: %s", url, exc)
-            return IndexingResult(url=url, success=False, status_code=None, response_snippet=f"token refresh failed: {exc}"[:500])
-
-        try:
+            token = self._get_token()
             resp = httpx.post(
-                _ENDPOINT,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                },
+                _INDEXING_ENDPOINT,
                 json={"url": url, "type": "URL_UPDATED"},
-                timeout=15,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                timeout=20,
             )
+            snippet = (resp.text or "")[:300]
+            success = resp.status_code in (200, 204)
+            if success:
+                logger.info("Google Indexing: pinged %s", url)
+            else:
+                logger.warning("Google Indexing: %d for %s: %s", resp.status_code, url, snippet)
+            return IndexingResult(success=success, status_code=resp.status_code, response_snippet=snippet)
         except Exception as exc:
-            logger.warning("indexing: HTTP error for %s: %s", url, exc)
-            return IndexingResult(url=url, success=False, status_code=None, response_snippet=f"http error: {exc}"[:500])
+            logger.error("Google Indexing error for %s: %s", url, exc)
+            return IndexingResult(success=False, status_code=None, response_snippet=str(exc)[:300])
 
-        body = resp.text or ""
-        snippet = body[:500]
-        if resp.status_code == 200:
-            logger.info("indexing: 200 OK for %s", url)
-            return IndexingResult(url=url, success=True, status_code=200, response_snippet=snippet)
-
-        logger.warning("indexing: %d for %s -- %s", resp.status_code, url, snippet)
-        return IndexingResult(url=url, success=False, status_code=resp.status_code, response_snippet=snippet)
-
-    def publish_urls(self, urls: Iterable[str]) -> list[IndexingResult]:
-        return [self.publish_url_updated(u) for u in urls]
-
-
-# ---------------------------------------------------------------------------
-# Module-level loader
-# ---------------------------------------------------------------------------
-
-_client: GoogleIndexingClient | None = None
-_client_load_attempted = False
-
-
-def _load_credentials_info() -> dict | None:
-    """Read the service-account JSON from env (preferred) or file path."""
-    raw = settings.google_indexing_sa_json.strip()
-    if raw:
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError as exc:
-            logger.error("indexing: GOOGLE_INDEXING_SA_JSON is not valid JSON: %s", exc)
-            return None
-
-    file_path = settings.google_indexing_sa_file.strip()
-    if file_path:
-        path = Path(file_path).expanduser()
-        if not path.exists():
-            logger.error("indexing: GOOGLE_INDEXING_SA_FILE does not exist: %s", path)
-            return None
-        try:
-            return json.loads(path.read_text())
-        except Exception as exc:
-            logger.error("indexing: failed to read %s: %s", path, exc)
-            return None
-
-    return None
-
-
-def get_client() -> GoogleIndexingClient | None:
-    """Return a cached GoogleIndexingClient or None if creds unavailable."""
-    global _client, _client_load_attempted
-    if _client is not None:
-        return _client
-    if _client_load_attempted:
+def get_client() -> Optional[GoogleIndexingClient]:
+    if not is_enabled():
         return None
-
-    _client_load_attempted = True
-    info = _load_credentials_info()
-    if info is None:
-        logger.info("indexing: no credentials configured, skipping Google Indexing distribution")
-        return None
-
     try:
-        _client = GoogleIndexingClient(info)
-        return _client
+        creds = _load_sa_credentials()
+        if creds is None:
+            return None
+        return GoogleIndexingClient(creds)
     except Exception as exc:
-        logger.error("indexing: failed to construct client: %s", exc, exc_info=True)
+        logger.error("Could not load Google Indexing credentials: %s", exc)
         return None
-
-
-def is_enabled() -> bool:
-    return bool(settings.google_indexing_sa_json.strip() or settings.google_indexing_sa_file.strip())

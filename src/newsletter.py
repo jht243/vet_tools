@@ -1,227 +1,150 @@
-"""
-Newsletter distribution module.
-
-Provider-agnostic email sender. Supports:
-  - console: prints to stdout (development)
-  - sendgrid: sends via SendGrid API (production)
-
-Add new providers by subclassing EmailProvider and registering in PROVIDERS.
-"""
-
+"""Newsletter dispatch — console (dev), Resend (transactional), Buttondown (broadcast)."""
 from __future__ import annotations
-
-import json
 import logging
-from abc import ABC, abstractmethod
-from pathlib import Path
+from datetime import date
+from typing import Optional
 
-import httpx
+from sqlalchemy.orm import Session
 
-from src.config import settings
+from src.models import BlogPost, engine
 
 logger = logging.getLogger(__name__)
 
 
-class EmailProvider(ABC):
-    @abstractmethod
-    def send(self, to: str, subject: str, html_body: str) -> bool:
-        ...
+def _build_digest_html(posts: list[BlogPost], pub_date: date) -> str:
+    lines = [
+        f"<h1>VA Claims Workspace — {pub_date.strftime('%B %d, %Y')}</h1>",
+        "<p>Today's top VA &amp; military benefits briefings:</p>",
+        "<hr>",
+    ]
+    for post in posts[:6]:
+        url = f"https://vaclaimsworkspace.com/briefing/{post.slug}/"
+        lines.append(f'<h2><a href="{url}">{post.title}</a></h2>')
+        if post.summary:
+            lines.append(f"<p>{post.summary[:200]}…</p>")
+        lines.append(f'<p><a href="{url}">Read more →</a></p>')
+        lines.append("<hr>")
+    lines.append(
+        '<p style="font-size:12px;color:#666;">'
+        "VA Claims Workspace — vaclaimsworkspace.com<br>"
+        "For informational purposes only; not legal or benefits advice.<br>"
+        '<a href="{{ unsubscribe_url }}">Unsubscribe</a>'
+        "</p>"
+    )
+    return "\n".join(lines)
 
 
-class ConsoleProvider(EmailProvider):
-    def send(self, to: str, subject: str, html_body: str) -> bool:
-        logger.info("=== EMAIL PREVIEW ===")
-        logger.info("To: %s", to)
-        logger.info("Subject: %s", subject)
-        logger.info("Body length: %d chars", len(html_body))
-        logger.info("First 200 chars: %s", html_body[:200])
-        logger.info("=== END PREVIEW ===")
-        return True
+def _build_digest_text(posts: list[BlogPost], pub_date: date) -> str:
+    lines = [
+        f"VA Claims Workspace — {pub_date.strftime('%B %d, %Y')}",
+        "=" * 50,
+        "",
+    ]
+    for post in posts[:6]:
+        url = f"https://vaclaimsworkspace.com/briefing/{post.slug}/"
+        lines.append(post.title)
+        if post.summary:
+            lines.append(post.summary[:200] + "…")
+        lines.append(url)
+        lines.append("")
+    lines.append("VA Claims Workspace — vaclaimsworkspace.com")
+    lines.append("For informational purposes only; not legal or benefits advice.")
+    return "\n".join(lines)
 
 
-class SendGridProvider(EmailProvider):
-    API_URL = "https://api.sendgrid.com/v3/mail/send"
+class ConsoleProvider:
+    def send(self, subject: str, html: str, text: str) -> dict:
+        logger.info("Newsletter (console): %s", subject)
+        logger.info("--- TEXT ---\n%s", text[:400])
+        return {"status": "ok", "provider": "console"}
 
-    def __init__(self, api_key: str, from_email: str):
-        self.api_key = api_key
-        self.from_email = from_email
 
-    def send(self, to: str, subject: str, html_body: str) -> bool:
-        payload = {
-            "personalizations": [{"to": [{"email": to}]}],
-            "from": {"email": self.from_email, "name": "Caracas Research"},
-            "subject": subject,
-            "content": [{"type": "text/html", "value": html_body}],
-        }
+class ResendProvider:
+    def __init__(self, api_key: str, from_email: str, to_email: str):
+        self._key = api_key
+        self._from = from_email
+        self._to = to_email
+
+    def send(self, subject: str, html: str, text: str) -> dict:
+        import httpx
 
         resp = httpx.post(
-            self.API_URL,
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json"},
+            json={
+                "from": self._from,
+                "to": [self._to],
+                "subject": subject,
+                "html": html,
+                "text": text,
+            },
+            timeout=20,
+        )
+        if resp.status_code >= 400:
+            logger.error("Resend error %d: %s", resp.status_code, resp.text[:200])
+            return {"status": "error", "code": resp.status_code}
+        return {"status": "ok", "provider": "resend", "id": resp.json().get("id")}
+
+
+class ButtondownProvider:
+    def __init__(self, api_key: str):
+        self._key = api_key
+
+    def send(self, subject: str, html: str, text: str) -> dict:
+        import httpx
+
+        resp = httpx.post(
+            "https://api.buttondown.email/v1/emails",
+            headers={"Authorization": f"Token {self._key}", "Content-Type": "application/json"},
+            json={
+                "subject": subject,
+                "body": html,
+                "status": "about_to_send",
             },
             timeout=30,
         )
-
-        if resp.status_code in (200, 201, 202):
-            logger.info("Email sent to %s via SendGrid", to)
-            return True
-        else:
-            logger.error("SendGrid error %d: %s", resp.status_code, resp.text)
-            return False
+        if resp.status_code >= 400:
+            logger.error("Buttondown error %d: %s", resp.status_code, resp.text[:200])
+            return {"status": "error", "code": resp.status_code}
+        return {"status": "ok", "provider": "buttondown", "id": resp.json().get("id")}
 
 
-class ResendProvider(EmailProvider):
-    API_URL = "https://api.resend.com/emails"
+def _get_provider(settings):
+    if settings.buttondown_api_key:
+        return ButtondownProvider(settings.buttondown_api_key)
+    if settings.resend_api_key:
+        from_email = getattr(settings, "resend_from_email", "briefings@vaclaimsworkspace.com")
+        to_email = getattr(settings, "resend_to_email", "")
+        return ResendProvider(settings.resend_api_key, from_email, to_email)
+    return ConsoleProvider()
 
-    def __init__(self, from_override: str | None = None, reply_to: str | None = None):
-        self._from_override = from_override
-        self._reply_to = reply_to
-        self._attachments: list[dict] = []
 
-    def add_attachment(self, filename: str, content_bytes: bytes, content_type: str = "application/pdf"):
-        import base64
-        self._attachments.append({
-            "filename": filename,
-            "content": base64.b64encode(content_bytes).decode(),
-            "type": content_type,
-        })
+def send_newsletter(dry_run: bool = False) -> dict:
+    from src.config import settings
 
-    def send(self, to: str, subject: str, html_body: str) -> bool:
-        from_addr = self._from_override or f"{settings.site_name} <{settings.newsletter_from_email}>"
-        payload = {
-            "from": from_addr,
-            "to": [to],
-            "subject": subject,
-            "html": html_body,
-        }
-        if self._reply_to:
-            payload["reply_to"] = [self._reply_to]
-        if self._attachments:
-            payload["attachments"] = self._attachments
-        headers = {
-            "Authorization": f"Bearer {settings.resend_api_key}",
-            "Content-Type": "application/json",
-        }
-        resp = httpx.post(
-            self.API_URL,
-            json=payload,
-            headers=headers,
-            timeout=30,
+    pub_date = date.today()
+    with Session(engine) as session:
+        posts = (
+            session.query(BlogPost)
+            .filter(BlogPost.published_date == pub_date)
+            .order_by(BlogPost.created_at.desc())
+            .limit(6)
+            .all()
         )
-        if resp.status_code in (200, 201, 202):
-            logger.info("Email sent to %s via Resend", to)
-            return True
-        logger.error("Resend error %d: %s", resp.status_code, resp.text)
-        return False
 
+    if not posts:
+        logger.info("newsletter: no posts for today; skipping")
+        return {"status": "skipped", "reason": "no posts today"}
 
-PROVIDERS = {
-    "console": lambda: ConsoleProvider(),
-    "sendgrid": lambda: SendGridProvider(settings.newsletter_api_key, settings.newsletter_from_email),
-    "resend": lambda: ResendProvider(),
-}
-
-
-def send_email(
-    to: str,
-    subject: str,
-    html_body: str,
-    provider_name: str | None = None,
-    dry_run: bool = False,
-    from_override: str | None = None,
-    reply_to: str | None = None,
-    attachments: list[dict] | None = None,
-) -> dict:
-    selected_provider = provider_name or settings.seo_email_provider or settings.newsletter_provider
-    if dry_run:
-        selected_provider = "console"
-
-    builder = PROVIDERS.get(selected_provider)
-    if builder is None:
-        logger.error("Unknown email provider: %s", selected_provider)
-        return {
-            "success": False,
-            "provider": selected_provider,
-            "error": f"Unknown provider: {selected_provider}",
-        }
-
-    try:
-        provider = builder()
-        if isinstance(provider, ResendProvider):
-            if from_override:
-                provider._from_override = from_override
-            if reply_to:
-                provider._reply_to = reply_to
-            if attachments:
-                for att in attachments:
-                    provider.add_attachment(
-                        filename=att["filename"],
-                        content_bytes=att["content"],
-                        content_type=att.get("content_type", "application/pdf"),
-                    )
-        success = provider.send(to=to, subject=subject, html_body=html_body)
-        return {"success": success, "provider": selected_provider, "to": to}
-    except Exception as exc:
-        logger.error("Failed to send email via %s: %s", selected_provider, exc, exc_info=True)
-        return {
-            "success": False,
-            "provider": selected_provider,
-            "to": to,
-            "error": str(exc),
-        }
-
-
-def _load_subscribers() -> list[str]:
-    path = Path(settings.subscriber_list_path)
-    if not path.exists():
-        logger.warning("Subscriber list not found at %s", path)
-        return []
-    data = json.loads(path.read_text())
-    if isinstance(data, list):
-        return data
-    return data.get("subscribers", [])
-
-
-def send_newsletter(report_html: str, dry_run: bool = False) -> dict:
-    """
-    Send the report as a newsletter to all subscribers.
-    Returns a summary dict with counts.
-    """
-    provider_name = settings.newsletter_provider
-    if provider_name not in PROVIDERS:
-        logger.error("Unknown newsletter provider: %s", provider_name)
-        return {"sent": 0, "failed": 0, "provider": provider_name}
-
-    provider = PROVIDERS[provider_name]()
-    subscribers = _load_subscribers()
-
-    if not subscribers:
-        logger.warning("No subscribers — skipping newsletter send")
-        return {"sent": 0, "failed": 0, "provider": provider_name}
-
-    from datetime import date
-    subject = f"Caracas Research — {date.today().strftime('%B %d, %Y')}"
+    subject = f"VA & Military Benefits Update — {pub_date.strftime('%B %d, %Y')}"
+    html = _build_digest_html(posts, pub_date)
+    text = _build_digest_text(posts, pub_date)
 
     if dry_run:
-        logger.info("DRY RUN: would send to %d subscribers via %s", len(subscribers), provider_name)
-        return {"sent": 0, "failed": 0, "would_send": len(subscribers), "provider": provider_name, "dry_run": True}
+        logger.info("newsletter: dry_run — subject: %s, %d posts", subject, len(posts))
+        return {"status": "dry_run", "posts": len(posts), "subject": subject}
 
-    sent = 0
-    failed = 0
-
-    for email in subscribers:
-        try:
-            ok = provider.send(to=email, subject=subject, html_body=report_html)
-            if ok:
-                sent += 1
-            else:
-                failed += 1
-        except Exception as e:
-            logger.error("Failed to send to %s: %s", email, e)
-            failed += 1
-
-    summary = {"sent": sent, "failed": failed, "total": len(subscribers), "provider": provider_name}
-    logger.info("Newsletter complete: %s", summary)
-    return summary
+    provider = _get_provider(settings)
+    result = provider.send(subject, html, text)
+    logger.info("newsletter: sent via %s — %s", type(provider).__name__, result)
+    return result

@@ -1,6 +1,7 @@
 """
 Supabase Storage helpers — used so the cron job and the web service (which
-run in different Render containers) can share the generated report.html.
+run in different Render containers) can share the generated report HTML for
+VA Claims Workspace.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 # _report_object_key() so the value tracks the runtime setting (which
 # may be overridden per-deployment via SUPABASE_REPORT_OBJECT_KEY to
 # avoid cross-project bucket collisions — see config.py).
-REPORT_OBJECT_KEY = "report.html"
+REPORT_OBJECT_KEY = "va-report.html"
 
 
 def _report_object_key() -> str:
@@ -89,8 +90,7 @@ def upload_object(
     bucket: Optional[str] = None,
 ) -> Optional[str]:
     """
-    Generic Supabase Storage upload — used by the tearsheet PDF pipeline
-    and any future binary asset that needs a stable public URL.
+    Generic Supabase Storage upload — for any binary asset that needs a stable public URL.
 
     Returns the public URL on success, None if storage is not configured.
     Raises on hard failures.
@@ -114,13 +114,16 @@ def upload_object(
     if resp.status_code >= 400:
         logger.error(
             "Supabase Storage upload failed %d for %s: %s",
-            resp.status_code, object_key, resp.text[:300],
+            resp.status_code,
+            object_key,
+            resp.text[:300],
         )
         resp.raise_for_status()
 
     public = f"{base}/storage/v1/object/public/{target_bucket}/{object_key}"
-    logger.info("Uploaded %s to Supabase Storage: %s (%d bytes)",
-                object_key, public, len(body))
+    logger.info(
+        "Uploaded %s to Supabase Storage: %s (%d bytes)", object_key, public, len(body)
+    )
     return public
 
 
@@ -133,7 +136,9 @@ def public_object_url(object_key: str, bucket: Optional[str] = None) -> Optional
     return f"{base}/storage/v1/object/public/{target_bucket}/{object_key}"
 
 
-def signed_url(object_key: str, *, bucket: Optional[str] = None, expires_in: int = 3600) -> Optional[str]:
+def signed_url(
+    object_key: str, *, bucket: Optional[str] = None, expires_in: int = 3600
+) -> Optional[str]:
     """Create a short-lived signed URL for a private-bucket object.
 
     Returns the signed URL string, or None if storage is not configured.
@@ -150,19 +155,28 @@ def signed_url(object_key: str, *, bucket: Optional[str] = None, expires_in: int
     }
     resp = httpx.post(url, json={"expiresIn": expires_in}, headers=headers, timeout=15)
     if resp.status_code >= 400:
-        logger.warning("Signed URL failed %d for %s/%s: %s",
-                        resp.status_code, target_bucket, object_key, resp.text[:200])
+        logger.warning(
+            "Signed URL failed %d for %s/%s: %s",
+            resp.status_code,
+            target_bucket,
+            object_key,
+            resp.text[:200],
+        )
         return None
     data = resp.json()
     signed_path = data.get("signedURL") or data.get("signedUrl") or ""
     if signed_path:
-        return f"{base}/storage/v1{signed_path}" if signed_path.startswith("/") else signed_path
+        return (
+            f"{base}/storage/v1{signed_path}"
+            if signed_path.startswith("/")
+            else signed_path
+        )
     return None
 
 
 def fetch_report_html() -> Optional[str]:
     """
-    Fetch the latest report.html from Supabase Storage.
+    Fetch the latest report HTML from Supabase Storage.
     Returns the HTML string, or None if not available / not configured.
     """
     url = public_report_url()
@@ -178,6 +192,8 @@ def fetch_report_html() -> Optional[str]:
     if resp.status_code == 404:
         return None
     if resp.status_code >= 400:
-        logger.warning("Supabase Storage GET returned %d: %s", resp.status_code, resp.text[:200])
+        logger.warning(
+            "Supabase Storage GET returned %d: %s", resp.status_code, resp.text[:200]
+        )
         return None
     return resp.text

@@ -1,1541 +1,967 @@
+#!/usr/bin/env python3
 """
-Flask web server for Ban the Bots.
-
-Serves AI backlash / responsible AI editorial content.
+VA Claims Workspace — Flask web server.
 """
-
 from __future__ import annotations
 
 import gzip
+import hashlib
 import io
+import json
 import logging
-import re
+import os
 import time
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-from xml.sax.saxutils import escape as _xml_escape
+from datetime import datetime, date, timedelta
+from functools import wraps
+from typing import Optional
 
 import httpx
-from flask import Flask, abort, request, jsonify, Response, redirect
-from werkzeug.exceptions import HTTPException
+from flask import (
+    Flask,
+    Response,
+    abort,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from src.config import settings
+from src.models import (
+    BlogPost,
+    EmailCapture,
+    ExternalArticleEntry,
+    LandingPage,
+    SessionLocal,
+    VACondition,
+    init_db,
+)
+from src.page_renderer import (
+    build_blog_post_jsonld,
+    build_blog_post_seo,
+    build_landing_page_jsonld,
+    build_landing_page_seo,
+    build_seo_base,
+    register_jinja_filters,
+    render_blog_feed_xml,
+)
+from src.storage_remote import fetch_report_html, supabase_storage_read_enabled
 
-_STATIC_DIR = Path(__file__).resolve().parent / "static"
-_STATIC_DIR.mkdir(parents=True, exist_ok=True)
+# ---------------------------------------------------------------------------
+# App setup
+# ---------------------------------------------------------------------------
 
-_ACRONYMS = {"ai", "eu", "ftc", "bls", "doe", "iea", "llm", "seo"}
+app = Flask(__name__, template_folder="templates", static_folder="static")
+register_jinja_filters(app)
+logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+US_STATES = {
+    "alabama", "alaska", "arizona", "arkansas", "california",
+    "colorado", "connecticut", "delaware", "florida", "georgia",
+    "hawaii", "idaho", "illinois", "indiana", "iowa",
+    "kansas", "kentucky", "louisiana", "maine", "maryland",
+    "massachusetts", "michigan", "minnesota", "mississippi", "missouri",
+    "montana", "nebraska", "nevada", "new-hampshire", "new-jersey",
+    "new-mexico", "new-york", "north-carolina", "north-dakota", "ohio",
+    "oklahoma", "oregon", "pennsylvania", "rhode-island", "south-carolina",
+    "south-dakota", "tennessee", "texas", "utah", "vermont",
+    "virginia", "washington", "west-virginia", "wisconsin", "wyoming",
+}
+
+VA_CLAIMS_SPOKES = {
+    "initial-claim", "increase-claim", "supplemental-claim",
+    "higher-level-review", "board-appeal", "nexus-letter",
+    "dbq-guide", "cp-exam-prep", "evidence-gathering", "secondary-conditions",
+}
+
+RETIREMENT_SPOKES = {
+    "blended-retirement-system", "legacy-retirement", "crsc",
+    "crdp", "medical-retirement", "reserve-retirement", "survivor-benefit-plan",
+}
+
+MILITARY_PAY_SPOKES = {
+    "basic-pay", "basic-allowance-housing", "special-pays",
+}
+
+TOOL_SLUGS = {
+    "va-disability-rating-calculator", "military-retirement-calculator",
+    "bah-calculator", "military-pay-calculator", "crsc-crdp-calculator",
+    "va-claim-checklist", "secondary-conditions-lookup",
+}
+
+EXPLAINER_SLUGS = {
+    "va-combined-rating-formula", "nexus-letter", "dbq-explained",
+    "cp-exam-tips", "secondary-conditions", "brs-vs-legacy", "tsp-military",
+    "crsc-vs-crdp", "medical-retirement-process", "va-appeal-options",
+    "bah-explained", "burn-pit-exposure-pact-act", "military-state-tax",
+    "va-disability-increase",
+}
+
+BLOG_POSTS_PER_PAGE = 20
+
+# ---------------------------------------------------------------------------
+# In-memory page cache
+# ---------------------------------------------------------------------------
+
+_PAGE_CACHE: dict[str, tuple[float, str]] = {}
+_PAGE_CACHE_TTL = 90  # seconds
 
 
-def _slug_to_label(slug: str) -> str:
-    return " ".join(
-        w.upper() if w.lower() in _ACRONYMS else w.title()
-        for w in slug.replace("-", " ").split()
+def _cached_page(cache_key: str, render_fn) -> str:
+    now = time.time()
+    if cache_key in _PAGE_CACHE:
+        ts, html = _PAGE_CACHE[cache_key]
+        if now - ts < _PAGE_CACHE_TTL:
+            return html
+    html = render_fn()
+    _PAGE_CACHE[cache_key] = (now, html)
+    return html
+
+
+# ---------------------------------------------------------------------------
+# Response helpers
+# ---------------------------------------------------------------------------
+
+def _gzip_response(html: str, status: int = 200) -> Response:
+    if len(html) < 500 or "gzip" not in request.headers.get("Accept-Encoding", ""):
+        return Response(html, status=status, mimetype="text/html; charset=utf-8")
+    buf = io.BytesIO()
+    with gzip.GzipFile(fileobj=buf, mode="wb") as gz:
+        gz.write(html.encode("utf-8"))
+    return Response(
+        buf.getvalue(),
+        status=status,
+        mimetype="text/html; charset=utf-8",
+        headers={"Content-Encoding": "gzip"},
     )
 
-app = Flask(
-    __name__,
-    static_folder=str(_STATIC_DIR),
-    static_url_path="/static",
-)
-app.secret_key = settings.admin_token or "fallback-dev-key"
 
-logger = logging.getLogger(__name__)
-OUTPUT_DIR = settings.output_dir
+# ---------------------------------------------------------------------------
+# Admin decorator
+# ---------------------------------------------------------------------------
 
-BUTTONDOWN_API_URL = "https://api.buttondown.com/v1/subscribers"
-
-GZIP_MIME_PREFIXES = (
-    "text/",
-    "application/json",
-    "application/xml",
-    "application/javascript",
-    "application/ld+json",
-    "image/svg+xml",
-)
-GZIP_MIN_BYTES = 500
-
-_NAV_PAGE_CACHE: dict[str, dict] = {}
-_NAV_PAGE_CACHE_TTL_SECONDS = 90
-_NAV_CACHE_PATHS = frozenset({
-    "/briefing",
-    "/ai-backlash/",
-    "/ai-incidents/",
-    "/ai-layoffs/",
-    "/ai-lawsuits/",
-    "/fighting-back/",
-    "/responsible-ai/",
-    "/explainers",
-    "/parents/",
-})
+def _require_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not settings.admin_token:
+            abort(404)
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {settings.admin_token}":
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
 
 
-@app.after_request
-def _gzip_response(response: Response) -> Response:
+# ---------------------------------------------------------------------------
+# Landing page helpers
+# ---------------------------------------------------------------------------
+
+def _build_cluster_ctx(page: LandingPage) -> dict:
+    """Build navigation cluster context based on the page's type and sector."""
+    page_type = page.page_type or ""
+    sector = page.sector_slug or ""
+    return {
+        "page_type": page_type,
+        "sector": sector,
+        "canonical_path": page.canonical_path or "/",
+    }
+
+
+def _get_recent_briefings(limit: int = 3, sector_filter: Optional[str] = None) -> list:
+    db = SessionLocal()
     try:
-        if response.direct_passthrough:
-            return response
-        if response.status_code < 200 or response.status_code >= 300:
-            return response
-        if "Content-Encoding" in response.headers:
-            return response
-        if "gzip" not in (request.headers.get("Accept-Encoding", "") or "").lower():
-            return response
-        mimetype = (response.mimetype or "").lower()
-        if not any(mimetype.startswith(p) for p in GZIP_MIME_PREFIXES):
-            return response
-        data = response.get_data()
-        if len(data) < GZIP_MIN_BYTES:
-            return response
-        buf = io.BytesIO()
-        with gzip.GzipFile(fileobj=buf, mode="wb", compresslevel=6) as gz:
-            gz.write(data)
-        compressed = buf.getvalue()
-        response.set_data(compressed)
-        response.headers["Content-Encoding"] = "gzip"
-        response.headers["Content-Length"] = str(len(compressed))
-        existing_vary = response.headers.get("Vary", "")
-        if "Accept-Encoding" not in existing_vary:
-            response.headers["Vary"] = (existing_vary + ", Accept-Encoding").lstrip(", ")
-    except Exception as exc:
-        logger.warning("gzip middleware skipped: %s", exc)
-    return response
+        q = db.query(BlogPost).order_by(BlogPost.published_date.desc())
+        if sector_filter:
+            q = q.filter(BlogPost.primary_sector == sector_filter)
+        return q.limit(limit).all()
+    finally:
+        db.close()
 
 
-@app.before_request
-def _serve_nav_page_cache():
-    path = request.path
-    if request.method != "GET":
-        return None
-    cached = _NAV_PAGE_CACHE.get(path)
-    if cached and time.time() - cached.get("cached_at", 0.0) < _NAV_PAGE_CACHE_TTL_SECONDS:
-        resp = Response(cached["body"], mimetype="text/html")
-        resp.headers["X-Page-Cache"] = "HIT"
-        return resp
-    return None
+def _serve_landing_page(
+    page_key: str, template: str = "landing.html.j2", **extra_ctx
+) -> Response:
+    db = SessionLocal()
+    try:
+        page = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
+        if not page:
+            abort(404)
+        seo = build_landing_page_seo(page)
+        jsonld = build_landing_page_jsonld(page, seo)
+        cluster_ctx = _build_cluster_ctx(page)
+        recent = _get_recent_briefings(limit=3, sector_filter=page.sector_slug)
+        html = render_template(
+            template,
+            page=page,
+            seo=seo,
+            jsonld=jsonld,
+            cluster_ctx=cluster_ctx,
+            recent_briefings=recent,
+            **extra_ctx,
+        )
+        return _gzip_response(html)
+    finally:
+        db.close()
 
 
-@app.after_request
-def _store_nav_page_cache(response: Response) -> Response:
-    path = request.path
-    if (
-        request.method == "GET"
-        and path in _NAV_CACHE_PATHS
-        and response.status_code == 200
-        and response.content_type
-        and "text/html" in response.content_type
-        and response.headers.get("X-Page-Cache") != "HIT"
-    ):
-        _NAV_PAGE_CACHE[path] = {
-            "body": response.get_data(),
-            "cached_at": time.time(),
-        }
-    return response
-
-
-def _base_url() -> str:
-    return settings.canonical_site_url.rstrip("/")
-
-
-# ── Homepage ──────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Routes — Homepage
+# ---------------------------------------------------------------------------
 
 @app.route("/")
-def index():
-    try:
-        from src.models import BlogPost, AIIncident, SessionLocal, init_db
-        from src.page_renderer import render_homepage
-
-        init_db()
-        db = SessionLocal()
-        try:
-            posts = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc(), BlogPost.id.desc())
-                .limit(6)
-                .all()
-            )
-            briefing_count = db.query(BlogPost).count()
-            incident_count = db.query(AIIncident).count()
-            html = render_homepage(
-                posts,
-                briefing_count=briefing_count,
-                incident_count=incident_count,
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("homepage render failed: %s", exc)
-        abort(500)
-
-
-# ── Briefings ─────────────────────────────────────────────────────────
-
-_BRIEFING_PER_PAGE = 20
-
-_BRIEFING_POST_CACHE: dict[str, dict] = {}
-_BRIEFING_POST_CACHE_TTL_SECONDS = 600
-_BRIEFING_POST_CACHE_MAX_ENTRIES = 200
-
-
-def _briefing_cache_get(slug: str) -> bytes | None:
-    cached = _BRIEFING_POST_CACHE.get(slug)
-    if not cached:
-        return None
-    if time.time() - cached.get("cached_at", 0.0) > _BRIEFING_POST_CACHE_TTL_SECONDS:
-        return None
-    return cached.get("body")
-
-
-def _briefing_cache_put(slug: str, body: bytes) -> None:
-    if len(_BRIEFING_POST_CACHE) >= _BRIEFING_POST_CACHE_MAX_ENTRIES:
-        ordered = sorted(
-            _BRIEFING_POST_CACHE.items(),
-            key=lambda kv: kv[1].get("cached_at", 0.0),
-        )
-        for evict_slug, _ in ordered[: _BRIEFING_POST_CACHE_MAX_ENTRIES // 4]:
-            _BRIEFING_POST_CACHE.pop(evict_slug, None)
-    _BRIEFING_POST_CACHE[slug] = {"body": body, "cached_at": time.time()}
-
-
-@app.route("/briefing")
-@app.route("/briefing/")
-def briefing_index():
-    try:
-        from src.models import BlogPost, SessionLocal, init_db
-        from src.page_renderer import render_blog_index
-
-        page = request.args.get("page", 1, type=int)
-        if page < 1:
-            page = 1
-
-        init_db()
+def homepage():
+    def _render():
         db = SessionLocal()
         try:
             total = db.query(BlogPost).count()
-            total_pages = max(1, (total + _BRIEFING_PER_PAGE - 1) // _BRIEFING_PER_PAGE)
-            if page > total_pages:
-                page = total_pages
-            offset = (page - 1) * _BRIEFING_PER_PAGE
-            posts = (
+            recent_posts = (
                 db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc(), BlogPost.id.desc())
-                .offset(offset)
-                .limit(_BRIEFING_PER_PAGE)
+                .order_by(BlogPost.published_date.desc())
+                .limit(6)
                 .all()
             )
-            html = render_blog_index(posts, page=page, total_pages=total_pages)
-            return Response(html, mimetype="text/html")
+            seo = build_seo_base(
+                title="Free VA Disability & Military Benefits Tools | VA Claims Workspace",
+                description=settings.site_description,
+                path="/",
+                og_type="website",
+            )
+            return render_template(
+                "homepage.html.j2",
+                seo=seo,
+                total_briefings=total,
+                recent_posts=recent_posts,
+            )
         finally:
             db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("briefing index render failed: %s", exc)
-        abort(500)
+
+    html = _cached_page("homepage", _render)
+    return _gzip_response(html)
+
+
+# ---------------------------------------------------------------------------
+# Routes — Blog
+# ---------------------------------------------------------------------------
+
+@app.route("/briefing/")
+def blog_index():
+    page_num = request.args.get("page", 1, type=int)
+    if page_num < 1:
+        page_num = 1
+
+    db = SessionLocal()
+    try:
+        total = db.query(BlogPost).count()
+        posts = (
+            db.query(BlogPost)
+            .order_by(BlogPost.published_date.desc())
+            .offset((page_num - 1) * BLOG_POSTS_PER_PAGE)
+            .limit(BLOG_POSTS_PER_PAGE)
+            .all()
+        )
+        total_pages = max(1, (total + BLOG_POSTS_PER_PAGE - 1) // BLOG_POSTS_PER_PAGE)
+
+        seo = build_seo_base(
+            title="VA & Military Benefits Briefings | VA Claims Workspace",
+            description=(
+                "Daily briefings covering VA disability claims, military retirement, "
+                "pay tables, legislation, and veteran benefits news."
+            ),
+            path="/briefing/",
+        )
+        html = render_template(
+            "blog_index.html.j2",
+            seo=seo,
+            posts=posts,
+            page_num=page_num,
+            total_pages=total_pages,
+            total=total,
+        )
+        return _gzip_response(html)
+    finally:
+        db.close()
 
 
 @app.route("/briefing/feed.xml")
-def briefing_feed():
+def blog_feed():
+    db = SessionLocal()
     try:
-        from src.models import BlogPost, SessionLocal, init_db
-        from src.page_renderer import render_blog_feed_xml
-
-        init_db()
-        db = SessionLocal()
-        try:
-            posts = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc(), BlogPost.id.desc())
-                .limit(50)
-                .all()
-            )
-            xml = render_blog_feed_xml(posts)
-            return Response(xml, mimetype="application/atom+xml")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("briefing feed render failed: %s", exc)
-        abort(500)
+        posts = (
+            db.query(BlogPost)
+            .order_by(BlogPost.published_date.desc())
+            .limit(50)
+            .all()
+        )
+        xml = render_blog_feed_xml(posts)
+        return Response(xml, status=200, mimetype="application/atom+xml; charset=utf-8")
+    finally:
+        db.close()
 
 
 @app.route("/briefing/<slug>")
-def briefing_post(slug: str):
-    cached_body = _briefing_cache_get(slug)
-    if cached_body is not None:
-        resp = Response(cached_body, mimetype="text/html")
-        resp.headers["X-Page-Cache"] = "HIT"
-        return resp
-
+def blog_post(slug: str):
+    db = SessionLocal()
     try:
-        from src.models import BlogPost, SessionLocal, init_db
-        from src.page_renderer import render_blog_post
-
-        init_db()
-        db = SessionLocal()
-        try:
-            post = db.query(BlogPost).filter(BlogPost.slug == slug).first()
-            if not post:
-                abort(404)
-
-            related_q = db.query(BlogPost).filter(BlogPost.id != post.id)
-            if post.primary_sector:
-                related_q = related_q.filter(BlogPost.primary_sector == post.primary_sector)
-            related = related_q.order_by(BlogPost.published_date.desc()).limit(5).all()
-            if len(related) < 3:
-                fill = (
-                    db.query(BlogPost)
-                    .filter(BlogPost.id != post.id)
-                    .filter(~BlogPost.id.in_([r.id for r in related]))
-                    .order_by(BlogPost.published_date.desc())
-                    .limit(5 - len(related))
-                    .all()
-                )
-                related.extend(fill)
-
-            html = render_blog_post(post, related=related)
-            body = html.encode("utf-8") if isinstance(html, str) else html
-            _briefing_cache_put(slug, body)
-            resp = Response(body, mimetype="text/html")
-            resp.headers["X-Page-Cache"] = "MISS"
-            return resp
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("briefing post render failed for slug=%s: %s", slug, exc)
-        abort(500)
-
-
-# ── Explainers ────────────────────────────────────────────────────────
-
-@app.route("/explainers")
-@app.route("/explainers/")
-def explainers_index():
-    try:
-        from src.models import LandingPage, SessionLocal, init_db
-        from src.page_renderer import _env as _pr_env
-
-        init_db()
-        db = SessionLocal()
-        try:
-            pages = (
-                db.query(LandingPage)
-                .filter(LandingPage.page_type == "explainer")
-                .order_by(LandingPage.last_generated_at.desc())
+        post = db.query(BlogPost).filter(BlogPost.slug == slug).first()
+        if not post:
+            abort(404)
+        seo = build_blog_post_seo(post)
+        jsonld = build_blog_post_jsonld(post, seo)
+        related: list = []
+        if post.related_slugs_json:
+            related = (
+                db.query(BlogPost)
+                .filter(BlogPost.slug.in_(post.related_slugs_json))
+                .limit(4)
                 .all()
             )
-            try:
-                tmpl = _pr_env.get_template("explainers_index.html.j2")
-                html = tmpl.render(
-                    pages=pages,
-                    site_name=settings.site_name,
-                    canonical_url=f"{_base_url()}/explainers",
+        html = render_template(
+            "blog_post.html.j2",
+            post=post,
+            seo=seo,
+            jsonld=jsonld,
+            related_posts=related,
+        )
+        return _gzip_response(html)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# Routes — Sources
+# ---------------------------------------------------------------------------
+
+@app.route("/sources/")
+def sources():
+    seo = build_seo_base(
+        title="Our Sources | VA Claims Workspace",
+        description=(
+            "VA Claims Workspace draws from official VA, DoD, and federal government "
+            "sources to deliver accurate veteran benefits information."
+        ),
+        path="/sources/",
+    )
+    html = render_template("sources.html.j2", seo=seo)
+    return _gzip_response(html)
+
+
+# ---------------------------------------------------------------------------
+# Routes — Tools
+# ---------------------------------------------------------------------------
+
+@app.route("/tools/")
+def tools_index():
+    seo = build_seo_base(
+        title="Free VA & Military Benefits Tools | VA Claims Workspace",
+        description=(
+            "Free calculators and tools for VA disability ratings, BAH, military pay, "
+            "CRSC/CRDP, and more — no signup required."
+        ),
+        path="/tools/",
+    )
+    html = render_template("tools_index.html.j2", seo=seo, tool_slugs=TOOL_SLUGS)
+    return _gzip_response(html)
+
+
+@app.route("/tools/<tool_slug>/")
+def tool_page(tool_slug: str):
+    if tool_slug not in TOOL_SLUGS:
+        abort(404)
+    title_map = {
+        "va-disability-rating-calculator": "VA Disability Rating Calculator",
+        "military-retirement-calculator": "Military Retirement Calculator",
+        "bah-calculator": "BAH Calculator",
+        "military-pay-calculator": "Military Pay Calculator",
+        "crsc-crdp-calculator": "CRSC vs CRDP Calculator",
+        "va-claim-checklist": "VA Claim Checklist",
+        "secondary-conditions-lookup": "Secondary Conditions Lookup",
+    }
+    tool_name = title_map.get(tool_slug, tool_slug.replace("-", " ").title())
+    seo = build_seo_base(
+        title=f"{tool_name} | VA Claims Workspace",
+        description=f"Free {tool_name} for veterans — no signup required.",
+        path=f"/tools/{tool_slug}/",
+    )
+    html = render_template(
+        "tool_placeholder.html.j2",
+        seo=seo,
+        tool_slug=tool_slug,
+        tool_name=tool_name,
+    )
+    return _gzip_response(html)
+
+
+# ---------------------------------------------------------------------------
+# Routes — VA Claims pillar + spokes
+# ---------------------------------------------------------------------------
+
+@app.route("/va-claims/")
+def va_claims_pillar():
+    return _serve_landing_page("pillar:va-claims")
+
+
+@app.route("/va-claims/<spoke>/")
+def va_claims_spoke(spoke: str):
+    if spoke not in VA_CLAIMS_SPOKES:
+        abort(404)
+    return _serve_landing_page(f"spoke:va-claims:{spoke}")
+
+
+# ---------------------------------------------------------------------------
+# Routes — VA Disability pillar + condition pages
+# ---------------------------------------------------------------------------
+
+@app.route("/va-disability/")
+def va_disability_pillar():
+    return _serve_landing_page("pillar:va-disability")
+
+
+@app.route("/va-disability/<condition>/")
+def va_disability_condition(condition: str):
+    db = SessionLocal()
+    try:
+        va_condition = (
+            db.query(VACondition).filter(VACondition.slug == condition).first()
+        )
+        if va_condition:
+            # Try a matching LandingPage for richer content; fall back to condition row
+            landing = (
+                db.query(LandingPage)
+                .filter(LandingPage.page_key == f"condition:{condition}")
+                .first()
+            )
+            if landing:
+                seo = build_landing_page_seo(landing)
+                jsonld = build_landing_page_jsonld(landing, seo)
+                cluster_ctx = _build_cluster_ctx(landing)
+                recent = _get_recent_briefings(limit=3, sector_filter=landing.sector_slug)
+                html = render_template(
+                    "condition_detail.html.j2",
+                    page=landing,
+                    condition=va_condition,
+                    seo=seo,
+                    jsonld=jsonld,
+                    cluster_ctx=cluster_ctx,
+                    recent_briefings=recent,
                 )
-            except Exception:
-                return redirect("/briefing", code=302)
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("explainers index render failed: %s", exc)
-        abort(500)
+            else:
+                seo = build_seo_base(
+                    title=f"{va_condition.name} VA Disability | VA Claims Workspace",
+                    description=(
+                        f"VA disability ratings, evidence requirements, and secondary "
+                        f"conditions for {va_condition.name}."
+                    ),
+                    path=f"/va-disability/{condition}/",
+                )
+                html = render_template(
+                    "condition_detail.html.j2",
+                    page=None,
+                    condition=va_condition,
+                    seo=seo,
+                    jsonld="{}",
+                    cluster_ctx={},
+                    recent_briefings=[],
+                )
+            return _gzip_response(html)
+
+        # No VACondition row — check for a LandingPage
+        landing = (
+            db.query(LandingPage)
+            .filter(LandingPage.page_key == f"condition:{condition}")
+            .first()
+        )
+        if not landing:
+            abort(404)
+        seo = build_landing_page_seo(landing)
+        jsonld = build_landing_page_jsonld(landing, seo)
+        cluster_ctx = _build_cluster_ctx(landing)
+        recent = _get_recent_briefings(limit=3, sector_filter=landing.sector_slug)
+        html = render_template(
+            "landing.html.j2",
+            page=landing,
+            seo=seo,
+            jsonld=jsonld,
+            cluster_ctx=cluster_ctx,
+            recent_briefings=recent,
+        )
+        return _gzip_response(html)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# Routes — Military Retirement
+# ---------------------------------------------------------------------------
+
+@app.route("/military-retirement/")
+def military_retirement_pillar():
+    return _serve_landing_page("pillar:military-retirement")
+
+
+@app.route("/military-retirement/<spoke>/")
+def military_retirement_spoke(spoke: str):
+    if spoke not in RETIREMENT_SPOKES:
+        abort(404)
+    return _serve_landing_page(f"spoke:military-retirement:{spoke}")
+
+
+# ---------------------------------------------------------------------------
+# Routes — Military Pay
+# ---------------------------------------------------------------------------
+
+@app.route("/military-pay/")
+def military_pay_pillar():
+    return _serve_landing_page("pillar:military-pay")
+
+
+@app.route("/military-pay/<spoke>/")
+def military_pay_spoke(spoke: str):
+    if spoke not in MILITARY_PAY_SPOKES:
+        abort(404)
+    return _serve_landing_page(f"spoke:military-pay:{spoke}")
+
+
+# ---------------------------------------------------------------------------
+# Routes — State Benefits
+# ---------------------------------------------------------------------------
+
+@app.route("/state-benefits/")
+def state_benefits_hub():
+    return _serve_landing_page("pillar:state-benefits")
+
+
+@app.route("/state-benefits/<state>/")
+def state_benefits_page(state: str):
+    if state not in US_STATES:
+        abort(404)
+    return _serve_landing_page(f"state:{state}")
+
+
+# ---------------------------------------------------------------------------
+# Routes — Explainers
+# ---------------------------------------------------------------------------
+
+@app.route("/explainers/")
+def explainers_index():
+    db = SessionLocal()
+    try:
+        pages = (
+            db.query(LandingPage)
+            .filter(LandingPage.page_type == "explainer")
+            .order_by(LandingPage.title)
+            .all()
+        )
+        seo = build_seo_base(
+            title="VA & Military Benefits Explainers | VA Claims Workspace",
+            description=(
+                "Plain-language explainers for VA disability ratings, military retirement, "
+                "BAH, appeals, and more — written for veterans, not lawyers."
+            ),
+            path="/explainers/",
+        )
+        html = render_template("explainers_index.html.j2", seo=seo, pages=pages)
+        return _gzip_response(html)
+    finally:
+        db.close()
 
 
 @app.route("/explainers/<slug>")
-@app.route("/explainers/<slug>/")
-def explainer_page(slug: str):
-    try:
-        from src.models import LandingPage, BlogPost, SessionLocal, init_db
-        from src.page_renderer import render_landing_page, _env as _pr_env
-
-        init_db()
-        db = SessionLocal()
-        try:
-            page = (
-                db.query(LandingPage)
-                .filter(LandingPage.page_key == f"explainer:{slug}")
-                .first()
-            )
-            if not page:
-                label = _slug_to_label(slug)
-                _tool = {
-                    "slug": slug,
-                    "title": label,
-                    "subtitle": "In-depth coverage for this topic is on the way.",
-                    "description": (
-                        "Our editorial team is preparing a plain-English explainer for this topic. "
-                        "Browse our daily briefings while you wait."
-                    ),
-                }
-                tmpl = _pr_env.get_template("tool_placeholder.html.j2")
-                stub_html = tmpl.render(
-                    tool=_tool,
-                    site_name=settings.site_name,
-                    canonical_url=f"{_base_url()}/explainers/{slug}",
-                )
-                return Response(stub_html, mimetype="text/html")
-            recent = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc())
-                .limit(5)
-                .all()
-            )
-            html = render_landing_page(page, recent_briefings=recent)
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("explainer page render failed for slug=%s: %s", slug, exc)
-        abort(500)
+def explainer_detail(slug: str):
+    if slug not in EXPLAINER_SLUGS:
+        abort(404)
+    return _serve_landing_page(f"explainer:{slug}")
 
 
-# ── Landing Pages ─────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Routes — XML / Technical
+# ---------------------------------------------------------------------------
 
-@app.route("/ai-backlash/")
-@app.route("/ai-backlash")
-def ai_backlash_pillar():
-    return _serve_landing_page("pillar:ai-backlash")
+@app.route("/sitemap.xml")
+def sitemap():
+    base = settings.canonical_site_url
+    now = datetime.utcnow().strftime("%Y-%m-%d")
 
-
-@app.route("/responsible-ai/")
-@app.route("/responsible-ai")
-def responsible_ai_index():
-    _INDUSTRY_SLUGS = [
-        "healthcare", "finance", "legal", "retail",
-        "education", "manufacturing", "real-estate", "marketing",
+    urls: list[tuple[str, str, str]] = [
+        # (loc, lastmod, changefreq)
+        (f"{base}/", now, "daily"),
+        (f"{base}/briefing/", now, "daily"),
+        (f"{base}/tools/", now, "weekly"),
+        (f"{base}/sources/", now, "monthly"),
+        (f"{base}/explainers/", now, "weekly"),
+        (f"{base}/va-claims/", now, "weekly"),
+        (f"{base}/va-disability/", now, "weekly"),
+        (f"{base}/military-retirement/", now, "weekly"),
+        (f"{base}/military-pay/", now, "weekly"),
+        (f"{base}/state-benefits/", now, "weekly"),
     ]
+
+    for spoke in sorted(VA_CLAIMS_SPOKES):
+        urls.append((f"{base}/va-claims/{spoke}/", now, "monthly"))
+    for spoke in sorted(RETIREMENT_SPOKES):
+        urls.append((f"{base}/military-retirement/{spoke}/", now, "monthly"))
+    for spoke in sorted(MILITARY_PAY_SPOKES):
+        urls.append((f"{base}/military-pay/{spoke}/", now, "monthly"))
+    for tool in sorted(TOOL_SLUGS):
+        urls.append((f"{base}/tools/{tool}/", now, "monthly"))
+    for state in sorted(US_STATES):
+        urls.append((f"{base}/state-benefits/{state}/", now, "monthly"))
+    for slug in sorted(EXPLAINER_SLUGS):
+        urls.append((f"{base}/explainers/{slug}", now, "monthly"))
+
+    db = SessionLocal()
     try:
-        from src.models import LandingPage, SessionLocal, init_db
-
-        init_db()
-        db = SessionLocal()
-        try:
-            pages = (
-                db.query(LandingPage)
-                .filter(LandingPage.page_type == "industry")
-                .all()
-            )
-            pages_by_slug = {p.sector_slug: p for p in pages}
-            industries = []
-            for slug in _INDUSTRY_SLUGS:
-                p = pages_by_slug.get(slug)
-                industries.append({
-                    "slug": slug,
-                    "label": p.title if p else _slug_to_label(slug),
-                    "summary": p.summary if p else "",
-                })
-
-            try:
-                from src.page_renderer import _env as _pr_env
-                tmpl = _pr_env.get_template("responsible_ai_index.html.j2")
-                html = tmpl.render(
-                    industries=industries,
-                    site_name=settings.site_name,
-                    canonical_url=f"{_base_url()}/responsible-ai/",
+        posts = db.query(BlogPost.slug, BlogPost.updated_at, BlogPost.published_date).all()
+        for row in posts:
+            if row.updated_at:
+                lastmod = row.updated_at.strftime("%Y-%m-%d")
+            elif row.published_date:
+                lastmod = (
+                    row.published_date.isoformat()
+                    if hasattr(row.published_date, "isoformat")
+                    else str(row.published_date)
                 )
-            except Exception:
-                return redirect("/briefing", code=302)
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("responsible-ai index render failed: %s", exc)
-        abort(500)
-
-
-@app.route("/responsible-ai/<industry>/")
-@app.route("/responsible-ai/<industry>")
-def responsible_ai_industry(industry: str):
-    return _serve_landing_page(f"industry:{industry}")
-
-
-def _serve_landing_page(page_key: str) -> Response:
-    try:
-        from src.models import LandingPage, BlogPost, SessionLocal, init_db
-        from src.page_renderer import render_landing_page
-
-        init_db()
-        db = SessionLocal()
-        try:
-            page = db.query(LandingPage).filter(LandingPage.page_key == page_key).first()
-            if not page:
-                # Content not yet generated — render holding page via tool_placeholder template.
-                from src.page_renderer import _env as _pr_env
-                slug = page_key.split(":", 1)[-1]
-                label = _slug_to_label(slug)
-                _tool = {
-                    "slug": slug,
-                    "title": label,
-                    "subtitle": "In-depth coverage for this topic is on the way.",
-                    "description": (
-                        "Our editorial team is preparing detailed analysis for this page. "
-                        "It will be available shortly. Browse our daily briefings or explore "
-                        "the AI Incident Tracker in the meantime."
-                    ),
-                }
-                tmpl = _pr_env.get_template("tool_placeholder.html.j2")
-                stub_html = tmpl.render(tool=_tool, site_name=settings.site_name, canonical_url=f"{_base_url()}/{slug}/")
-                return Response(stub_html, mimetype="text/html")
-            recent = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc())
-                .limit(5)
-                .all()
-            )
-            html = render_landing_page(page, recent_briefings=recent)
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("landing page render failed for page_key=%s: %s", page_key, exc)
-        abort(500)
-
-
-# ── AI Incidents ──────────────────────────────────────────────────────
-
-@app.route("/ai-incidents/")
-@app.route("/ai-incidents")
-def ai_incidents_index():
-    try:
-        from src.models import AIIncident, SessionLocal, init_db
-        from jinja2 import Environment, FileSystemLoader
-
-        page = request.args.get("page", 1, type=int)
-        if page < 1:
-            page = 1
-        sector_filter = request.args.get("sector", "").strip()
-        severity_filter = request.args.get("severity", "").strip()
-
-        _PER_PAGE = 25
-        init_db()
-        db = SessionLocal()
-        try:
-            q = db.query(AIIncident).order_by(AIIncident.incident_date.desc(), AIIncident.id.desc())
-            if sector_filter:
-                q = q.filter(AIIncident.sector == sector_filter)
-            if severity_filter:
-                q = q.filter(AIIncident.severity == severity_filter)
-            total = q.count()
-            total_pages = max(1, (total + _PER_PAGE - 1) // _PER_PAGE)
-            incidents = q.offset((page - 1) * _PER_PAGE).limit(_PER_PAGE).all()
-
-            sectors = [r[0] for r in db.query(AIIncident.sector).distinct().order_by(AIIncident.sector).all() if r[0]]
-            severities = ["critical", "high", "medium", "low"]
-
-            from src.page_renderer import _env as _pr_env
-            tmpl = _pr_env.get_template("ai_incidents.html.j2")
-            html = tmpl.render(
-                incidents=incidents,
-                page=page,
-                total_pages=total_pages,
-                total=total,
-                sector_filter=sector_filter,
-                severity_filter=severity_filter,
-                sectors=sectors,
-                severities=severities,
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}/ai-incidents/",
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("ai-incidents index render failed: %s", exc)
-        abort(500)
-
-
-@app.route("/ai-incidents/<int:incident_id>")
-@app.route("/ai-incidents/<int:incident_id>/")
-def ai_incident_detail(incident_id: int):
-    try:
-        from src.models import AIIncident, BlogPost, SessionLocal, init_db
-        from jinja2 import Environment, FileSystemLoader
-
-        init_db()
-        db = SessionLocal()
-        try:
-            incident = db.query(AIIncident).filter(AIIncident.id == incident_id).first()
-            if not incident:
-                abort(404)
-            related_briefings = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc())
-                .limit(3)
-                .all()
-            )
-            from src.page_renderer import _env as _pr_env
-            tmpl = _pr_env.get_template("ai_incident_detail.html.j2")
-            html = tmpl.render(
-                incident=incident,
-                related_briefings=related_briefings,
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}/ai-incidents/{incident_id}",
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("ai-incident detail render failed id=%d: %s", incident_id, exc)
-        abort(500)
-
-
-# ── Data Center Map ───────────────────────────────────────────────────
-
-@app.route("/data-center-map/")
-@app.route("/data-center-map")
-def data_center_map():
-    try:
-        from src.models import DataCenter, SessionLocal, init_db
-        from src.page_renderer import _env as _pr_env
-
-        init_db()
-        db = SessionLocal()
-        try:
-            data_centers = (
-                db.query(DataCenter)
-                .order_by(DataCenter.state, DataCenter.name)
-                .all()
-            )
-
-            total = len(data_centers)
-            proposed_count = sum(
-                1 for dc in data_centers
-                if dc.status in ("proposed", "under_construction")
-            )
-            total_mw = sum(dc.capacity_mw for dc in data_centers if dc.capacity_mw)
-
-            map_data = []
-            for dc in data_centers:
-                if dc.lat is None or dc.lng is None:
-                    continue
-                map_data.append({
-                    "name": dc.name,
-                    "operator": dc.operator,
-                    "status": dc.status,
-                    "city": dc.city,
-                    "state": dc.state,
-                    "county": dc.county,
-                    "country": dc.country,
-                    "lat": dc.lat,
-                    "lng": dc.lng,
-                    "capacity_mw": dc.capacity_mw,
-                    "water_source": dc.water_source,
-                    "announced_date": dc.announced_date.isoformat() if dc.announced_date else None,
-                    "notes": dc.notes,
-                    "source_url": dc.source_url,
-                })
-
-            tmpl = _pr_env.get_template("data_center_map.html.j2")
-            html = tmpl.render(
-                data_centers=data_centers,
-                map_data=map_data,
-                total=total,
-                proposed_count=proposed_count,
-                total_mw=total_mw or 0,
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}/data-center-map/",
-                seo={
-                    "title": "Find AI Data Centers Near Me — Interactive Map",
-                    "description": (
-                        f"Interactive map of {total or 'hundreds of'} AI data centers across the US — "
-                        "proposed, under construction, and operating. See water use, power capacity, "
-                        "and which communities are affected near you."
-                    ),
-                    "keywords": (
-                        "ai data centers near me, ai data center map, how much water do ai data centers use, "
-                        "ai data center power, ai data center environmental impact"
-                    ),
-                    "canonical": f"{_base_url()}/data-center-map/",
-                },
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.exception("data-center-map render failed: %s", exc)
-        abort(500)
-
-
-# ── AI-Proof Jobs ─────────────────────────────────────────────────────
-
-@app.route("/ai-proof-jobs/")
-@app.route("/ai-proof-jobs")
-def ai_proof_jobs():
-    return _serve_landing_page("pillar:ai-proof-jobs")
-
-
-@app.route("/will-ai-replace-my-job/")
-@app.route("/will-ai-replace-my-job")
-def will_ai_replace_my_job():
-    try:
-        import json
-        from src.page_renderer import _env as _pr_env
-        from pathlib import Path
-
-        job_data_path = Path(__file__).resolve().parent / "static" / "data" / "job_risk.json"
-        job_data = json.loads(job_data_path.read_text())
-
-        tmpl = _pr_env.get_template("tools/job_checker.html.j2")
-        html = tmpl.render(
-            job_data=job_data,
-            site_name=settings.site_name,
-            canonical_url=f"{_base_url()}/will-ai-replace-my-job/",
-            seo={
-                "title": "Will AI Replace My Job? Check Any Job Title — Free Tool",
-                "description": (
-                    "Type in your job title and get a plain-English breakdown of what tasks AI can replace, "
-                    "what's resilient, and which skills to build. Covers 200+ occupations."
-                ),
-                "keywords": (
-                    "will ai replace my job, will ai take my job, jobs ai will replace, "
-                    "what jobs can ai not replace, ai proof jobs checker, is my job safe from ai"
-                ),
-                "canonical": f"{_base_url()}/will-ai-replace-my-job/",
-            },
-        )
-        return Response(html, mimetype="text/html")
-    except Exception as exc:
-        logger.exception("job checker render failed: %s", exc)
-        abort(500)
-
-
-# ── AI Layoffs ────────────────────────────────────────────────────────
-
-_LAYOFFS_PER_PAGE = 30
-
-
-@app.route("/ai-layoffs/")
-@app.route("/ai-layoffs")
-def ai_layoffs_index():
-    try:
-        from src.models import AILayoff, SessionLocal, init_db
-        from src.page_renderer import _env as _pr_env
-
-        page = request.args.get("page", 1, type=int)
-        if page < 1:
-            page = 1
-        industry_filter = request.args.get("industry", "").strip()
-        state_filter = request.args.get("state", "").strip()
-        year_filter = request.args.get("year", "").strip()
-
-        init_db()
-        db = SessionLocal()
-        try:
-            q = db.query(AILayoff).order_by(AILayoff.announced_date.desc(), AILayoff.id.desc())
-            if industry_filter:
-                q = q.filter(AILayoff.industry == industry_filter)
-            if state_filter:
-                q = q.filter(AILayoff.state == state_filter)
-            if year_filter:
-                import sqlalchemy
-                q = q.filter(sqlalchemy.extract("year", AILayoff.announced_date) == int(year_filter))
-
-            total = q.count()
-            total_pages = max(1, (total + _LAYOFFS_PER_PAGE - 1) // _LAYOFFS_PER_PAGE)
-            page = min(page, total_pages)
-            layoffs = q.offset((page - 1) * _LAYOFFS_PER_PAGE).limit(_LAYOFFS_PER_PAGE).all()
-
-            total_jobs_row = db.query(AILayoff.job_count).all()
-            total_jobs = sum(r[0] for r in total_jobs_row if r[0])
-
-            industries = [
-                r[0] for r in
-                db.query(AILayoff.industry).filter(AILayoff.industry.isnot(None))
-                .distinct().order_by(AILayoff.industry).all()
-            ]
-            states = [
-                r[0] for r in
-                db.query(AILayoff.state).filter(AILayoff.state.isnot(None))
-                .distinct().order_by(AILayoff.state).all()
-            ]
-            import datetime as _dt
-            years = sorted({
-                r[0].year for r in db.query(AILayoff.announced_date).all()
-                if r[0]
-            }, reverse=True)
-
-            tmpl = _pr_env.get_template("ai_layoffs.html.j2")
-            html = tmpl.render(
-                layoffs=layoffs,
-                page=page,
-                total_pages=total_pages,
-                total=total,
-                total_jobs=total_jobs,
-                industry_filter=industry_filter,
-                state_filter=state_filter,
-                year_filter=year_filter,
-                industries=industries,
-                states=states,
-                years=years,
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}/ai-layoffs/",
-                seo={
-                    "title": "AI Layoffs Tracker — Companies That Cut Jobs Because of AI",
-                    "description": (
-                        f"Track {total or 'every'} company that has cut jobs because of AI automation. "
-                        "Search by industry, state, and year. Updated regularly with verified layoff data."
-                    ),
-                    "keywords": (
-                        "ai taking jobs, ai layoffs, ai job loss, companies replacing workers with ai, "
-                        "ai automation layoffs, which companies are using ai to replace workers"
-                    ),
-                    "canonical": f"{_base_url()}/ai-layoffs/",
-                },
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.exception("ai-layoffs index render failed: %s", exc)
-        abort(500)
-
-
-# ── AI Lawsuits ───────────────────────────────────────────────────────
-
-_LAWSUITS_PER_PAGE = 25
-
-
-@app.route("/ai-lawsuits/")
-@app.route("/ai-lawsuits")
-def ai_lawsuits_index():
-    try:
-        from src.models import AILawsuit, SessionLocal, init_db
-        from src.page_renderer import _env as _pr_env
-
-        page = request.args.get("page", 1, type=int)
-        if page < 1:
-            page = 1
-        claim_type_filter = request.args.get("claim_type", "").strip()
-        defendant_filter = request.args.get("defendant", "").strip()
-        status_filter = request.args.get("status", "").strip()
-
-        init_db()
-        db = SessionLocal()
-        try:
-            q = db.query(AILawsuit).order_by(AILawsuit.filed_date.desc(), AILawsuit.id.desc())
-            if claim_type_filter:
-                q = q.filter(AILawsuit.claim_type == claim_type_filter)
-            if defendant_filter:
-                q = q.filter(AILawsuit.defendant.ilike(f"%{defendant_filter}%"))
-            if status_filter:
-                q = q.filter(AILawsuit.status == status_filter)
-
-            total = q.count()
-            total_pages = max(1, (total + _LAWSUITS_PER_PAGE - 1) // _LAWSUITS_PER_PAGE)
-            page = min(page, total_pages)
-            lawsuits = q.offset((page - 1) * _LAWSUITS_PER_PAGE).limit(_LAWSUITS_PER_PAGE).all()
-
-            claim_types = [
-                r[0] for r in
-                db.query(AILawsuit.claim_type).filter(AILawsuit.claim_type.isnot(None))
-                .distinct().order_by(AILawsuit.claim_type).all()
-            ]
-            defendants = [
-                r[0] for r in
-                db.query(AILawsuit.defendant).distinct().order_by(AILawsuit.defendant).all()
-                if r[0]
-            ]
-            statuses = [r[0] for r in db.query(AILawsuit.status).distinct().order_by(AILawsuit.status).all()]
-
-            tmpl = _pr_env.get_template("ai_lawsuits.html.j2")
-            html = tmpl.render(
-                lawsuits=lawsuits,
-                page=page,
-                total_pages=total_pages,
-                total=total,
-                claim_type_filter=claim_type_filter,
-                defendant_filter=defendant_filter,
-                status_filter=status_filter,
-                claim_types=claim_types,
-                defendants=defendants,
-                statuses=statuses,
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}/ai-lawsuits/",
-                seo={
-                    "title": "AI Lawsuits Tracker — Who's Suing OpenAI, Stability AI & More",
-                    "description": (
-                        f"Every major lawsuit filed against AI companies — {total or 'dozens of'} cases "
-                        "covering copyright, privacy, and defamation. NYT vs OpenAI, Getty vs Stability AI, "
-                        "and more. Filter by claim type, defendant, and status."
-                    ),
-                    "keywords": (
-                        "ai copyright lawsuit, suing openai, openai lawsuit, stability ai lawsuit, "
-                        "ai stealing art lawsuit, is ai art theft, ai training data copyright"
-                    ),
-                    "canonical": f"{_base_url()}/ai-lawsuits/",
-                },
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.exception("ai-lawsuits index render failed: %s", exc)
-        abort(500)
-
-
-# ── Fighting Back ─────────────────────────────────────────────────────
-
-_RESISTANCE_PER_PAGE = 24
-
-
-@app.route("/fighting-back/")
-@app.route("/fighting-back")
-def fighting_back_index():
-    try:
-        from src.models import AIResistanceAction, SessionLocal, init_db
-        from src.page_renderer import _env as _pr_env
-
-        page = request.args.get("page", 1, type=int)
-        if page < 1:
-            page = 1
-        actor_type_filter = request.args.get("actor_type", "").strip()
-        action_type_filter = request.args.get("action_type", "").strip()
-        industry_filter = request.args.get("industry", "").strip()
-
-        init_db()
-        db = SessionLocal()
-        try:
-            q = db.query(AIResistanceAction).order_by(
-                AIResistanceAction.announced_date.desc(), AIResistanceAction.id.desc()
-            )
-            if actor_type_filter:
-                q = q.filter(AIResistanceAction.actor_type == actor_type_filter)
-            if action_type_filter:
-                q = q.filter(AIResistanceAction.action_type == action_type_filter)
-            if industry_filter:
-                q = q.filter(AIResistanceAction.industry.ilike(f"%{industry_filter}%"))
-
-            total = q.count()
-            total_pages = max(1, (total + _RESISTANCE_PER_PAGE - 1) // _RESISTANCE_PER_PAGE)
-            page = min(page, total_pages)
-            actions = q.offset((page - 1) * _RESISTANCE_PER_PAGE).limit(_RESISTANCE_PER_PAGE).all()
-
-            actor_types = [
-                r[0] for r in
-                db.query(AIResistanceAction.actor_type).distinct().order_by(AIResistanceAction.actor_type).all()
-            ]
-            action_types = [
-                r[0] for r in
-                db.query(AIResistanceAction.action_type).distinct().order_by(AIResistanceAction.action_type).all()
-            ]
-            industries = [
-                r[0] for r in
-                db.query(AIResistanceAction.industry).filter(AIResistanceAction.industry.isnot(None))
-                .distinct().order_by(AIResistanceAction.industry).all()
-            ]
-
-            tmpl = _pr_env.get_template("fighting_back.html.j2")
-            html = tmpl.render(
-                actions=actions,
-                page=page,
-                total_pages=total_pages,
-                total=total,
-                actor_type_filter=actor_type_filter,
-                action_type_filter=action_type_filter,
-                industry_filter=industry_filter,
-                actor_types=actor_types,
-                action_types=action_types,
-                industries=industries,
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}/fighting-back/",
-                seo={
-                    "title": "Fighting Back Against AI — No-AI Policies, Worker Protections & Laws",
-                    "description": (
-                        f"{total or 'Dozens of'} unions, companies, and governments drawing the line on AI. "
-                        "Track no-AI policies, worker protection clauses, AI legislation, and collective "
-                        "actions from SAG-AFTRA to the EU AI Act."
-                    ),
-                    "keywords": (
-                        "anti ai, against machines, no ai policy, companies against ai, stop ai, "
-                        "ai boycott, union ai contract, ai worker protection, no ai movement, anti ai movement"
-                    ),
-                    "canonical": f"{_base_url()}/fighting-back/",
-                },
-            )
-            return Response(html, mimetype="text/html")
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.exception("fighting-back index render failed: %s", exc)
-        abort(500)
-
-
-# ── Parenting Hub ────────────────────────────────────────────────────
-
-@app.route("/parents/")
-@app.route("/parents")
-def parents_hub():
-    try:
-        from src.page_renderer import _env as _pr_env
-
-        tmpl = _pr_env.get_template("parents_index.html.j2")
-        html = tmpl.render(
-            site_name=settings.site_name,
-            canonical_url=f"{_base_url()}/parents/",
-            seo={
-                "title": "Parenting in the Age of AI — A Parent's Plain-English Guide",
-                "description": (
-                    "Screen time, what your kids should study, AI safety risks, social media algorithms, "
-                    "and how to use AI as a learning tool. A practical guide for parents — not tech experts."
-                ),
-                "keywords": (
-                    "parenting and ai, ai and children, how to talk to kids about ai, "
-                    "is character ai safe for kids, ai safety for kids, kids and artificial intelligence"
-                ),
-                "canonical": f"{_base_url()}/parents/",
-            },
-        )
-        return Response(html, mimetype="text/html")
-    except Exception as exc:
-        logger.exception("parents hub render failed: %s", exc)
-        abort(500)
-
-
-_VALID_PARENT_SPOKES = frozenset({
-    "screen-time", "what-to-study", "ai-safety", "how-to-use-ai-for-good", "social-media"
-})
-
-
-@app.route("/parents/<spoke>/")
-@app.route("/parents/<spoke>")
-def parent_spoke(spoke: str):
-    if spoke not in _VALID_PARENT_SPOKES:
-        abort(404)
-    return _serve_landing_page(f"parent:{spoke}")
-
-
-# ── Tool Placeholders ─────────────────────────────────────────────────
-
-_TOOL_PAGES = {
-    "ai-risk-assessment": {
-        "title": "How AI Could Affect Your Life",
-        "subtitle": "10 questions about your job, your community, and your family. Find out what's actually at risk for you.",
-        "description": (
-            "Not sure how AI affects you personally? This short quiz walks you through the real "
-            "risks — for your job, your neighborhood, your kids, and your data. You'll get a "
-            "plain-English picture of where you're most exposed and what you can do about it. "
-            "Takes about 3 minutes. No corporate jargon."
-        ),
-        "canonical_path": "/ai-risk-assessment/",
-    },
-    "no-ai-policy-template": {
-        "title": "No-AI Policy Template",
-        "subtitle": "A plain-English pledge for freelancers, artists, teachers, and anyone who wants to draw the line.",
-        "description": (
-            "Not everyone wants AI in their work — and that's a completely legitimate choice. "
-            "This template gives you a clear, human-readable statement you can publish on your "
-            "website, share with clients, or post in your classroom. Covers your creative work, "
-            "communications, and decisions. Free to use, easy to customize."
-        ),
-        "canonical_path": "/no-ai-policy-template/",
-    },
-    "human-made-policy-template": {
-        "title": "Human-Made Label Template",
-        "subtitle": "Tell the world your work is made by a real person — and mean it.",
-        "description": (
-            "In a world flooded with AI-generated content, 'made by a human' is becoming "
-            "something people actually care about. This template gives you the language to say "
-            "it clearly and credibly — on your site, in your portfolio, in your contracts. "
-            "Includes a simple checklist to keep yourself honest. For creators, teachers, "
-            "journalists, and anyone whose craft depends on trust."
-        ),
-        "canonical_path": "/human-made-policy-template/",
-    },
-}
-
-
-def _render_tool_placeholder(slug: str) -> Response:
-    tool = _TOOL_PAGES.get(slug)
-    if not tool:
-        abort(404)
-    try:
-        from src.page_renderer import _env as _pr_env
-        tmpl = _pr_env.get_template("tool_placeholder.html.j2")
-        html = tmpl.render(
-            tool={"slug": slug, **tool},
-            site_name=settings.site_name,
-            canonical_url=f"{_base_url()}{tool['canonical_path']}",
-        )
-        return Response(html, mimetype="text/html")
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("tool placeholder render failed for slug=%s: %s", slug, exc)
-        abort(500)
-
-
-@app.route("/ai-risk-assessment/")
-@app.route("/ai-risk-assessment")
-def tool_ai_risk_assessment():
-    return _render_tool_placeholder("ai-risk-assessment")
-
-
-@app.route("/no-ai-policy-template/")
-@app.route("/no-ai-policy-template")
-def tool_no_ai_policy():
-    return _render_tool_placeholder("no-ai-policy-template")
-
-
-@app.route("/human-made-policy-template/")
-@app.route("/human-made-policy-template")
-def tool_human_made_policy():
-    return _render_tool_placeholder("human-made-policy-template")
-
-
-# ── API endpoints ─────────────────────────────────────────────────────
-
-@app.route("/api/subscribe", methods=["POST"])
-def subscribe():
-    data = request.get_json(silent=True) or {}
-    email = data.get("email", "").strip()
-
-    if not email or "@" not in email:
-        return jsonify({"ok": False, "error": "Valid email required"}), 400
-
-    api_key = settings.buttondown_api_key
-    if not api_key:
-        logger.error("BUTTONDOWN_API_KEY not configured")
-        return jsonify({"ok": False, "error": "Newsletter signup is not configured"}), 503
-
-    subscriber_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-    if subscriber_ip and "," in subscriber_ip:
-        subscriber_ip = subscriber_ip.split(",")[0].strip()
-
-    try:
-        resp = httpx.post(
-            BUTTONDOWN_API_URL,
-            json={
-                "email_address": email,
-                "type": "regular",
-                "ip_address": subscriber_ip,
-                "metadata": {"site": settings.site_name, "site_url": _base_url()},
-            },
-            headers={"Authorization": f"Token {api_key}"},
-            timeout=15,
-        )
-
-        if resp.status_code in (200, 201):
-            return jsonify({"ok": True})
-
-        body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-        code = body.get("code", "")
-
-        if resp.status_code == 409 or code == "email_already_exists":
-            return jsonify({"ok": True, "note": "Already subscribed"})
-        if code == "email_invalid":
-            return jsonify({"ok": False, "error": "Please enter a valid email address"}), 400
-        if code == "subscriber_blocked":
-            resp2 = httpx.post(
-                BUTTONDOWN_API_URL,
-                json={"email_address": email, "type": "regular", "metadata": {"site": settings.site_name}},
-                headers={"Authorization": f"Token {api_key}", "X-Buttondown-Bypass-Firewall": "true"},
-                timeout=15,
-            )
-            if resp2.status_code in (200, 201):
-                return jsonify({"ok": True})
-            if resp2.status_code == 409:
-                return jsonify({"ok": True, "note": "Already subscribed"})
-
-        logger.error("Buttondown API error %d (code=%s): %s", resp.status_code, code, resp.text)
-        return jsonify({"ok": False, "error": "Subscription failed, please try again"}), 502
-
-    except Exception as e:
-        logger.error("Buttondown request failed: %s", e)
-        return jsonify({"ok": False, "error": "Service unavailable"}), 503
-
-
-@app.post("/api/subscribe-tool/<slug>")
-def subscribe_tool(slug: str):
-    """Email capture for tool waitlists. Tags the subscriber in Buttondown."""
-    if slug not in _TOOL_PAGES:
-        abort(404)
-
-    data = request.get_json(silent=True) or {}
-    email = data.get("email", "").strip()
-
-    if not email or "@" not in email:
-        return jsonify({"ok": False, "error": "Valid email required"}), 400
-
-    api_key = settings.buttondown_api_key
-    if not api_key:
-        return jsonify({"ok": True, "note": "Waitlist noted (newsletter not configured)"}), 200
-
-    try:
-        resp = httpx.post(
-            BUTTONDOWN_API_URL,
-            json={
-                "email_address": email,
-                "type": "regular",
-                "tags": [f"tool-waitlist-{slug}"],
-                "metadata": {"tool": slug, "site": settings.site_name},
-            },
-            headers={"Authorization": f"Token {api_key}"},
-            timeout=15,
-        )
-        if resp.status_code in (200, 201, 409):
-            return jsonify({"ok": True})
-        return jsonify({"ok": False, "error": "Signup failed"}), 502
-    except Exception as e:
-        logger.error("Tool subscribe failed: %s", e)
-        return jsonify({"ok": False, "error": "Service unavailable"}), 503
-
-
-@app.post("/api/feedback")
-def feedback():
-    from src.newsletter import send_email
-
-    data = request.get_json(silent=True) or {}
-    honeypot = str(data.get("company") or data.get("website") or "").strip()
-    if honeypot:
-        return jsonify({"ok": False, "error": "Invalid submission"}), 400
-
-    feedback_text = str(data.get("feedback") or "").strip()
-    if not feedback_text:
-        return jsonify({"ok": False, "error": "Feedback is required"}), 400
-    if len(feedback_text) > 4000:
-        return jsonify({"ok": False, "error": "Feedback is too long"}), 400
-
-    email_raw = str(data.get("email") or "").strip()
-    reply_email = ""
-    if email_raw:
-        if len(email_raw) > 254:
-            return jsonify({"ok": False, "error": "Email is too long"}), 400
-        if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email_raw):
-            return jsonify({"ok": False, "error": "Please enter a valid email or leave it blank"}), 400
-        reply_email = email_raw
-
-    submitted_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    page_url = str(data.get("page_url") or request.referrer or "").strip()
-    page_title = str(data.get("page_title") or "").strip()
-
-    html_body = f"""
-    <h2>New {settings.site_name} feedback</h2>
-    <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">
-      <tr><td><strong>Date</strong></td><td>{_xml_escape(submitted_at)}</td></tr>
-      <tr><td><strong>Reply email</strong></td><td>{_xml_escape(reply_email or '(not provided)')}</td></tr>
-      <tr><td><strong>Page title</strong></td><td>{_xml_escape(page_title or 'Unknown')}</td></tr>
-      <tr><td><strong>Page URL</strong></td><td>{_xml_escape(page_url or 'Unknown')}</td></tr>
-    </table>
-    <h3>Feedback</h3>
-    <p style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:15px;line-height:1.5;">{_xml_escape(feedback_text)}</p>
-    """
-
-    result = send_email(
-        to=settings.seo_email_recipient,
-        subject=f"New {settings.site_name} feedback",
-        html_body=html_body,
-        reply_to=reply_email or None,
+            else:
+                lastmod = now
+            urls.append((f"{base}/briefing/{row.slug}", lastmod, "weekly"))
+
+        lp_rows = db.query(LandingPage.canonical_path, LandingPage.updated_at).all()
+        for row in lp_rows:
+            path = row.canonical_path or ""
+            if not path:
+                continue
+            if not path.startswith("/"):
+                path = "/" + path
+            lastmod = row.updated_at.strftime("%Y-%m-%d") if row.updated_at else now
+            urls.append((f"{base}{path}", lastmod, "monthly"))
+
+        conditions = db.query(VACondition.slug, VACondition.updated_at).all()
+        for row in conditions:
+            lastmod = row.updated_at.strftime("%Y-%m-%d") if row.updated_at else now
+            urls.append((f"{base}/va-disability/{row.slug}/", lastmod, "monthly"))
+    finally:
+        db.close()
+
+    url_tags = "\n".join(
+        f"  <url>\n    <loc>{loc}</loc>\n    <lastmod>{lm}</lastmod>\n    "
+        f"<changefreq>{cf}</changefreq>\n  </url>"
+        for loc, lm, cf in urls
     )
-    if not result.get("success"):
-        logger.error("Feedback email failed: %s", result)
-        return jsonify({"ok": False, "error": "Feedback could not be sent"}), 502
 
-    return jsonify({"ok": True})
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{url_tags}\n"
+        "</urlset>"
+    )
+    return Response(xml, status=200, mimetype="application/xml; charset=utf-8")
 
 
-# ── Admin ─────────────────────────────────────────────────────────────
+@app.route("/news-sitemap.xml")
+def news_sitemap():
+    base = settings.canonical_site_url
+    cutoff = datetime.utcnow() - timedelta(hours=48)
 
-@app.route("/admin/regen-report", methods=["POST"])
-def admin_regen_report():
-    """Trigger a re-analysis + blog generation pass without a full scrape."""
-    auth = request.headers.get("Authorization", "")
-    token = settings.admin_token
-    if not token or auth != f"Bearer {token}":
-        abort(401)
+    db = SessionLocal()
     try:
-        from src.analyzer import run_analysis
-        from src.blog_generator import run_blog_generation
-        analysis = run_analysis()
-        blog = run_blog_generation()
-        return jsonify({"ok": True, "analysis": analysis, "blog": blog})
-    except Exception as exc:
-        logger.exception("admin regen-report failed: %s", exc)
-        return jsonify({"ok": False, "error": str(exc)}), 500
+        posts = (
+            db.query(BlogPost)
+            .filter(BlogPost.created_at >= cutoff)
+            .order_by(BlogPost.published_date.desc())
+            .limit(1000)
+            .all()
+        )
+        news_tags = []
+        for post in posts:
+            canonical = f"{base}/briefing/{post.slug}"
+            pub_date = ""
+            if post.published_date:
+                pub_date = (
+                    post.published_date.isoformat() + "T00:00:00Z"
+                    if hasattr(post.published_date, "isoformat")
+                    else str(post.published_date) + "T00:00:00Z"
+                )
+            title_esc = _xml_escape(post.title or "")
+            news_tags.append(
+                f"  <url>\n"
+                f"    <loc>{canonical}</loc>\n"
+                f"    <news:news>\n"
+                f"      <news:publication>\n"
+                f"        <news:name>{_xml_escape(settings.site_name)}</news:name>\n"
+                f"        <news:language>en</news:language>\n"
+                f"      </news:publication>\n"
+                f"      <news:publication_date>{pub_date}</news:publication_date>\n"
+                f"      <news:title>{title_esc}</news:title>\n"
+                f"    </news:news>\n"
+                f"  </url>"
+            )
+    finally:
+        db.close()
 
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+        '        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n'
+        + "\n".join(news_tags)
+        + "\n</urlset>"
+    )
+    return Response(xml, status=200, mimetype="application/xml; charset=utf-8")
 
-# ── SEO / crawl infrastructure ────────────────────────────────────────
 
 @app.route("/robots.txt")
 def robots_txt():
-    base = settings.canonical_site_url.rstrip("/")
+    base = settings.canonical_site_url
     body = (
         "User-agent: *\n"
         "Allow: /\n"
         "Disallow: /api/\n"
         "Disallow: /admin/\n"
         "Disallow: /health\n"
-        f"Sitemap: {base}/sitemap.xml\n"
+        f"\nSitemap: {base}/sitemap.xml\n"
         f"Sitemap: {base}/news-sitemap.xml\n"
     )
-    return Response(body, mimetype="text/plain")
+    return Response(body, status=200, mimetype="text/plain; charset=utf-8")
 
 
-@app.route("/sitemap.xml")
-def sitemap_xml():
-    from datetime import date as _date, datetime as _datetime, timezone as _tz
-
-    base = settings.canonical_site_url.rstrip("/")
-    today_iso = _datetime.utcnow().replace(tzinfo=_tz.utc).date().isoformat()
-
-    static_urls = [
-        {"loc": f"{base}/", "lastmod": today_iso, "changefreq": "daily", "priority": "1.0"},
-        {"loc": f"{base}/briefing", "lastmod": today_iso, "changefreq": "daily", "priority": "0.9"},
-        {"loc": f"{base}/ai-backlash/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.9"},
-        {"loc": f"{base}/ai-incidents/", "lastmod": today_iso, "changefreq": "daily", "priority": "0.85"},
-        {"loc": f"{base}/responsible-ai/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
-        {"loc": f"{base}/explainers", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.8"},
-        {"loc": f"{base}/ai-layoffs/", "lastmod": today_iso, "changefreq": "daily", "priority": "0.9"},
-        {"loc": f"{base}/ai-lawsuits/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
-        {"loc": f"{base}/fighting-back/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
-        {"loc": f"{base}/ai-proof-jobs/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
-        {"loc": f"{base}/will-ai-replace-my-job/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.8"},
-        {"loc": f"{base}/data-center-map/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
-        {"loc": f"{base}/parents/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.85"},
-        {"loc": f"{base}/ai-risk-assessment/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
-        {"loc": f"{base}/no-ai-policy-template/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
-        {"loc": f"{base}/human-made-policy-template/", "lastmod": today_iso, "changefreq": "weekly", "priority": "0.7"},
-    ]
-
-    # Parent spoke pages
-    for spoke in ["screen-time", "what-to-study", "ai-safety", "how-to-use-ai-for-good", "social-media"]:
-        static_urls.append({
-            "loc": f"{base}/parents/{spoke}/",
-            "lastmod": today_iso,
-            "changefreq": "biweekly",
-            "priority": "0.8",
-        })
-
-    # Industry landing pages
-    for slug in ["healthcare", "finance", "legal", "retail", "education", "manufacturing", "real-estate", "marketing"]:
-        static_urls.append({
-            "loc": f"{base}/responsible-ai/{slug}/",
-            "lastmod": today_iso,
-            "changefreq": "weekly",
-            "priority": "0.85",
-        })
-
-    # BlogPosts
-    try:
-        from src.models import BlogPost, SessionLocal, init_db
-        init_db()
-        db = SessionLocal()
-        try:
-            posts = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc())
-                .all()
-            )
-            for p in posts:
-                lastmod = p.updated_at.date().isoformat() if p.updated_at else today_iso
-                static_urls.append({
-                    "loc": f"{base}/briefing/{p.slug}",
-                    "lastmod": lastmod,
-                    "changefreq": "weekly",
-                    "priority": "0.8",
-                })
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.warning("sitemap: blog posts walk failed: %s", exc)
-
-    # LandingPages (explainers)
-    try:
-        from src.models import LandingPage, SessionLocal as SL2, init_db as idb2
-        idb2()
-        db2 = SL2()
-        try:
-            lps = db2.query(LandingPage).filter(LandingPage.page_type == "explainer").all()
-            for lp in lps:
-                path = (lp.canonical_path or "").strip()
-                if path:
-                    static_urls.append({
-                        "loc": f"{base}{path}",
-                        "lastmod": today_iso,
-                        "changefreq": "weekly",
-                        "priority": "0.75",
-                    })
-        finally:
-            db2.close()
-    except Exception as exc:
-        logger.warning("sitemap: landing pages walk failed: %s", exc)
-
-    parts = ['<?xml version="1.0" encoding="UTF-8"?>']
-    parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
-    for u in static_urls:
-        parts.append("<url>")
-        parts.append(f"<loc>{_xml_escape(u['loc'])}</loc>")
-        if u.get("lastmod"):
-            parts.append(f"<lastmod>{_xml_escape(u['lastmod'])}</lastmod>")
-        if u.get("changefreq"):
-            parts.append(f"<changefreq>{_xml_escape(u['changefreq'])}</changefreq>")
-        if u.get("priority"):
-            parts.append(f"<priority>{_xml_escape(u['priority'])}</priority>")
-        parts.append("</url>")
-    parts.append("</urlset>")
-
-    resp = Response("".join(parts), mimetype="application/xml")
-    resp.headers["Cache-Control"] = "public, max-age=3600"
-    return resp
+@app.route("/<path:key_file>.txt")
+def indexnow_key_file(key_file: str):
+    """Serve the IndexNow key verification file at /<key>.txt."""
+    key = settings.indexnow_key or ""
+    if not key or key_file != key:
+        abort(404)
+    return Response(key, status=200, mimetype="text/plain; charset=utf-8")
 
 
-@app.route("/news-sitemap.xml")
-def news_sitemap_xml():
-    from datetime import datetime as _datetime, timezone as _tz, timedelta as _td
-
-    base = settings.canonical_site_url.rstrip("/")
-    publication_name = settings.site_name
-    publication_lang = (settings.site_locale or "en_US").split("_", 1)[0] or "en"
-    cutoff = _datetime.now(_tz.utc) - _td(hours=48)
-
-    items: list[dict] = []
-    try:
-        from src.models import SessionLocal, init_db, BlogPost
-        init_db()
-        db = SessionLocal()
-        try:
-            recent_posts = (
-                db.query(BlogPost)
-                .order_by(BlogPost.published_date.desc(), BlogPost.id.desc())
-                .limit(1000)
-                .all()
-            )
-            for p in recent_posts:
-                pub_dt = p.created_at or p.updated_at
-                if pub_dt is None:
-                    from datetime import datetime as _dt
-                    pub_dt = _dt.combine(p.published_date, _dt.min.time())
-                if pub_dt.tzinfo is None:
-                    pub_dt = pub_dt.replace(tzinfo=_tz.utc)
-                if pub_dt < cutoff:
-                    continue
-                kws = p.keywords_json or []
-                if isinstance(kws, str):
-                    kws = [k.strip() for k in kws.split(",") if k.strip()]
-                items.append({
-                    "loc": f"{base}/briefing/{p.slug}",
-                    "publication_date": pub_dt.isoformat(),
-                    "title": (p.title or "")[:300],
-                    "keywords": ", ".join(kws[:10]),
-                })
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.warning("news-sitemap failed, returning empty: %s", exc)
-
-    parts = ['<?xml version="1.0" encoding="UTF-8"?>']
-    parts.append(
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
-        'xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">'
-    )
-    for it in items:
-        parts.append("<url>")
-        parts.append(f"<loc>{_xml_escape(it['loc'])}</loc>")
-        parts.append("<news:news>")
-        parts.append("<news:publication>")
-        parts.append(f"<news:name>{_xml_escape(publication_name)}</news:name>")
-        parts.append(f"<news:language>{_xml_escape(publication_lang)}</news:language>")
-        parts.append("</news:publication>")
-        parts.append(f"<news:publication_date>{_xml_escape(it['publication_date'])}</news:publication_date>")
-        parts.append(f"<news:title>{_xml_escape(it['title'])}</news:title>")
-        if it["keywords"]:
-            parts.append(f"<news:keywords>{_xml_escape(it['keywords'])}</news:keywords>")
-        parts.append("</news:news>")
-        parts.append("</url>")
-    parts.append("</urlset>")
-
-    resp = Response("".join(parts), mimetype="application/xml")
-    resp.headers["Cache-Control"] = "public, max-age=900"
-    return resp
-
+# ---------------------------------------------------------------------------
+# Routes — OG images
+# ---------------------------------------------------------------------------
 
 @app.route("/og/briefing/<slug>.png")
-def briefing_og_image(slug: str):
+def og_image_briefing(slug: str):
+    db = SessionLocal()
     try:
-        from src.models import BlogPost, SessionLocal, init_db
-        init_db()
-        db = SessionLocal()
-        try:
-            row = db.query(BlogPost.og_image_bytes).filter(BlogPost.slug == slug).first()
-            if row is None:
-                abort(404)
-            png_bytes = row[0]
-            if not png_bytes:
-                fallback = f"{settings.canonical_site_url.rstrip('/')}/static/og-image.png?v=1"
-                resp = redirect(fallback, code=302)
-                resp.headers["Cache-Control"] = "public, max-age=300"
-                return resp
-            resp = Response(png_bytes, mimetype="image/png")
-            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            return resp
-        finally:
-            db.close()
-    except HTTPException:
-        raise
+        post = (
+            db.query(BlogPost.og_image_bytes, BlogPost.title)
+            .filter(BlogPost.slug == slug)
+            .first()
+        )
+        if not post:
+            abort(404)
+        if post.og_image_bytes:
+            return Response(
+                post.og_image_bytes,
+                status=200,
+                mimetype="image/png",
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
+        # Fallback: redirect to a static default OG image
+        return redirect("/static/og-default.png", code=302)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# Routes — API
+# ---------------------------------------------------------------------------
+
+@app.route("/api/subscribe", methods=["POST"])
+def api_subscribe():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"ok": False, "error": "Invalid email address"}), 400
+
+    api_key = settings.buttondown_api_key
+    if not api_key:
+        logger.warning("/api/subscribe called but BUTTONDOWN_API_KEY not set")
+        return jsonify({"ok": False, "error": "Newsletter not configured"}), 503
+
+    try:
+        resp = httpx.post(
+            "https://api.buttondown.email/v1/subscribers",
+            headers={"Authorization": f"Token {api_key}"},
+            json={"email_address": email},
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            return jsonify({"ok": True}), 200
+        if resp.status_code == 409:
+            # Already subscribed — treat as success
+            return jsonify({"ok": True, "already_subscribed": True}), 200
+        logger.warning("Buttondown subscribe failed %d: %s", resp.status_code, resp.text[:200])
+        return jsonify({"ok": False, "error": "Subscription failed"}), 502
     except Exception as exc:
-        logger.exception("og card serve failed for slug=%s: %s", slug, exc)
-        abort(500)
+        logger.error("Buttondown subscribe error: %s", exc)
+        return jsonify({"ok": False, "error": "Upstream error"}), 502
 
 
-@app.route("/<key>.txt")
-def indexnow_key_file(key: str):
-    configured = (settings.indexnow_key or "").strip()
-    if configured and key == configured:
-        return Response(configured, mimetype="text/plain")
-    abort(404)
+@app.route("/api/email-capture", methods=["POST"])
+def api_email_capture():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    source_tool = (data.get("source_tool") or "").strip()[:120]
 
+    if not email or "@" not in email:
+        return jsonify({"ok": False, "error": "Invalid email address"}), 400
+
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "")
+    ip_hash = hashlib.sha256(ip.encode()).hexdigest() if ip else None
+
+    db = SessionLocal()
+    try:
+        capture = EmailCapture(
+            email=email,
+            source_tool=source_tool or None,
+            capture_date=date.today(),
+            ip_hash=ip_hash,
+        )
+        db.add(capture)
+        db.commit()
+        return jsonify({"ok": True}), 200
+    except Exception as exc:
+        db.rollback()
+        logger.error("EmailCapture insert error: %s", exc)
+        return jsonify({"ok": False, "error": "Could not save email"}), 500
+    finally:
+        db.close()
+
+
+@app.route("/api/feedback", methods=["POST"])
+def api_feedback():
+    data = request.get_json(silent=True) or {}
+    honeypot = data.get("honeypot") or data.get("website") or ""
+    if honeypot:
+        # Silently swallow bot submissions
+        return jsonify({"ok": True}), 200
+
+    message = (data.get("message") or "").strip()
+    page_url = (data.get("page_url") or "").strip()[:500]
+
+    if not message:
+        return jsonify({"ok": False, "error": "Message is required"}), 400
+
+    resend_key = settings.resend_api_key
+    if not resend_key:
+        logger.info("Feedback received (Resend not configured): %s", message[:100])
+        return jsonify({"ok": True}), 200
+
+    try:
+        resp = httpx.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {resend_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": settings.newsletter_from_email,
+                "to": [settings.seo_email_recipient],
+                "subject": f"[{settings.site_name}] User Feedback",
+                "text": f"Page: {page_url}\n\nMessage:\n{message}",
+            },
+            timeout=10,
+        )
+        if resp.status_code >= 400:
+            logger.warning("Resend feedback email failed %d: %s", resp.status_code, resp.text[:200])
+    except Exception as exc:
+        logger.error("Resend feedback error: %s", exc)
+
+    return jsonify({"ok": True}), 200
+
+
+# ---------------------------------------------------------------------------
+# Routes — Admin
+# ---------------------------------------------------------------------------
+
+@app.route("/admin/regen-report", methods=["POST"])
+@_require_admin
+def admin_regen_report():
+    """Trigger an in-process regeneration of key landing pages.
+
+    At launch this clears the in-memory page cache so the next request
+    re-renders from the DB. A heavier async job can be wired in here later.
+    """
+    cleared = list(_PAGE_CACHE.keys())
+    _PAGE_CACHE.clear()
+    logger.info("Cache cleared by /admin/regen-report: %d keys", len(cleared))
+    return jsonify({"ok": True, "cleared_keys": cleared}), 200
+
+
+# ---------------------------------------------------------------------------
+# Routes — Health
+# ---------------------------------------------------------------------------
 
 @app.route("/health")
 def health():
+    db = SessionLocal()
+    db_ok = False
+    briefing_count = 0
+    last_briefing_age_hours: Optional[float] = None
     try:
-        from src.models import BlogPost, SessionLocal, init_db
-        from datetime import datetime, timezone, timedelta
-        init_db()
-        db = SessionLocal()
-        try:
-            latest = (
-                db.query(BlogPost.created_at)
-                .order_by(BlogPost.created_at.desc())
-                .first()
-            )
-            db_reachable = True
-            if latest and latest[0]:
-                age = datetime.now(timezone.utc) - latest[0].replace(tzinfo=timezone.utc)
-                latest_briefing_age_hours = round(age.total_seconds() / 3600, 1)
+        briefing_count = db.query(BlogPost).count()
+        db_ok = True
+        latest = (
+            db.query(BlogPost.published_date)
+            .order_by(BlogPost.published_date.desc())
+            .first()
+        )
+        if latest and latest.published_date:
+            pub = latest.published_date
+            if hasattr(pub, "year"):
+                pub_dt = datetime(pub.year, pub.month, pub.day)
             else:
-                latest_briefing_age_hours = None
-        except Exception:
-            db_reachable = False
-            latest_briefing_age_hours = None
-        finally:
-            db.close()
-    except Exception:
-        db_reachable = False
-        latest_briefing_age_hours = None
+                pub_dt = datetime.utcnow()
+            last_briefing_age_hours = round(
+                (datetime.utcnow() - pub_dt).total_seconds() / 3600, 1
+            )
+    except Exception as exc:
+        logger.error("Health check DB error: %s", exc)
+    finally:
+        db.close()
 
-    return {
-        "status": "ok",
-        "db_reachable": db_reachable,
-        "latest_briefing_age_hours": latest_briefing_age_hours,
-    }, 200
+    warnings = []
+    if last_briefing_age_hours is not None and last_briefing_age_hours > 25:
+        warnings.append(f"Last briefing is {last_briefing_age_hours}h old (threshold: 25h)")
 
+    payload = {
+        "status": "ok" if db_ok else "degraded",
+        "db": "ok" if db_ok else "error",
+        "last_briefing_age_hours": last_briefing_age_hours,
+        "briefing_count": briefing_count,
+    }
+    if warnings:
+        payload["warnings"] = warnings
+
+    return jsonify(payload), 200 if db_ok else 503
+
+
+# ---------------------------------------------------------------------------
+# Utility — XML escape (duplicated from page_renderer for local use)
+# ---------------------------------------------------------------------------
+
+def _xml_escape(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#39;")
+    )
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap
+# ---------------------------------------------------------------------------
+
+init_db()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=settings.server_port, debug=True)

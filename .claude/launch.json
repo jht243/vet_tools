@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "article-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["output/preview-article.py"],
+      "port": 8787
+    },
+    {
+      "name": "ban-the-bots",
+      "runtimeExecutable": "/Users/jonathanteplitsky/Desktop/Github Projects/ban_the_bots/.venv/bin/python",
+      "runtimeArgs": ["/Users/jonathanteplitsky/Desktop/Github Projects/ban_the_bots/server.py"],
+      "port": 5001
+    }
+  ]
+}

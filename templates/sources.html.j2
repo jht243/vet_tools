@@ -1,68 +1,55 @@
 {% extends "_base.html.j2" %}
-
-{% block page_hero %}
-<div class="page-hero-strip">
-  <div class="page-hero-inner">
-    <div class="page-hero-eyebrow">Methodology · Authority signal</div>
-    <h1 class="page-hero-title">Sources & Methodology</h1>
-    <p class="page-hero-subtitle">
-      Every briefing is derived from primary government, regulatory, and international
-      monitoring sources — refreshed daily, with full provenance kept for each data point.
-    </p>
-  </div>
-</div>
+{% block title %}{{ seo.title }}{% endblock %}
+{% block meta_description %}{{ seo.description }}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ seo.title | e }}">
+<meta property="og:description" content="{{ seo.description | e }}">
+<meta property="og:url" content="{{ seo.canonical }}">
 {% endblock %}
 
 {% block content %}
-<section class="container">
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>Sources &amp; Methodology</h1>
+    <p>Where our briefings come from and how we decide what to cover.</p>
+  </div>
+</section>
 
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a href="/">Home</a><span>/</span>
-    <span>Sources & Methodology</span>
-  </nav>
+<main class="container" style="max-width:760px;margin:2rem auto;padding:0 1.25rem;">
 
-  <h2 style="font-family:var(--font-serif); color:var(--sr-blue-dark); margin: 32px 0 16px;">Primary sources we monitor</h2>
+  <h2>Primary Sources</h2>
+  <p>Every briefing is based on reporting or official announcements from at least one of the following:</p>
 
-  <div style="display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:32px;">
-    {% for s in sources %}
-    <article style="border:1px solid var(--sr-gray-light); border-left:4px solid var(--sr-blue); padding:18px 22px; border-radius:3px;">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
-        <div>
-          <h3 style="font-family:var(--font-serif); font-size:18px; color:var(--sr-blue-dark);">{{ s.name }}</h3>
-          <div style="font-size:12px; text-transform:uppercase; letter-spacing:0.6px; color:var(--sr-gray-text); margin-top:2px;">
-            {{ s.kind }} · {{ s.tier }}
-          </div>
-        </div>
-        {% if s.entries_count is not none %}
-        <div style="background:var(--sr-gray-bg); padding:6px 12px; border-radius:3px; font-size:13px; color:var(--sr-blue-dark); font-weight:600; white-space:nowrap;">
-          {{ s.entries_count }} entries on file
-        </div>
-        {% endif %}
-      </div>
-      <p style="margin-top:10px; color:var(--sr-dark-text); font-size:15px;">{{ s.description }}</p>
-      <div style="margin-top:8px; font-size:13px;">
-        <strong>Refresh cadence:</strong> {{ s.cadence }} ·
-        <a href="{{ s.url }}" rel="nofollow noopener" target="_blank">View source &rarr;</a>
-      </div>
-    </article>
-    {% endfor %}
+  <ul style="line-height:1.9;">
+    <li><strong>VA.gov News</strong> — official press releases from the Department of Veterans Affairs</li>
+    <li><strong>DoD News</strong> — Department of Defense announcements, including pay and policy changes</li>
+    <li><strong>Federal Register</strong> — official rules and proposed rules from VA, DoD, and OPM</li>
+    <li><strong>Congress.gov / GovTrack</strong> — legislation introduced or passed by the House and Senate Veterans' Affairs committees</li>
+    <li><strong>DFAS</strong> — Defense Finance and Accounting Service military pay tables</li>
+    <li><strong>DoD BAH Rates</strong> — Basic Allowance for Housing rate tables by location and pay grade</li>
+    <li><strong>Google News</strong> — curated headlines from credentialed outlets (Military Times, Stars and Stripes, Defense.gov, Military.com, Task &amp; Purpose, and others)</li>
+  </ul>
+
+  <h2 style="margin-top:2rem;">How We Select Stories</h2>
+  <p>Our automated pipeline scores each article for relevance to veterans and military families. We use the following criteria:</p>
+  <ul style="line-height:1.9;">
+    <li>Direct impact on VA disability ratings or COLA adjustments</li>
+    <li>Changes to military retirement or Blended Retirement System rules</li>
+    <li>PACT Act / burn-pit policy updates</li>
+    <li>Government shutdown risk or federal pay freezes affecting veterans</li>
+    <li>New legislation passing committee or the full House/Senate</li>
+  </ul>
+  <p>We set a <strong>minimum relevance threshold of 4/10</strong>. Stories scoring below that are discarded.</p>
+
+  <h2 style="margin-top:2rem;">Editorial Independence</h2>
+  <p>VA Claims Workspace is independent and not affiliated with the Department of Veterans Affairs, DoD, or any VSO. We do not accept sponsored content that influences our editorial coverage.</p>
+
+  <h2 style="margin-top:2rem;">Disclaimer</h2>
+  <div class="page-disclaimer" style="margin-top:0.75rem;">
+    Content on this site is for informational purposes only. It does not constitute legal, financial, or benefits advice. Always verify information with the VA, a VSO, or an accredited claims agent before making decisions about your benefits.
   </div>
 
-  <h2 style="font-family:var(--font-serif); color:var(--sr-blue-dark); margin:32px 0 12px;">How we use these sources</h2>
-  <p>Each scrape run pulls fresh content from the sources above, deduplicates against what we've already seen, and runs the resulting items through a multi-stage filter:</p>
-  <ol style="margin:12px 0 16px 24px;">
-    <li><strong>Keyword pre-filter</strong> drops items that don't mention Venezuela-relevant entities, sectors, programs, or named officials. About 70% of incoming items get dropped at this step.</li>
-    <li><strong>Tone score</strong> from GDELT (where applicable) is used to prioritise items that read as either materially negative or materially positive — neutral wire copy is deprioritized.</li>
-    <li><strong>Editorial scoring</strong> assigns a 1-10 investor-relevance score, an English headline, sector tags, sentiment, and an investor takeaway. Items scoring below 5 are not published. Scoring runs only on items that survive the first two filters.</li>
-    <li><strong>Long-form analysis</strong> (the <a href="/briefing">/briefing</a> posts) is produced for items scoring 5+.</li>
-    <li><strong>Investment guides and sector pages</strong> (<a href="/invest-in-venezuela">/invest-in-venezuela</a> and <a href="/sectors/mining">/sectors/*</a>) are refreshed on a weekly cadence.</li>
-  </ol>
-
-  <h2 style="font-family:var(--font-serif); color:var(--sr-blue-dark); margin:32px 0 12px;">Editorial standards</h2>
-  <p>This site is independent commentary by an analyst team, not investment advice. Every page links back to the primary source so you can verify the underlying facts before acting. We publish corrections in the next scheduled briefing window when errors are identified.</p>
-
-  <h2 style="font-family:var(--font-serif); color:var(--sr-blue-dark); margin:32px 0 12px;">Get in touch</h2>
-  <p>Found a factual error, want to suggest a source, or interested in syndication? Reply to any briefing email or subscribe below for the daily digest.</p>
-
-</section>
+  <p style="margin-top:2rem;font-size:0.875rem;"><a href="/">&larr; Home</a></p>
+</main>
 {% endblock %}

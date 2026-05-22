@@ -1,17 +1,47 @@
-.venv/
-venv/
+# Python
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.mypy_cache/
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
 .env
-*.db
+.env.local
+.env.*.local
+
+# Project-specific
 storage/
 output/
-*.log
+*.db
+*.pdf
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
 .idea/
 .vscode/
-playwright/.auth/
-src/research/_cache/
-.claude/
+*.swp
+*.swo
+
+# Distribution / packaging
+*.whl
+*.tar.gz
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/

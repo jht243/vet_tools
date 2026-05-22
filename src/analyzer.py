@@ -1,10 +1,14 @@
 """
-LLM-powered analysis for scraped AI news articles.
+LLM-powered relevance analyzer for vet_tools.
 
-Reads entries with status=SCRAPED from the database, sends each to GPT-4o
-with an AI-backlash-focused prompt, and stores structured analysis in
-analysis_json. Only entries scoring above the relevance threshold make it
-into the briefing pipeline.
+For each ExternalArticleEntry with status=SCRAPED, this module decides:
+  1. Is the article relevant to VA/military benefits? (prefilter)
+  2. Is it a rule-based source (rate tables)? → apply template
+  3. Otherwise → call the LLM and store analysis_json
+
+Run via:
+    python -m src.analyzer          # process all pending articles
+    python -m src.analyzer --dry    # print without writing
 """
 
 from __future__ import annotations
@@ -13,315 +17,433 @@ import json
 import logging
 import time
 from datetime import date, timedelta
+from typing import Any, Optional
 
-from openai import OpenAI
+import openai
 
 from src.config import settings
 from src.models import (
-    SessionLocal,
     ExternalArticleEntry,
-    ArticleStatus,
+    GazetteStatus,
+    SessionLocal,
     SourceType,
+    init_db,
 )
 
 logger = logging.getLogger(__name__)
 
-LLM_CALL_BUDGET_PER_RUN = settings.llm_call_budget_per_run
+# ---------------------------------------------------------------------------
+# Relevance vocabulary
+# ---------------------------------------------------------------------------
 
+RELEVANCE_KEYWORDS = (
+    "va disability",
+    "veterans affairs",
+    "va claim",
+    "disability rating",
+    "compensation",
+    "pact act",
+    "burn pit",
+    "toxic exposure",
+    "military retirement",
+    "blended retirement",
+    "brs",
+    "basic allowance",
+    "bah",
+    "military pay",
+    "bas",
+    "va appeals",
+    "board of veterans",
+    "higher level review",
+    "supplemental claim",
+    "nexus letter",
+    "dbq",
+    "c&p exam",
+    "cp exam",
+    "service connection",
+    "government shutdown",
+    "antideficiency act",
+    "veterans legislation",
+    "armed services",
+    "tricare",
+    "va healthcare",
+    "community care",
+    "crsc",
+    "crdp",
+    "concurrent receipt",
+    "survivor benefit",
+    "sbp",
+    "disability compensation",
+    "rating schedule",
+    "cfr 38",
+    "38 cfr",
+    "38 usc",
+)
 
-# Module-level usage accumulator so callers can read token totals after a
-# batch and log estimated cost. Reset with reset_usage().
-_LLM_USAGE = {"calls": 0, "input_tokens": 0, "output_tokens": 0}
+# ---------------------------------------------------------------------------
+# Prompts
+# ---------------------------------------------------------------------------
+
+SYSTEM_PROMPT = """\
+You are a senior policy analyst specializing in US veterans benefits and military compensation.
+You work for an information service helping veterans, military families, and service members understand their benefits.
+
+Your audience: veterans filing disability claims, active-duty service members planning retirement, military families managing benefits, VSO counselors, and benefits attorneys.
+
+For each article, produce a JSON object with these fields:
+{
+  "relevance_score": <int 1-10, where 10 = directly changes veteran/military benefits>,
+  "angles": [<list of applicable angles from: "va_claims_process", "disability_ratings", "retirement_benefits", "military_pay", "government_shutdown", "legislation_policy", "appeals", "pact_act_burn_pits", "healthcare_tricare">],
+  "sentiment": "<one of: positive, negative, mixed>",
+  "status": "<one of: passed, in_progress, announced, in_effect, monitoring>",
+  "category_label": "<display label, e.g. 'VA Claims', 'Disability Ratings', 'Military Retirement'>",
+  "headline_short": "<concise headline, max 80 chars>",
+  "takeaway": "<2-4 sentence analysis of what this means for veterans and military families. Wrap the single most important sentence in literal HTML <strong>...</strong> tags. Do NOT use markdown asterisks.>",
+  "is_breaking": <true if this materially changes veteran/military benefits>,
+  "source_trust": "<one of: official, tier1, state, tier2>"
+}
+
+Score guidelines:
+- 1-3: routine administrative, no benefit impact
+- 4-5: background context, policy monitoring
+- 6-7: meaningful policy change, watch closely
+- 8-10: directly affects veteran claims, pay, or rights
+- PACT Act expansions always 7+
+- VA rating schedule changes always 7+
+- Government shutdown affecting military pay always 8+
+- Major VA policy or legislation always 6+
+
+Return ONLY the JSON object, no markdown fences or explanation.\
+"""
+
+USER_PROMPT_TEMPLATE = """\
+Analyze this article for veteran/military benefits relevance.
+
+Source: {source}
+Published: {published_date}
+Headline: {headline}
+
+Body (may be truncated):
+{body_text}
+
+Return ONLY the JSON object described in your instructions.\
+"""
+
+# ---------------------------------------------------------------------------
+# LLM usage tracking
+# ---------------------------------------------------------------------------
+
+_LLM_USAGE: dict[str, int] = {
+    "calls": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+}
 
 
 def reset_usage() -> None:
-    _LLM_USAGE.update({"calls": 0, "input_tokens": 0, "output_tokens": 0})
+    _LLM_USAGE["calls"] = 0
+    _LLM_USAGE["input_tokens"] = 0
+    _LLM_USAGE["output_tokens"] = 0
 
 
-def get_usage() -> dict:
-    """Current accumulated LLM usage with estimated USD cost."""
-    in_cost = _LLM_USAGE["input_tokens"] / 1_000_000 * settings.llm_input_price_per_mtok
-    out_cost = _LLM_USAGE["output_tokens"] / 1_000_000 * settings.llm_output_price_per_mtok
+def get_usage() -> dict[str, int]:
+    return dict(_LLM_USAGE)
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+_RULE_BASED_SOURCES = {SourceType.VA_RATES, SourceType.BAH_RATES, SourceType.MILITARY_PAY}
+
+# Priority for LLM call ordering (higher = sooner)
+_SOURCE_PRIORITY: dict[SourceType, int] = {
+    SourceType.FEDERAL_REGISTER: 4,
+    SourceType.VA_NEWS: 4,
+    SourceType.DOD_NEWS: 3,
+    SourceType.CONGRESS_VA: 3,
+    SourceType.GOOGLE_NEWS: 2,
+}
+
+
+def _passes_prefilter(article: ExternalArticleEntry) -> bool:
+    """Return True if the article headline/body contains at least one relevance keyword."""
+    haystack = " ".join(
+        [
+            (article.headline or ""),
+            (article.body_text or ""),
+        ]
+    ).lower()
+    return any(kw in haystack for kw in RELEVANCE_KEYWORDS)
+
+
+def _llm_priority(article: ExternalArticleEntry) -> int:
+    try:
+        src = SourceType(article.source) if not isinstance(article.source, SourceType) else article.source
+    except ValueError:
+        return 1
+    return _SOURCE_PRIORITY.get(src, 1)
+
+
+def _rule_based_analysis(article: ExternalArticleEntry) -> dict[str, Any]:
+    """Return a pre-canned analysis dict for rate-table sources."""
+    try:
+        src = SourceType(article.source) if not isinstance(article.source, SourceType) else article.source
+    except ValueError:
+        src = None
+
+    if src == SourceType.VA_RATES:
+        angles = ["disability_ratings"]
+    elif src == SourceType.BAH_RATES:
+        angles = ["military_pay"]
+    else:
+        angles = ["military_pay"]
+
     return {
-        **_LLM_USAGE,
-        "estimated_cost_usd": round(in_cost + out_cost, 4),
+        "relevance_score": 3,
+        "angles": angles,
+        "sentiment": "mixed",
+        "status": "monitoring",
+        "category_label": "Rate Tables",
+        "headline_short": (article.headline or "")[:80],
+        "takeaway": "Rate table reference data updated — check VA.gov or DFAS for current rates.",
+        "is_breaking": False,
+        "source_trust": "official",
+        "_rule_based": True,
     }
 
 
-RELEVANCE_KEYWORDS = (
-    "ai act", "eu ai act", "regulation", "law", "rights",
-    "lawsuit", "class action", "workers", "union",
-    "layoffs", "laid off", "job loss", "job displacement", "replacing workers",
-    "automation", "workforce", "unemployment", "gig workers",
-    "education", "schools", "students", "teachers", "cheating",
-    "kids", "children", "parents", "teens", "mental health",
-    "deepfake", "misinformation", "disinformation", "ai slop",
-    "data center water", "ai water", "ai energy", "electricity",
-    "ai ethics", "ai safety", "ai risk", "ai backlash", "anti-ai",
-    "surveillance", "facial recognition", "privacy", "data collection",
-    "housing", "healthcare", "benefits", "social services",
-    "wages", "income", "cost of living", "consumer",
-)
+def _call_llm(article: ExternalArticleEntry) -> Optional[dict[str, Any]]:
+    """Call the OpenAI API and return the parsed analysis dict, or None on error."""
+    client = openai.OpenAI(api_key=settings.openai_api_key)
 
-SYSTEM_PROMPT = """You are a senior analyst for "Ban the Bots," a citizen-first site covering how AI affects everyday people — not businesses or investors. Stance: skeptical but fair — human-first, not anti-technology. Audience: workers worried about job security, parents navigating AI and their kids, students, teachers, and regular people trying to understand how AI is changing their lives.
-
-Return JSON:
-{
-  "relevance_score": <int 1-10>,
-  "angles": [<list from: jobs_labor, regulation_policy, environment_energy, content_quality, ai_incidents, parenting_education, civil_rights, backlash_protest>],
-  "sentiment": "<concern|neutral|reassurance|mixed>",
-  "category_label": "<e.g. 'Jobs & Labor', 'AI Regulation', 'Kids & Education', 'Environment & Energy', 'Civil Rights', 'AI Harms'>",
-  "headline_short": "<max 80 chars>",
-  "takeaway": "<2-4 sentences for an everyday person; wrap the key sentence in <strong>. No markdown.>",
-  "risk_type": "<job_loss|privacy|education|health|environment|civil_rights|content_quality|regulatory|none>",
-  "is_breaking": <bool>,
-  "source_trust": "<official|tier1|tier2>"
-}
-
-Score 8-10 for stories that directly affect workers, families, students, or communities — job losses, layoffs, school AI policies, regulation that protects or harms people, AI surveillance, deepfakes affecting real people.
-Score 6-7 for meaningful policy changes, significant labor actions, or AI incidents with real human impact.
-Score 4-5 for background trends and context that helps people understand the bigger picture.
-Score 1-3 for AI cybersecurity, enterprise IT, investor news, or technical research with no direct human impact.
-DEPRIORITIZE: AI security vulnerabilities, enterprise compliance, AI model benchmarks, startup funding rounds, chip shortages, B2B software news.
-Return ONLY the JSON object."""
-
-USER_PROMPT_TEMPLATE = """Analyze this article for AI business risk relevance:
-
-SOURCE: {source_name} ({credibility})
-DATE: {published_date}
-HEADLINE: {headline}
-URL: {source_url}
-
-BODY:
-{body_text}"""
-
-
-def run_analysis() -> dict:
-    """
-    Analyze all unprocessed entries in the database.
-    Returns a summary dict with counts.
-    """
-    if not settings.openai_api_key:
-        logger.error("OPENAI_API_KEY not set — skipping analysis")
-        return {"analyzed": 0, "skipped": 0, "errors": 0}
-
-    client = OpenAI(api_key=settings.openai_api_key)
-    db = SessionLocal()
-
-    reset_usage()
-    summary = {"analyzed": 0, "skipped": 0, "errors": 0}
+    body_snippet = (article.body_text or "")[:3000]
+    user_msg = USER_PROMPT_TEMPLATE.format(
+        source=str(article.source),
+        published_date=str(article.published_date),
+        headline=(article.headline or ""),
+        body_text=body_snippet,
+    )
 
     try:
-        ext_articles = (
-            db.query(ExternalArticleEntry)
-            .filter(ExternalArticleEntry.status == ArticleStatus.SCRAPED)
-            .filter(
-                ExternalArticleEntry.published_date
-                >= date.today() - timedelta(days=settings.report_lookback_days)
-            )
-            .all()
+        response = client.chat.completions.create(
+            model=settings.openai_model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.2,
+            max_tokens=512,
         )
+    except openai.OpenAIError as exc:
+        logger.error("OpenAI error analyzing article id=%s: %s", article.id, exc)
+        return None
 
-        logger.info("Analysis queue: %d external articles", len(ext_articles))
+    _LLM_USAGE["calls"] += 1
+    usage = response.usage
+    if usage:
+        _LLM_USAGE["input_tokens"] += usage.prompt_tokens or 0
+        _LLM_USAGE["output_tokens"] += usage.completion_tokens or 0
 
-        rule_based, llm_candidates = _partition_articles(ext_articles)
+    raw = (response.choices[0].message.content or "").strip()
+    # Strip accidental markdown fences
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
 
-        logger.info(
-            "Partitioned: %d rule-based, %d LLM candidates | budget=%d",
-            len(rule_based),
-            len(llm_candidates),
-            LLM_CALL_BUDGET_PER_RUN,
-        )
-
-        for article in rule_based:
-            try:
-                article.analysis_json = _rule_based_analysis(article)
-                article.status = ArticleStatus.ANALYZED
-                summary["analyzed"] += 1
-            except Exception as e:
-                logger.error("Rule-based analysis failed for article %d: %s", article.id, e)
-                summary["errors"] += 1
-        db.commit()
-        logger.info(
-            "Rule-based pass: %d entries marked analyzed (no LLM cost)",
-            len(rule_based),
-        )
-
-        llm_budget = LLM_CALL_BUDGET_PER_RUN
-
-        for article in llm_candidates:
-            if llm_budget <= 0:
-                logger.info("LLM budget exhausted; skipping rest")
-                summary["skipped"] += 1
-                continue
-            try:
-                analysis = _analyze_article(
-                    client,
-                    headline=article.headline,
-                    body_text=article.body_text or "",
-                    source_name=article.source_name or "Unknown",
-                    credibility=article.credibility.value if article.credibility else "tier2",
-                    published_date=str(article.published_date),
-                    source_url=article.source_url,
-                )
-                article.analysis_json = analysis
-                article.status = ArticleStatus.ANALYZED
-                db.commit()
-                summary["analyzed"] += 1
-                llm_budget -= 1
-                logger.info(
-                    "LLM analyzed [budget %d left]: %s (score=%s)",
-                    llm_budget,
-                    article.headline[:60],
-                    analysis.get("relevance_score", "?"),
-                )
-            except Exception as e:
-                logger.error("Analysis failed for article %d: %s", article.id, e)
-                summary["errors"] += 1
-                db.rollback()
-
-            time.sleep(0.5)
-
-        db.commit()
-
-    finally:
-        db.close()
-
-    usage = get_usage()
-    summary["llm_usage"] = usage
-    logger.info(
-        "Analysis complete: analyzed=%d skipped=%d errors=%d | "
-        "LLM calls=%d input_tok=%d output_tok=%d est_cost=$%.4f",
-        summary["analyzed"],
-        summary["skipped"],
-        summary["errors"],
-        usage["calls"],
-        usage["input_tokens"],
-        usage["output_tokens"],
-        usage["estimated_cost_usd"],
-    )
-    return summary
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        logger.warning("JSON parse error for article id=%s: %s | raw=%r", article.id, exc, raw[:200])
+        return None
 
 
-def _partition_articles(articles: list) -> tuple[list, list]:
+def _partition_articles(
+    articles: list[ExternalArticleEntry],
+) -> tuple[list[ExternalArticleEntry], list[ExternalArticleEntry]]:
     """Split articles into (rule_based, llm_candidates).
 
-    Rule-based: AI_INCIDENT_DB gets a fixed score (already structured data).
-    LLM candidates: must clear a keyword pre-screen, sorted by priority.
+    rule_based:    rate table sources — handled without LLM
+    llm_candidates: everything else that passes the keyword prefilter, sorted by priority desc
     """
-    rule_based = []
-    llm_candidates = []
+    rule_based: list[ExternalArticleEntry] = []
+    llm_candidates: list[ExternalArticleEntry] = []
 
-    for a in articles:
-        if a.source == SourceType.AI_INCIDENT_DB:
-            rule_based.append(a)
-            continue
+    for art in articles:
+        try:
+            src = SourceType(art.source) if not isinstance(art.source, SourceType) else art.source
+        except ValueError:
+            src = None
 
-        if not _passes_prefilter(a):
-            rule_based.append(a)
-            continue
-
-        llm_candidates.append(a)
+        if src in _RULE_BASED_SOURCES:
+            rule_based.append(art)
+        elif _passes_prefilter(art):
+            llm_candidates.append(art)
+        else:
+            logger.debug("Prefilter dropped article id=%s headline=%r", art.id, art.headline)
 
     llm_candidates.sort(key=_llm_priority, reverse=True)
     return rule_based, llm_candidates
 
 
-def _passes_prefilter(article) -> bool:
-    """Cheap heuristic: must look AI-relevant before we pay for an LLM call."""
-    text = f"{article.headline or ''} {article.body_text or ''}".lower()
-    return any(kw in text for kw in RELEVANCE_KEYWORDS)
+def _persist_analysis(
+    db,
+    article: ExternalArticleEntry,
+    analysis: dict[str, Any],
+) -> None:
+    article.analysis_json = analysis
+    article.status = GazetteStatus.ANALYZED
+    db.add(article)
 
 
-def _llm_priority(article) -> tuple:
-    """Higher tuple = analyzed first when budget is tight."""
-    source_rank = {
-        SourceType.EU_AI_ACT: 4,
-        SourceType.FTC_AI: 4,
-        SourceType.CONGRESS_AI: 3,
-        SourceType.NIST_RMF: 3,
-        SourceType.BLS_LABOR: 3,
-        SourceType.GOOGLE_NEWS: 2,
-        SourceType.ARXIV_AI: 2,
-        SourceType.SEJ_ALGO: 2,
-    }.get(article.source, 1)
-    tone_magnitude = abs(article.tone_score) if article.tone_score is not None else 0
-    return (source_rank, tone_magnitude)
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 
-def _rule_based_analysis(article) -> dict:
-    """Templated analysis for high-volume, low-variance sources."""
-    if article.source == SourceType.AI_INCIDENT_DB:
-        meta = article.extra_metadata or {}
-        title = (meta.get("title") or article.headline or "Unknown incident")[:80]
-        harm = meta.get("harm_type") or "unspecified harm"
-        return {
-            "relevance_score": 6,
-            "angles": ["ai_incidents"],
-            "sentiment": "concern",
-            "category_label": "AI Incident",
-            "headline_short": title,
-            "takeaway": (
-                f"<strong>An AI incident has been logged involving {harm}.</strong> "
-                "This entry is auto-tagged from the AI Incident Database. "
-                "Full analysis available in the briefing."
-            ),
-            "risk_type": "reputational",
-            "is_breaking": False,
-            "source_trust": "tier1",
-            "_rule_based": True,
-        }
+def run_analysis(
+    lookback_days: Optional[int] = None,
+    dry_run: bool = False,
+    budget: Optional[int] = None,
+) -> dict[str, Any]:
+    """Analyze all pending ExternalArticleEntry rows.
 
-    return {
-        "relevance_score": 2,
-        "angles": [],
-        "sentiment": "neutral",
-        "category_label": "Background",
-        "headline_short": (article.headline or "")[:80],
-        "takeaway": "Routine entry — flagged below relevance threshold by pre-screen.",
-        "risk_type": "none",
-        "is_breaking": False,
-        "source_trust": "tier2",
-        "_rule_based": True,
+    Args:
+        lookback_days: Only consider articles published within this many days.
+                       Defaults to settings.report_lookback_days.
+        dry_run:       If True, print results but do not write to the database.
+        budget:        Maximum number of LLM calls this run.
+                       Defaults to settings.llm_call_budget_per_run.
+
+    Returns:
+        A summary dict with counts and token usage.
+    """
+    init_db()
+
+    if lookback_days is None:
+        lookback_days = settings.report_lookback_days
+    if budget is None:
+        budget = settings.llm_call_budget_per_run
+
+    cutoff_date = date.today() - timedelta(days=lookback_days)
+
+    summary: dict[str, Any] = {
+        "articles_fetched": 0,
+        "rule_based": 0,
+        "llm_analyzed": 0,
+        "llm_skipped_budget": 0,
+        "prefilter_dropped": 0,
+        "errors": 0,
     }
 
+    db = SessionLocal()
+    try:
+        pending = (
+            db.query(ExternalArticleEntry)
+            .filter(
+                ExternalArticleEntry.status == GazetteStatus.SCRAPED,
+                ExternalArticleEntry.published_date >= cutoff_date,
+            )
+            .order_by(ExternalArticleEntry.published_date.desc())
+            .all()
+        )
 
-def _analyze_article(
-    client: OpenAI,
-    headline: str,
-    body_text: str,
-    source_name: str,
-    credibility: str,
-    published_date: str,
-    source_url: str,
-) -> dict:
-    body_truncated = body_text[:3000] if body_text else "(no body text available)"
+        summary["articles_fetched"] = len(pending)
+        logger.info("Analyzer: %d pending articles (lookback=%d days)", len(pending), lookback_days)
 
-    user_msg = USER_PROMPT_TEMPLATE.format(
-        source_name=source_name,
-        credibility=credibility,
-        published_date=published_date,
-        headline=headline,
-        source_url=source_url,
-        body_text=body_truncated,
+        rule_based, llm_candidates = _partition_articles(pending)
+        summary["prefilter_dropped"] = len(pending) - len(rule_based) - len(llm_candidates)
+
+        # --- Rule-based (rate tables) ---
+        for art in rule_based:
+            analysis = _rule_based_analysis(art)
+            logger.debug("Rule-based article id=%s → score=%s", art.id, analysis.get("relevance_score"))
+            if not dry_run:
+                _persist_analysis(db, art, analysis)
+            summary["rule_based"] += 1
+
+        # --- LLM candidates ---
+        llm_calls_used = 0
+        for art in llm_candidates:
+            if llm_calls_used >= budget:
+                logger.warning(
+                    "LLM budget exhausted (%d calls). %d articles skipped.",
+                    budget,
+                    len(llm_candidates) - llm_calls_used,
+                )
+                summary["llm_skipped_budget"] += len(llm_candidates) - llm_calls_used
+                break
+
+            analysis = _call_llm(art)
+            llm_calls_used += 1
+
+            if analysis is None:
+                summary["errors"] += 1
+                continue
+
+            score = analysis.get("relevance_score", 0)
+            logger.info(
+                "Analyzed id=%s score=%s headline=%r",
+                art.id,
+                score,
+                (art.headline or "")[:60],
+            )
+
+            if not dry_run:
+                _persist_analysis(db, art, analysis)
+            summary["llm_analyzed"] += 1
+
+        if not dry_run:
+            db.commit()
+
+        # Cost estimate
+        usage = get_usage()
+        cost_usd = (
+            usage["input_tokens"] / 1_000_000 * settings.llm_input_price_per_mtok
+            + usage["output_tokens"] / 1_000_000 * settings.llm_output_price_per_mtok
+        )
+        summary["llm_calls"] = usage["calls"]
+        summary["input_tokens"] = usage["input_tokens"]
+        summary["output_tokens"] = usage["output_tokens"]
+        summary["estimated_cost_usd"] = round(cost_usd, 4)
+
+        logger.info(
+            "Analyzer done — rule_based=%d llm_analyzed=%d errors=%d "
+            "tokens_in=%d tokens_out=%d est_cost=$%.4f",
+            summary["rule_based"],
+            summary["llm_analyzed"],
+            summary["errors"],
+            usage["input_tokens"],
+            usage["output_tokens"],
+            cost_usd,
+        )
+
+    finally:
+        db.close()
+
+    return summary
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import argparse
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+    parser = argparse.ArgumentParser(description="Run VA/military benefits article analyzer")
+    parser.add_argument("--dry", action="store_true", help="Dry run — do not write to DB")
+    parser.add_argument("--lookback", type=int, default=None, help="Override lookback_days")
+    parser.add_argument("--budget", type=int, default=None, help="Override LLM call budget")
+    args = parser.parse_args()
+
+    result = run_analysis(
+        lookback_days=args.lookback,
+        dry_run=args.dry,
+        budget=args.budget,
     )
-
-    response = client.chat.completions.create(
-        model=settings.openai_model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ],
-        temperature=0.3,
-        max_tokens=600,
-        response_format={"type": "json_object"},
-    )
-
-    usage = getattr(response, "usage", None)
-    if usage is not None:
-        _LLM_USAGE["calls"] += 1
-        _LLM_USAGE["input_tokens"] += getattr(usage, "prompt_tokens", 0) or 0
-        _LLM_USAGE["output_tokens"] += getattr(usage, "completion_tokens", 0) or 0
-
-    raw = response.choices[0].message.content
-    return json.loads(raw)
+    print(json.dumps(result, indent=2))
