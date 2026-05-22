@@ -526,8 +526,10 @@ def _sdn_actors_for_sector(sector_slug: str, *, limit: int = 10) -> list:
     which case the template skips the section. This means we only
     surface the cross-cluster section when it carries real signal.
     """
-    from src.data.sdn_profiles import list_all_profiles
-    from src.seo.cluster_topology import program_to_sector_links
+    try:
+        from src.seo.cluster_topology import program_to_sector_links
+    except ImportError:
+        return []
 
     target_path = f"/sectors/{sector_slug}"
     relevant_programs = {
@@ -536,6 +538,8 @@ def _sdn_actors_for_sector(sector_slug: str, *, limit: int = 10) -> list:
     }
     if not relevant_programs:
         return []
+
+    from src.data.sdn_profiles import list_all_profiles
 
     # Sort by bucket priority (individuals first — they're the searchable
     # name queries from GSC), then alphabetically.

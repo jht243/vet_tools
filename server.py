@@ -350,6 +350,7 @@ def explainers_index():
 
 
 @app.route("/explainers/<slug>")
+@app.route("/explainers/<slug>/")
 def explainer_page(slug: str):
     try:
         from src.models import LandingPage, BlogPost, SessionLocal, init_db
