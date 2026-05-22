@@ -80,7 +80,9 @@ class Settings(BaseSettings):
     admin_token: str = ""
 
     # SEO / canonical URL
-    site_url: str = "https://banthebots.org"
+    # www.banthebots.org is the primary serving domain on Render (apex redirects to www).
+    # Canonicals must match the primary domain to avoid canonical loops.
+    site_url: str = "https://www.banthebots.org"
     site_name: str = "Ban the Bots"
     site_owner_org: str = "Ban the Bots"
     site_locale: str = "en_US"
@@ -89,19 +91,18 @@ class Settings(BaseSettings):
     def canonical_site_url(self) -> str:
         """Customer-facing base URL (emails, sitemap entries, JSON-LD identifiers).
 
-        Render and other hosts may set SITE_URL to a *.onrender.com hostname.
-        We always prefer the live bare domain.
+        Render serves on www.banthebots.org and redirects apex → www.
+        Always normalise to the www version so canonical tags match the primary domain.
         """
         u = (self.site_url or "").strip().rstrip("/")
         if not u.startswith(("http://", "https://")):
             u = "https://" + u
         lower = u.lower()
-        if (
-            not u
-            or "onrender.com" in lower
-            or lower in {"https://www.banthebots.org", "http://www.banthebots.org"}
-        ):
-            return "https://banthebots.org"
+        if not u or "onrender.com" in lower:
+            return "https://www.banthebots.org"
+        # Normalise bare apex to www
+        if lower in {"https://banthebots.org", "http://banthebots.org"}:
+            return "https://www.banthebots.org"
         return u
 
     # Long-form blog post generator. Each post is roughly 700-900 words.

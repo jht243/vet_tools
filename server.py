@@ -70,19 +70,6 @@ _NAV_CACHE_PATHS = frozenset({
 })
 
 
-@app.before_request
-def _redirect_www_to_apex():
-    """301-redirect www.banthebots.org → banthebots.org so the canonical domain
-    is always the apex. Without this, both versions serve 200 and Ahrefs sees
-    the canonical tag pointing to a URL that 301s back to www — a canonical loop."""
-    host = request.host or ""
-    if host.startswith("www."):
-        apex = host[4:]
-        url = request.url.replace(f"://{host}", f"://{apex}", 1)
-        return redirect(url, code=301)
-    return None
-
-
 @app.after_request
 def _gzip_response(response: Response) -> Response:
     try:
@@ -549,23 +536,20 @@ def ai_incidents_index():
             sectors = [r[0] for r in db.query(AIIncident.sector).distinct().order_by(AIIncident.sector).all() if r[0]]
             severities = ["critical", "high", "medium", "low"]
 
-            env = Environment(loader=FileSystemLoader("templates"))
-            try:
-                tmpl = env.get_template("ai_incidents.html.j2")
-                html = tmpl.render(
-                    incidents=incidents,
-                    page=page,
-                    total_pages=total_pages,
-                    total=total,
-                    sector_filter=sector_filter,
-                    severity_filter=severity_filter,
-                    sectors=sectors,
-                    severities=severities,
-                    site_name=settings.site_name,
-                    canonical_url=f"{_base_url()}/ai-incidents/",
-                )
-            except Exception:
-                return redirect("/briefing", code=302)
+            from src.page_renderer import _env as _pr_env
+            tmpl = _pr_env.get_template("ai_incidents.html.j2")
+            html = tmpl.render(
+                incidents=incidents,
+                page=page,
+                total_pages=total_pages,
+                total=total,
+                sector_filter=sector_filter,
+                severity_filter=severity_filter,
+                sectors=sectors,
+                severities=severities,
+                site_name=settings.site_name,
+                canonical_url=f"{_base_url()}/ai-incidents/",
+            )
             return Response(html, mimetype="text/html")
         finally:
             db.close()
@@ -595,17 +579,14 @@ def ai_incident_detail(incident_id: int):
                 .limit(3)
                 .all()
             )
-            env = Environment(loader=FileSystemLoader("templates"))
-            try:
-                tmpl = env.get_template("ai_incident_detail.html.j2")
-                html = tmpl.render(
-                    incident=incident,
-                    related_briefings=related_briefings,
-                    site_name=settings.site_name,
-                    canonical_url=f"{_base_url()}/ai-incidents/{incident_id}",
-                )
-            except Exception:
-                return redirect("/ai-incidents/", code=302)
+            from src.page_renderer import _env as _pr_env
+            tmpl = _pr_env.get_template("ai_incident_detail.html.j2")
+            html = tmpl.render(
+                incident=incident,
+                related_briefings=related_briefings,
+                site_name=settings.site_name,
+                canonical_url=f"{_base_url()}/ai-incidents/{incident_id}",
+            )
             return Response(html, mimetype="text/html")
         finally:
             db.close()
@@ -1086,21 +1067,13 @@ def _render_tool_placeholder(slug: str) -> Response:
     if not tool:
         abort(404)
     try:
-        from jinja2 import Environment, FileSystemLoader
-        env = Environment(loader=FileSystemLoader("templates"))
-        try:
-            tmpl = env.get_template("tool_placeholder.html.j2")
-            html = tmpl.render(
-                tool={"slug": slug, **tool},
-                site_name=settings.site_name,
-                canonical_url=f"{_base_url()}{tool['canonical_path']}",
-            )
-        except Exception:
-            # Minimal fallback
-            html = (
-                f"<!doctype html><html><head><title>{tool['title']} — {settings.site_name}</title></head>"
-                f"<body><h1>{tool['title']}</h1><p>{tool['subtitle']}</p><p>{tool['description']}</p></body></html>"
-            )
+        from src.page_renderer import _env as _pr_env
+        tmpl = _pr_env.get_template("tool_placeholder.html.j2")
+        html = tmpl.render(
+            tool={"slug": slug, **tool},
+            site_name=settings.site_name,
+            canonical_url=f"{_base_url()}{tool['canonical_path']}",
+        )
         return Response(html, mimetype="text/html")
     except HTTPException:
         raise

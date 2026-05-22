@@ -23,11 +23,11 @@ services:
       - key: NEWSLETTER_API_KEY
         sync: false
       - key: SITE_URL
-        value: https://banthebots.org
+        value: https://www.banthebots.org
       - key: SITE_NAME
         value: Ban the Bots
       - key: CANONICAL_SITE_URL
-        value: https://banthebots.org
+        value: https://www.banthebots.org
       - key: GOOGLE_INDEXING_SA_JSON
         sync: false
       - key: INDEXNOW_KEY
@@ -76,9 +76,9 @@ services:
       - key: GITHUB_REPO
         value: jht243/banthebots
       - key: SITE_URL
-        value: https://banthebots.org
+        value: https://www.banthebots.org
       - key: CANONICAL_SITE_URL
-        value: https://banthebots.org
+        value: https://www.banthebots.org
       - key: LOG_LEVEL
         value: INFO
 
@@ -98,7 +98,7 @@ services:
       - key: GOOGLE_REPORTING_GA4_PROPERTY_ID
         sync: false
       - key: GOOGLE_REPORTING_GSC_SITE_URL
-        value: https://banthebots.org
+        value: https://www.banthebots.org
       - key: SEO_EMAIL_PROVIDER
         value: resend
       - key: SEO_EMAIL_RECIPIENT
