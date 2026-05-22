@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VA Claims Workspace — Flask web server.
+Rank and Pay — Flask web server.
 """
 from __future__ import annotations
 
@@ -79,32 +79,122 @@ US_STATES = {
 }
 
 VA_CLAIMS_SPOKES = {
-    "initial-claim", "increase-claim", "supplemental-claim",
-    "higher-level-review", "board-appeal", "nexus-letter",
-    "dbq-guide", "cp-exam-prep", "evidence-gathering", "secondary-conditions",
+    "how-to-file-a-va-claim",
+    "service-connection-requirements",
+    "nexus-letter-guide",
+    "c-and-p-exam-tips",
+    "va-claim-timeline",
+    "buddy-statement-guide",
+    "va-claim-checklist",
+    "secondary-conditions",
+    "va-rating-increase",
+    "claim-for-increase",
 }
 
 RETIREMENT_SPOKES = {
-    "blended-retirement-system", "legacy-retirement", "crsc",
-    "crdp", "medical-retirement", "reserve-retirement", "survivor-benefit-plan",
+    "final-pay-retirement",
+    "high-36-retirement",
+    "blended-retirement-system",
+    "disability-retirement-vs-chapter61",
+    "reserve-retirement-points",
+    "survivor-benefit-plan",
+    "concurrent-receipt-crsc-crdp",
 }
 
 MILITARY_PAY_SPOKES = {
     "basic-pay", "basic-allowance-housing", "special-pays",
 }
 
-TOOL_SLUGS = {
-    "va-disability-rating-calculator", "military-retirement-calculator",
-    "bah-calculator", "military-pay-calculator", "crsc-crdp-calculator",
-    "va-claim-checklist", "secondary-conditions-lookup",
-}
+TOOLS_DATA = [
+    {
+        "slug": "va-disability-rating-calculator",
+        "title": "VA Disability Rating Calculator",
+        "description": "Calculate your combined VA disability rating using the whole-person method and see your estimated monthly compensation.",
+        "icon": "⚖️",
+        "live": True,
+        "template": "tool_va_rating.html.j2",
+        "seo_title": "VA Disability Rating Calculator 2026 | Rank and Pay",
+        "seo_description": "Calculate your combined VA disability rating using the official whole-person method. Get your estimated 2026 monthly compensation and check TDIU eligibility — free, no signup.",
+    },
+    {
+        "slug": "military-retirement-calculator",
+        "title": "Military Retirement Pay Calculator",
+        "description": "Estimate your monthly military retirement pay under Final Pay, High-36, or the Blended Retirement System (BRS).",
+        "icon": "🎖️",
+        "live": True,
+        "template": "tool_retirement.html.j2",
+        "seo_title": "Military Retirement Pay Calculator 2026 | Rank and Pay",
+        "seo_description": "Estimate your military retirement pay under Final Pay, High-36, or Blended Retirement System. Enter your grade and years of service for an instant 2026 calculation — free.",
+    },
+    {
+        "slug": "bah-calculator",
+        "title": "BAH Calculator",
+        "description": "Estimate your Basic Allowance for Housing by pay grade and dependent status, with links to the official DoD BAH tool.",
+        "icon": "🏠",
+        "live": True,
+        "template": "tool_bah.html.j2",
+        "seo_title": "BAH Calculator 2026: Military Housing Allowance | Rank and Pay",
+        "seo_description": "Estimate your 2026 Basic Allowance for Housing (BAH) by pay grade and dependent status. See national average ranges and get your exact local rate from DoD — free tool.",
+    },
+    {
+        "slug": "military-pay-calculator",
+        "title": "Military Pay Calculator",
+        "description": "See your full military pay breakdown: base pay, BAH, BAS, and estimated take-home after taxes.",
+        "icon": "💰",
+        "live": True,
+        "template": "tool_military_pay.html.j2",
+        "seo_title": "2026 Military Base Pay Calculator | Rank and Pay",
+        "seo_description": "Calculate your full 2026 military pay: base pay, BAH, BAS, and estimated take-home after federal taxes. Select your grade and years of service for an instant breakdown — free.",
+    },
+    {
+        "slug": "crsc-crdp-calculator",
+        "title": "CRSC vs CRDP Calculator",
+        "description": "Find out whether Combat-Related Special Compensation (CRSC) or Concurrent Retirement and Disability Pay (CRDP) pays you more.",
+        "icon": "⚔️",
+        "live": True,
+        "template": "tool_crsc_crdp.html.j2",
+        "seo_title": "CRSC vs CRDP Calculator: Which Pays More? | Rank and Pay",
+        "seo_description": "Compare CRSC vs CRDP side-by-side to find which concurrent receipt option pays you more. Enter your retirement pay and VA rating for an instant 2026 estimate — free tool.",
+    },
+    {
+        "slug": "va-claim-checklist",
+        "title": "VA Disability Claim Checklist",
+        "description": "Interactive checklist of every document and form you need to file a strong VA disability claim.",
+        "icon": "✅",
+        "live": True,
+        "template": "tool_checklist.html.j2",
+        "seo_title": "VA Disability Claim Checklist 2026 | Rank and Pay",
+        "seo_description": "Complete interactive checklist for filing a VA disability claim in 2026. Track your evidence, forms, and statements with a progress bar. Saves automatically — free, no signup.",
+    },
+    {
+        "slug": "secondary-conditions-lookup",
+        "title": "Secondary Conditions Lookup",
+        "description": "Look up common secondary service-connected conditions linked to primary diagnoses like PTSD, back pain, and tinnitus.",
+        "icon": "🔍",
+        "live": True,
+        "template": "tool_secondary_conditions.html.j2",
+        "seo_title": "VA Secondary Conditions Lookup Tool | Rank and Pay",
+        "seo_description": "Look up secondary service-connected VA conditions by primary diagnosis. Understand the medical nexus for PTSD, back pain, tinnitus, TBI, and more — free lookup tool.",
+    },
+]
+
+TOOL_SLUGS = {t["slug"] for t in TOOLS_DATA}
 
 EXPLAINER_SLUGS = {
-    "va-combined-rating-formula", "nexus-letter", "dbq-explained",
-    "cp-exam-tips", "secondary-conditions", "brs-vs-legacy", "tsp-military",
-    "crsc-vs-crdp", "medical-retirement-process", "va-appeal-options",
-    "bah-explained", "burn-pit-exposure-pact-act", "military-state-tax",
-    "va-disability-increase",
+    "what-is-a-nexus-letter",
+    "va-disability-rating-explained",
+    "pact-act-explained",
+    "cdr-explained",
+    "tdiu-explained",
+    "va-appeals-process",
+    "blended-retirement-system",
+    "bah-explained",
+    "tricare-options-explained",
+    "government-shutdown-veterans",
+    "military-retirement-pay-calculator-guide",
+    "va-ebenefits-vs-va-gov",
+    "va-buddy-statement-guide",
+    "va-disability-back-pay",
 }
 
 BLOG_POSTS_PER_PAGE = 20
@@ -188,6 +278,29 @@ def _get_recent_briefings(limit: int = 3, sector_filter: Optional[str] = None) -
         db.close()
 
 
+def _build_breadcrumbs(page: LandingPage) -> list[dict]:
+    """Build breadcrumb list from canonical_path."""
+    base = settings.canonical_site_url
+    crumbs = [{"label": "Home", "url": "/"}]
+    path = (page.canonical_path or "/").strip("/")
+    parts = [p for p in path.split("/") if p]
+    accumulated = ""
+    label_map = {
+        "va-claims": "VA Claims",
+        "va-disability": "VA Disability",
+        "military-retirement": "Military Retirement",
+        "military-pay": "Military Pay",
+        "state-benefits": "State Benefits",
+        "explainers": "Explainers",
+        "briefing": "Briefings",
+    }
+    for i, part in enumerate(parts):
+        accumulated += f"/{part}"
+        label = label_map.get(part, part.replace("-", " ").title())
+        crumbs.append({"label": label, "url": accumulated + "/"})
+    return crumbs
+
+
 def _serve_landing_page(
     page_key: str, template: str = "landing.html.j2", **extra_ctx
 ) -> Response:
@@ -197,14 +310,18 @@ def _serve_landing_page(
         if not page:
             abort(404)
         seo = build_landing_page_seo(page)
-        jsonld = build_landing_page_jsonld(page, seo)
+        faq = page.faq_json or []
+        jsonld = build_landing_page_jsonld(page, seo, faq_block=faq)
         cluster_ctx = _build_cluster_ctx(page)
         recent = _get_recent_briefings(limit=3, sector_filter=page.sector_slug)
+        breadcrumbs = _build_breadcrumbs(page)
         html = render_template(
             template,
             page=page,
             seo=seo,
             jsonld=jsonld,
+            faq=faq,
+            breadcrumbs=breadcrumbs,
             cluster_ctx=cluster_ctx,
             recent_briefings=recent,
             **extra_ctx,
@@ -231,7 +348,7 @@ def homepage():
                 .all()
             )
             seo = build_seo_base(
-                title="Free VA Disability & Military Benefits Tools | VA Claims Workspace",
+                title="Free VA Disability & Military Benefits Tools | Rank and Pay",
                 description=settings.site_description,
                 path="/",
                 og_type="website",
@@ -241,6 +358,7 @@ def homepage():
                 seo=seo,
                 total_briefings=total,
                 recent_posts=recent_posts,
+                recent_briefings=recent_posts,
             )
         finally:
             db.close()
@@ -272,7 +390,7 @@ def blog_index():
         total_pages = max(1, (total + BLOG_POSTS_PER_PAGE - 1) // BLOG_POSTS_PER_PAGE)
 
         seo = build_seo_base(
-            title="VA & Military Benefits Briefings | VA Claims Workspace",
+            title="VA & Military Benefits Briefings | Rank and Pay",
             description=(
                 "Daily briefings covering VA disability claims, military retirement, "
                 "pay tables, legislation, and veteran benefits news."
@@ -308,7 +426,7 @@ def blog_feed():
         db.close()
 
 
-@app.route("/briefing/<slug>")
+@app.route("/briefing/<slug>/")
 def blog_post(slug: str):
     db = SessionLocal()
     try:
@@ -344,9 +462,9 @@ def blog_post(slug: str):
 @app.route("/sources/")
 def sources():
     seo = build_seo_base(
-        title="Our Sources | VA Claims Workspace",
+        title="Our Sources | Rank and Pay",
         description=(
-            "VA Claims Workspace draws from official VA, DoD, and federal government "
+            "Rank and Pay draws from official VA, DoD, and federal government "
             "sources to deliver accurate veteran benefits information."
         ),
         path="/sources/",
@@ -362,14 +480,14 @@ def sources():
 @app.route("/tools/")
 def tools_index():
     seo = build_seo_base(
-        title="Free VA & Military Benefits Tools | VA Claims Workspace",
+        title="Free VA & Military Benefits Tools | Rank and Pay",
         description=(
             "Free calculators and tools for VA disability ratings, BAH, military pay, "
             "CRSC/CRDP, and more — no signup required."
         ),
         path="/tools/",
     )
-    html = render_template("tools_index.html.j2", seo=seo, tool_slugs=TOOL_SLUGS)
+    html = render_template("tools_index.html.j2", seo=seo, tools=TOOLS_DATA)
     return _gzip_response(html)
 
 
@@ -377,26 +495,43 @@ def tools_index():
 def tool_page(tool_slug: str):
     if tool_slug not in TOOL_SLUGS:
         abort(404)
-    title_map = {
-        "va-disability-rating-calculator": "VA Disability Rating Calculator",
-        "military-retirement-calculator": "Military Retirement Calculator",
-        "bah-calculator": "BAH Calculator",
-        "military-pay-calculator": "Military Pay Calculator",
-        "crsc-crdp-calculator": "CRSC vs CRDP Calculator",
-        "va-claim-checklist": "VA Claim Checklist",
-        "secondary-conditions-lookup": "Secondary Conditions Lookup",
-    }
-    tool_name = title_map.get(tool_slug, tool_slug.replace("-", " ").title())
+    tool = next((t for t in TOOLS_DATA if t["slug"] == tool_slug), None)
+    if tool is None:
+        abort(404)
     seo = build_seo_base(
-        title=f"{tool_name} | VA Claims Workspace",
-        description=f"Free {tool_name} for veterans — no signup required.",
+        title=tool["seo_title"],
+        description=tool["seo_description"],
         path=f"/tools/{tool_slug}/",
     )
+    base_url = "https://rankandpay.org"
+    jsonld = json.dumps({
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebApplication",
+                "name": tool["title"],
+                "description": tool["description"],
+                "url": f"{base_url}/tools/{tool_slug}/",
+                "applicationCategory": "FinanceApplication",
+                "operatingSystem": "Any",
+                "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+                "browserRequirements": "Requires JavaScript",
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{base_url}/"},
+                    {"@type": "ListItem", "position": 2, "name": "Tools", "item": f"{base_url}/tools/"},
+                    {"@type": "ListItem", "position": 3, "name": tool["title"], "item": f"{base_url}/tools/{tool_slug}/"},
+                ],
+            },
+        ],
+    })
     html = render_template(
-        "tool_placeholder.html.j2",
+        tool["template"],
         seo=seo,
-        tool_slug=tool_slug,
-        tool_name=tool_name,
+        tool=tool,
+        jsonld=jsonld,
     )
     return _gzip_response(html)
 
@@ -441,34 +576,53 @@ def va_disability_condition(condition: str):
                 .first()
             )
             if landing:
+                faq = landing.faq_json or []
                 seo = build_landing_page_seo(landing)
-                jsonld = build_landing_page_jsonld(landing, seo)
+                jsonld = build_landing_page_jsonld(landing, seo, faq_block=faq)
                 cluster_ctx = _build_cluster_ctx(landing)
                 recent = _get_recent_briefings(limit=3, sector_filter=landing.sector_slug)
+                breadcrumbs = [
+                    {"label": "Home", "url": "/"},
+                    {"label": "VA Disability", "url": "/va-disability/"},
+                    {"label": va_condition.name, "url": f"/va-disability/{condition}/"},
+                ]
                 html = render_template(
                     "condition_detail.html.j2",
                     page=landing,
                     condition=va_condition,
                     seo=seo,
                     jsonld=jsonld,
+                    faq=faq,
+                    body_html=landing.body_html,
+                    key_takeaways=landing.key_takeaways,
+                    breadcrumbs=breadcrumbs,
                     cluster_ctx=cluster_ctx,
                     recent_briefings=recent,
                 )
             else:
                 seo = build_seo_base(
-                    title=f"{va_condition.name} VA Disability | VA Claims Workspace",
+                    title=f"{va_condition.name} VA Disability | Rank and Pay",
                     description=(
                         f"VA disability ratings, evidence requirements, and secondary "
                         f"conditions for {va_condition.name}."
                     ),
                     path=f"/va-disability/{condition}/",
                 )
+                breadcrumbs = [
+                    {"label": "Home", "url": "/"},
+                    {"label": "VA Disability", "url": "/va-disability/"},
+                    {"label": va_condition.name, "url": f"/va-disability/{condition}/"},
+                ]
                 html = render_template(
                     "condition_detail.html.j2",
                     page=None,
                     condition=va_condition,
                     seo=seo,
                     jsonld="{}",
+                    faq=[],
+                    body_html="",
+                    key_takeaways=[],
+                    breadcrumbs=breadcrumbs,
                     cluster_ctx={},
                     recent_briefings=[],
                 )
@@ -482,15 +636,19 @@ def va_disability_condition(condition: str):
         )
         if not landing:
             abort(404)
+        faq = landing.faq_json or []
         seo = build_landing_page_seo(landing)
-        jsonld = build_landing_page_jsonld(landing, seo)
+        jsonld = build_landing_page_jsonld(landing, seo, faq_block=faq)
         cluster_ctx = _build_cluster_ctx(landing)
         recent = _get_recent_briefings(limit=3, sector_filter=landing.sector_slug)
+        breadcrumbs = _build_breadcrumbs(landing)
         html = render_template(
             "landing.html.j2",
             page=landing,
             seo=seo,
             jsonld=jsonld,
+            faq=faq,
+            breadcrumbs=breadcrumbs,
             cluster_ctx=cluster_ctx,
             recent_briefings=recent,
         )
@@ -562,7 +720,7 @@ def explainers_index():
             .all()
         )
         seo = build_seo_base(
-            title="VA & Military Benefits Explainers | VA Claims Workspace",
+            title="VA & Military Benefits Explainers | Rank and Pay",
             description=(
                 "Plain-language explainers for VA disability ratings, military retirement, "
                 "BAH, appeals, and more — written for veterans, not lawyers."
@@ -575,7 +733,7 @@ def explainers_index():
         db.close()
 
 
-@app.route("/explainers/<slug>")
+@app.route("/explainers/<slug>/")
 def explainer_detail(slug: str):
     if slug not in EXPLAINER_SLUGS:
         abort(404)
@@ -603,6 +761,10 @@ def sitemap():
         (f"{base}/military-retirement/", now, "weekly"),
         (f"{base}/military-pay/", now, "weekly"),
         (f"{base}/state-benefits/", now, "weekly"),
+        (f"{base}/about/", now, "monthly"),
+        (f"{base}/privacy/", now, "monthly"),
+        (f"{base}/terms/", now, "monthly"),
+        (f"{base}/contact/", now, "monthly"),
     ]
 
     for spoke in sorted(VA_CLAIMS_SPOKES):
@@ -739,6 +901,61 @@ def indexnow_key_file(key_file: str):
     if not key or key_file != key:
         abort(404)
     return Response(key, status=200, mimetype="text/plain; charset=utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Routes — Static / Legal pages
+# ---------------------------------------------------------------------------
+
+@app.route("/about/")
+def about_page():
+    seo = build_seo_base(
+        title="About Rank and Pay | Veterans Benefits Resource",
+        description=(
+            "Rank and Pay provides free tools, calculators, and daily briefings for "
+            "U.S. veterans and military families — covering VA disability, military pay, "
+            "BAH, retirement, and state benefits."
+        ),
+        path="/about/",
+    )
+    html = render_template("about.html.j2", seo=seo)
+    return _gzip_response(html)
+
+
+@app.route("/privacy/")
+def privacy_page():
+    seo = build_seo_base(
+        title="Privacy Policy | Rank and Pay",
+        description="Privacy policy for Rank and Pay — how we collect, use, and protect your information.",
+        path="/privacy/",
+    )
+    html = render_template("privacy.html.j2", seo=seo)
+    return _gzip_response(html)
+
+
+@app.route("/terms/")
+def terms_page():
+    seo = build_seo_base(
+        title="Terms of Use | Rank and Pay",
+        description="Terms of use for Rank and Pay. Rank and Pay provides general information only — not legal or benefits advice.",
+        path="/terms/",
+    )
+    html = render_template("terms.html.j2", seo=seo)
+    return _gzip_response(html)
+
+
+@app.route("/contact/")
+def contact_page():
+    seo = build_seo_base(
+        title="Contact Rank and Pay | Veterans Benefits Questions",
+        description=(
+            "Contact Rank and Pay with questions, feedback, or corrections. "
+            "We're a small team dedicated to helping veterans navigate benefits."
+        ),
+        path="/contact/",
+    )
+    html = render_template("contact.html.j2", seo=seo)
+    return _gzip_response(html)
 
 
 # ---------------------------------------------------------------------------
