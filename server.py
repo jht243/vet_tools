@@ -249,6 +249,376 @@ TOOLS_DATA = [
 
 TOOL_SLUGS = {t["slug"] for t in TOOLS_DATA}
 
+# ---------------------------------------------------------------------------
+# Eligibility quizzes
+# ---------------------------------------------------------------------------
+
+ELIGIBILITY_QUIZZES = {
+    "va-disability-claim": {
+        "title": "VA Disability Claim Eligibility Quiz",
+        "icon": "🎖️",
+        "description": "Find out in 60 seconds if you may qualify for VA disability compensation.",
+        "cta_url": "/va-claims/how-to-file-a-va-claim/",
+        "cta_label": "Read the Full VA Claims Guide",
+        "eligible_message": "Based on your answers, you appear to meet the basic eligibility requirements for VA disability compensation. The next step is to gather your evidence and file your claim.",
+        "ineligible_message": "Based on your answers, you may not currently qualify for VA disability compensation.",
+        "questions": [
+            {
+                "id": "discharge",
+                "question": "What was your discharge status?",
+                "help": "Most VA benefits require an honorable or general discharge.",
+                "options": [
+                    {"label": "Honorable", "qualifies": True},
+                    {"label": "General (under honorable conditions)", "qualifies": True},
+                    {"label": "Other Than Honorable, Bad Conduct, or Dishonorable", "qualifies": False, "reason": "Most VA disability benefits require an honorable or general discharge. You may be able to apply for a discharge upgrade through your branch's Discharge Review Board."},
+                    {"label": "I'm not sure", "qualifies": True},
+                ],
+            },
+            {
+                "id": "diagnosis",
+                "question": "Do you have a current medical diagnosis of a physical or mental condition?",
+                "help": "A current diagnosis from any qualified medical provider counts.",
+                "options": [
+                    {"label": "Yes, I have a current diagnosis", "qualifies": True},
+                    {"label": "I have symptoms but no formal diagnosis yet", "qualifies": True},
+                    {"label": "No, I'm in good health currently", "qualifies": False, "reason": "VA disability compensation requires a current medical condition. If you develop a condition later, you can file at that time."},
+                ],
+            },
+            {
+                "id": "in-service-event",
+                "question": "Did the condition begin during, or was it caused by, your military service?",
+                "help": "This includes injuries, illnesses, or events that happened in service — even if symptoms appeared later.",
+                "options": [
+                    {"label": "Yes, it began or was caused during service", "qualifies": True},
+                    {"label": "It was caused by another service-connected condition", "qualifies": True},
+                    {"label": "I'm not sure if it's connected to service", "qualifies": True},
+                    {"label": "No, it's unrelated to my service", "qualifies": False, "reason": "VA disability compensation requires a service connection. If you have evidence suggesting a link to service, you may still qualify — consult a VSO."},
+                ],
+            },
+            {
+                "id": "served",
+                "question": "Did you serve on active duty, in the Reserves, or in the National Guard?",
+                "options": [
+                    {"label": "Active duty", "qualifies": True},
+                    {"label": "Reserves with active-duty deployment", "qualifies": True},
+                    {"label": "National Guard with federal activation", "qualifies": True},
+                    {"label": "Reserves/Guard with no active-duty time", "qualifies": False, "reason": "Reserve and Guard members typically need active-duty service or federal activation to qualify for most VA disability benefits."},
+                ],
+            },
+        ],
+    },
+
+    "gi-bill": {
+        "title": "GI Bill Eligibility Quiz",
+        "icon": "🎓",
+        "description": "See if you qualify for Post-9/11 or Montgomery GI Bill education benefits.",
+        "cta_url": "/va-benefits/gi-bill/",
+        "cta_label": "Read the GI Bill Guide",
+        "eligible_message": "Based on your answers, you likely qualify for GI Bill education benefits. Here's everything you need to know to apply and use your benefits.",
+        "ineligible_message": "Based on your answers, you may not qualify for the GI Bill at this time.",
+        "questions": [
+            {
+                "id": "service-dates",
+                "question": "When did you serve on active duty?",
+                "options": [
+                    {"label": "After September 10, 2001 (Post-9/11)", "qualifies": True},
+                    {"label": "Between 1985 and 2001 (Montgomery GI Bill era)", "qualifies": True},
+                    {"label": "Before 1985", "qualifies": False, "reason": "The GI Bill programs primarily cover service after 1985. Older veterans may have different education benefits available — contact your state VA office."},
+                ],
+            },
+            {
+                "id": "discharge",
+                "question": "What was your discharge status?",
+                "options": [
+                    {"label": "Honorable", "qualifies": True},
+                    {"label": "General (under honorable conditions)", "qualifies": True},
+                    {"label": "Other Than Honorable, Bad Conduct, or Dishonorable", "qualifies": False, "reason": "The GI Bill requires an honorable discharge. A discharge upgrade may restore eligibility."},
+                    {"label": "Still on active duty", "qualifies": True},
+                ],
+            },
+            {
+                "id": "length-of-service",
+                "question": "How long did you serve on active duty (or are currently serving)?",
+                "help": "Counts cumulative active-duty time after 9/11/2001 for Post-9/11 GI Bill.",
+                "options": [
+                    {"label": "36+ months", "qualifies": True},
+                    {"label": "At least 90 days", "qualifies": True},
+                    {"label": "Less than 90 days", "qualifies": False, "reason": "The Post-9/11 GI Bill generally requires at least 90 days of aggregate active-duty service, unless discharged for a service-connected disability."},
+                    {"label": "I was discharged early due to a service-connected disability", "qualifies": True},
+                ],
+            },
+        ],
+    },
+
+    "va-home-loan": {
+        "title": "VA Home Loan Eligibility Quiz",
+        "icon": "🏠",
+        "description": "Check if you qualify for a VA home loan with zero down payment and no PMI.",
+        "cta_url": "/va-benefits/va-home-loan/",
+        "cta_label": "Read the VA Home Loan Guide",
+        "eligible_message": "Based on your answers, you likely qualify for a VA home loan. The next step is to obtain your Certificate of Eligibility (COE) and find a VA-approved lender.",
+        "ineligible_message": "Based on your answers, you may not currently qualify for a VA home loan.",
+        "questions": [
+            {
+                "id": "service-type",
+                "question": "What was your service status?",
+                "options": [
+                    {"label": "Active-duty veteran", "qualifies": True},
+                    {"label": "Active duty (currently serving)", "qualifies": True},
+                    {"label": "National Guard or Reserves", "qualifies": True},
+                    {"label": "Surviving spouse of a veteran", "qualifies": True},
+                    {"label": "I never served in the military", "qualifies": False, "reason": "VA home loans are restricted to qualifying veterans, active-duty members, and certain surviving spouses."},
+                ],
+            },
+            {
+                "id": "service-length",
+                "question": "How long did you serve (or have you been serving)?",
+                "help": "Minimum service times vary by service era and discharge reason.",
+                "options": [
+                    {"label": "24+ months of active duty (or full tour)", "qualifies": True},
+                    {"label": "90+ days active duty during wartime", "qualifies": True},
+                    {"label": "181+ days active duty during peacetime", "qualifies": True},
+                    {"label": "6+ years in the Guard or Reserves", "qualifies": True},
+                    {"label": "Discharged early for a service-connected disability", "qualifies": True},
+                    {"label": "Less than minimum service time above", "qualifies": False, "reason": "VA home loan minimum service requirements vary by era. You may still qualify under exceptions — request a Certificate of Eligibility (COE) from VA to confirm."},
+                ],
+            },
+            {
+                "id": "discharge",
+                "question": "Was your discharge under conditions other than dishonorable?",
+                "options": [
+                    {"label": "Yes (honorable, general, or under honorable conditions)", "qualifies": True},
+                    {"label": "I'm currently still serving", "qualifies": True},
+                    {"label": "No (dishonorable, bad conduct, or other than honorable)", "qualifies": False, "reason": "VA home loans require a discharge under conditions other than dishonorable. A discharge upgrade may restore eligibility."},
+                ],
+            },
+        ],
+    },
+
+    "va-healthcare": {
+        "title": "VA Healthcare Eligibility Quiz",
+        "icon": "🏥",
+        "description": "Find out if you qualify for VA healthcare benefits and which priority group you fit into.",
+        "cta_url": "/va-benefits/va-healthcare/",
+        "cta_label": "Read the VA Healthcare Guide",
+        "eligible_message": "Based on your answers, you likely qualify for VA healthcare. Your specific priority group will determine your copays and access to certain services.",
+        "ineligible_message": "Based on your answers, you may not currently qualify for VA healthcare enrollment.",
+        "questions": [
+            {
+                "id": "served",
+                "question": "Did you serve in active military, naval, or air service?",
+                "options": [
+                    {"label": "Yes, active duty", "qualifies": True},
+                    {"label": "Reserves/Guard with federal activation", "qualifies": True},
+                    {"label": "Reserves/Guard with no active-duty time", "qualifies": False, "reason": "VA healthcare generally requires active-duty service or federal activation."},
+                    {"label": "No", "qualifies": False, "reason": "VA healthcare is restricted to veterans who served in active military, naval, or air service."},
+                ],
+            },
+            {
+                "id": "service-length",
+                "question": "How long did you serve on active duty?",
+                "help": "Most veterans need at least 24 months of active duty, with exceptions for early service members and those discharged for disability.",
+                "options": [
+                    {"label": "24+ months or the full period for which I was called to active duty", "qualifies": True},
+                    {"label": "Enlisted before September 7, 1980 (any length)", "qualifies": True},
+                    {"label": "Discharged for a service-connected disability", "qualifies": True},
+                    {"label": "Less than 24 months and none of the above", "qualifies": False, "reason": "Generally you need 24 months of active duty to qualify, but exceptions exist for hardship discharges, early-out programs, and combat veterans."},
+                ],
+            },
+            {
+                "id": "discharge",
+                "question": "What was your discharge status?",
+                "options": [
+                    {"label": "Honorable", "qualifies": True},
+                    {"label": "General (under honorable conditions)", "qualifies": True},
+                    {"label": "Other than honorable / Bad conduct / Dishonorable", "qualifies": False, "reason": "VA healthcare requires a discharge under conditions other than dishonorable. A discharge upgrade may restore eligibility."},
+                ],
+            },
+        ],
+    },
+
+    "military-retirement": {
+        "title": "Military Retirement Eligibility Quiz",
+        "icon": "🏅",
+        "description": "Find out if you qualify for military retirement pay and which system applies to you.",
+        "cta_url": "/military-retirement/",
+        "cta_label": "Explore Military Retirement Guides",
+        "eligible_message": "Based on your answers, you likely qualify for military retirement pay. The retirement system that applies depends on your entry date.",
+        "ineligible_message": "Based on your answers, you may not yet qualify for a regular military retirement.",
+        "questions": [
+            {
+                "id": "component",
+                "question": "Are/were you active duty or Reserve/Guard?",
+                "options": [
+                    {"label": "Active duty", "qualifies": True},
+                    {"label": "Reserves or National Guard", "qualifies": True},
+                ],
+            },
+            {
+                "id": "years-of-service",
+                "question": "How many years have you served (or will you serve)?",
+                "help": "For active duty: years of service. For Reserves/Guard: qualifying years with at least 50 points.",
+                "options": [
+                    {"label": "20+ years", "qualifies": True},
+                    {"label": "Medically retired with 30%+ disability (any years)", "qualifies": True},
+                    {"label": "15-19 years (TERA/early retirement may apply)", "qualifies": True},
+                    {"label": "Less than 15 years and not medically retired", "qualifies": False, "reason": "Standard military retirement requires 20 years of service. You may still receive separation pay or VA disability compensation depending on your circumstances."},
+                ],
+            },
+            {
+                "id": "discharge",
+                "question": "Did/will you discharge under honorable conditions?",
+                "options": [
+                    {"label": "Yes (honorable or general)", "qualifies": True},
+                    {"label": "Still serving", "qualifies": True},
+                    {"label": "No (other than honorable, bad conduct, dishonorable)", "qualifies": False, "reason": "Military retirement requires an honorable discharge. Less-than-honorable discharges can result in loss of retirement benefits."},
+                ],
+            },
+        ],
+    },
+
+    "va-pension": {
+        "title": "VA Pension Eligibility Quiz",
+        "icon": "💵",
+        "description": "See if you qualify for the VA's income-based pension for wartime veterans.",
+        "cta_url": "/va-benefits/va-pension/",
+        "cta_label": "Read the VA Pension Guide",
+        "eligible_message": "Based on your answers, you may qualify for VA Pension. Aid & Attendance and Housebound benefits can add additional monthly amounts on top of the base pension.",
+        "ineligible_message": "Based on your answers, you may not currently qualify for the VA pension program.",
+        "questions": [
+            {
+                "id": "wartime-service",
+                "question": "Did you serve at least 90 days of active duty with at least one day during a wartime period?",
+                "help": "Wartime periods include WWII, Korea, Vietnam, Gulf War (1990-present), and others.",
+                "options": [
+                    {"label": "Yes, I served during wartime", "qualifies": True},
+                    {"label": "I served, but only during peacetime", "qualifies": False, "reason": "The VA pension specifically requires wartime service. You may still qualify for other VA benefits like disability compensation or healthcare."},
+                    {"label": "I didn't serve in the military", "qualifies": False, "reason": "VA pension is restricted to qualifying wartime veterans and their surviving spouses."},
+                ],
+            },
+            {
+                "id": "discharge",
+                "question": "Was your discharge under conditions other than dishonorable?",
+                "options": [
+                    {"label": "Yes", "qualifies": True},
+                    {"label": "No", "qualifies": False, "reason": "VA pension requires a discharge under conditions other than dishonorable. A discharge upgrade may restore eligibility."},
+                ],
+            },
+            {
+                "id": "age-or-disability",
+                "question": "Are you age 65+ or have a permanent and total disability?",
+                "options": [
+                    {"label": "Yes, I'm 65 or older", "qualifies": True},
+                    {"label": "Yes, I have a permanent and total disability", "qualifies": True},
+                    {"label": "I'm receiving SSI or SSDI", "qualifies": True},
+                    {"label": "I'm in a nursing home receiving long-term care", "qualifies": True},
+                    {"label": "None of the above", "qualifies": False, "reason": "VA pension requires you to be 65+, permanently and totally disabled, or receiving certain disability benefits."},
+                ],
+            },
+            {
+                "id": "income",
+                "question": "Is your countable family income below the VA's annual pension limit?",
+                "help": "The 2026 Maximum Annual Pension Rate for a single veteran with no dependents is approximately $16,965.",
+                "options": [
+                    {"label": "Yes, my income is below the limit", "qualifies": True},
+                    {"label": "I'm not sure", "qualifies": True},
+                    {"label": "No, my income is above the limit", "qualifies": False, "reason": "VA pension is needs-based. If your income exceeds the limit, you won't qualify — but certain medical expenses can reduce your countable income."},
+                ],
+            },
+        ],
+    },
+
+    "vocational-rehab": {
+        "title": "Vocational Rehab (VR&E) Eligibility Quiz",
+        "icon": "🛠️",
+        "description": "See if you qualify for Chapter 31 Vocational Rehabilitation and Employment benefits.",
+        "cta_url": "/va-benefits/vocational-rehab/",
+        "cta_label": "Read the VR&E Guide",
+        "eligible_message": "Based on your answers, you likely qualify for VR&E (Chapter 31) benefits. VR&E can pay for training, education, and equipment to help you get and keep employment.",
+        "ineligible_message": "Based on your answers, you may not currently qualify for VR&E.",
+        "questions": [
+            {
+                "id": "discharge",
+                "question": "Was your discharge under conditions other than dishonorable?",
+                "options": [
+                    {"label": "Yes", "qualifies": True},
+                    {"label": "I'm currently on active duty", "qualifies": True},
+                    {"label": "No", "qualifies": False, "reason": "VR&E requires a discharge under conditions other than dishonorable."},
+                ],
+            },
+            {
+                "id": "disability-rating",
+                "question": "Do you have a VA service-connected disability rating?",
+                "help": "VR&E generally requires a rating of at least 10% (or 20% for some programs).",
+                "options": [
+                    {"label": "Yes, 20% or higher", "qualifies": True},
+                    {"label": "Yes, 10%", "qualifies": True},
+                    {"label": "Memorandum rating of 20%+ from active duty", "qualifies": True},
+                    {"label": "Not rated, or 0% only", "qualifies": False, "reason": "VR&E generally requires a service-connected rating of at least 10%. File a VA disability claim first if you have qualifying conditions."},
+                ],
+            },
+            {
+                "id": "employment-handicap",
+                "question": "Does your service-connected disability create a barrier to getting or keeping a job?",
+                "options": [
+                    {"label": "Yes, it limits the types of work I can do", "qualifies": True},
+                    {"label": "Yes, it's prevented me from finding suitable work", "qualifies": True},
+                    {"label": "I'm not sure", "qualifies": True},
+                    {"label": "No, my disability doesn't affect my ability to work", "qualifies": False, "reason": "VR&E specifically helps veterans whose service-connected disability creates an employment barrier. If yours doesn't, the GI Bill may be a better fit."},
+                ],
+            },
+        ],
+    },
+
+    "dic": {
+        "title": "DIC (Survivor Benefits) Eligibility Quiz",
+        "icon": "❤️",
+        "description": "Find out if you qualify for Dependency and Indemnity Compensation as a survivor.",
+        "cta_url": "/va-benefits/dic/",
+        "cta_label": "Read the DIC Guide",
+        "eligible_message": "Based on your answers, you may qualify for DIC. DIC is a tax-free monthly benefit paid to eligible survivors of service members and veterans whose death was service-connected.",
+        "ineligible_message": "Based on your answers, you may not currently qualify for DIC benefits.",
+        "questions": [
+            {
+                "id": "relationship",
+                "question": "What is your relationship to the deceased veteran or service member?",
+                "options": [
+                    {"label": "Surviving spouse", "qualifies": True},
+                    {"label": "Surviving child (under 18, or 18-23 if in school)", "qualifies": True},
+                    {"label": "Dependent parent", "qualifies": True},
+                    {"label": "Other relationship", "qualifies": False, "reason": "DIC is paid to surviving spouses, qualifying children, and dependent parents only."},
+                ],
+            },
+            {
+                "id": "cause-of-death",
+                "question": "Was the veteran's death related to military service?",
+                "help": "This includes deaths from service-connected conditions, even years after discharge.",
+                "options": [
+                    {"label": "Yes, died from a service-connected condition", "qualifies": True},
+                    {"label": "Yes, died on active duty or active for training", "qualifies": True},
+                    {"label": "Veteran was rated 100% (or TDIU) for 10+ years before death", "qualifies": True},
+                    {"label": "Veteran was rated 100% (or TDIU) for 5+ years right after discharge", "qualifies": True},
+                    {"label": "No, death was unrelated to service", "qualifies": False, "reason": "DIC generally requires a service-connected cause of death OR that the veteran was rated 100% or TDIU for the required period before death."},
+                ],
+            },
+            {
+                "id": "spouse-criteria",
+                "question": "If you're a surviving spouse, which applies to you?",
+                "help": "Skip if you selected child or parent above.",
+                "options": [
+                    {"label": "I was married to the veteran for 1+ years", "qualifies": True},
+                    {"label": "We had a child together", "qualifies": True},
+                    {"label": "We married within 15 years of the veteran's discharge", "qualifies": True},
+                    {"label": "I'm a dependent child or parent (not spouse)", "qualifies": True},
+                    {"label": "None of the above", "qualifies": False, "reason": "Surviving spouses generally need at least 1 year of marriage, a shared child, or marriage within 15 years of the veteran's discharge to qualify for DIC."},
+                ],
+            },
+        ],
+    },
+}
+
+QUIZ_SLUGS = set(ELIGIBILITY_QUIZZES.keys())
+
 EXPLAINER_SLUGS = {
     "what-is-a-nexus-letter",
     "va-disability-rating-explained",
@@ -584,7 +954,11 @@ def tools_index():
         ),
         path="/tools/",
     )
-    html = render_template("tools_index.html.j2", seo=seo, tools=TOOLS_DATA)
+    quizzes = [
+        {"slug": slug, "title": q["title"], "description": q["description"], "icon": q.get("icon", "❓")}
+        for slug, q in ELIGIBILITY_QUIZZES.items()
+    ]
+    html = render_template("tools_index.html.j2", seo=seo, tools=TOOLS_DATA, quizzes=quizzes)
     return _gzip_response(html)
 
 
@@ -634,6 +1008,35 @@ def tool_page(tool_slug: str):
 
 
 # ---------------------------------------------------------------------------
+# Routes — Eligibility quizzes
+# ---------------------------------------------------------------------------
+
+@app.route("/tools/<quiz_slug>-eligibility-quiz/")
+def eligibility_quiz_page(quiz_slug: str):
+    if quiz_slug not in QUIZ_SLUGS:
+        abort(404)
+    quiz = ELIGIBILITY_QUIZZES[quiz_slug]
+    path = f"/tools/{quiz_slug}-eligibility-quiz/"
+    seo = build_seo_base(
+        title=f"{quiz['title']} | Rank and Pay",
+        description=quiz["description"],
+        path=path,
+    )
+    breadcrumbs = [
+        {"label": "Home", "url": "/"},
+        {"label": "Tools", "url": "/tools/"},
+        {"label": quiz["title"], "url": path},
+    ]
+    html = render_template(
+        "tool_eligibility_quiz.html.j2",
+        seo=seo,
+        quiz=quiz,
+        breadcrumbs=breadcrumbs,
+    )
+    return _gzip_response(html)
+
+
+# ---------------------------------------------------------------------------
 # Routes — VA Claims pillar + spokes
 # ---------------------------------------------------------------------------
 
@@ -657,6 +1060,9 @@ def va_claims_pillar():
         "pillar:va-claims", template="pillar.html.j2", spokes=spoke_links,
         intro_heading="Navigate the VA Claims Process",
         intro_text="Filing a VA disability claim can be overwhelming. Use the guides below to understand each step — from gathering evidence to appealing a denial.",
+        quiz_url="/tools/va-disability-claim-eligibility-quiz/",
+        quiz_cta_title="Not sure if you qualify for VA disability?",
+        quiz_cta_text="Take our free 60-second eligibility quiz.",
     )
 
 
@@ -690,6 +1096,9 @@ def va_disability_pillar():
         "pillar:va-disability", template="pillar.html.j2", spokes=spoke_links,
         intro_heading="VA Disability Ratings by Condition",
         intro_text="Select a condition below to see how the VA rates it, what evidence you need, and which secondary conditions may apply.",
+        quiz_url="/tools/va-disability-claim-eligibility-quiz/",
+        quiz_cta_title="Not sure if you qualify for VA disability?",
+        quiz_cta_text="Take our free 60-second eligibility quiz.",
     )
 
 
@@ -823,6 +1232,9 @@ def military_retirement_pillar():
         "pillar:military-retirement", template="pillar.html.j2", spokes=spoke_links,
         intro_heading="Plan Your Military Retirement",
         intro_text="Whether you're under the legacy system or BRS, the guides below cover every aspect of military retirement pay, survivor benefits, and concurrent receipt.",
+        quiz_url="/tools/military-retirement-eligibility-quiz/",
+        quiz_cta_title="Will you qualify for military retirement?",
+        quiz_cta_text="Take our free quiz to see which retirement system applies and whether you're on track.",
     )
 
 

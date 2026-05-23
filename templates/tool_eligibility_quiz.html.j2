@@ -1,0 +1,282 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ quiz.title }} | Rank and Pay{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="{{ quiz.description }}">
+{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding:2.5rem 0 2rem;">
+  <div class="container">
+    <h1>{{ quiz.title }}</h1>
+    <p>{{ quiz.description }}</p>
+  </div>
+</section>
+
+<main class="container--narrow" style="margin:2rem auto;padding:0 1.25rem;">
+
+  {% if breadcrumbs %}
+  <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.5rem;color:var(--sr-gray-text);">
+    {% for crumb in breadcrumbs %}
+    {% if not loop.last %}
+    <a href="{{ crumb.url }}">{{ crumb.label }}</a> &rsaquo;
+    {% else %}
+    <span>{{ crumb.label }}</span>
+    {% endif %}
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  <div class="quiz-shell" id="quiz-shell">
+
+    <!-- Progress -->
+    <div class="quiz-progress" aria-hidden="true">
+      <div class="quiz-progress-bar" id="quiz-progress-bar" style="width:0%"></div>
+    </div>
+    <div class="quiz-meta" id="quiz-meta">
+      Question <span id="quiz-current">1</span> of {{ quiz.questions | length }}
+    </div>
+
+    <!-- Questions -->
+    {% for q in quiz.questions %}
+    <div class="quiz-question" data-qid="{{ q.id }}" data-index="{{ loop.index0 }}" {% if not loop.first %}hidden{% endif %}>
+      <h2>{{ q.question }}</h2>
+      {% if q.help %}<p class="quiz-help">{{ q.help }}</p>{% endif %}
+      <div class="quiz-options">
+        {% for opt in q.options %}
+        <button type="button" class="quiz-option"
+                data-qualifies="{{ '1' if opt.qualifies else '0' }}"
+                data-reason="{{ opt.reason | default('') }}">
+          {{ opt.label }}
+        </button>
+        {% endfor %}
+      </div>
+      <button type="button" class="quiz-back" data-action="back" {% if loop.first %}hidden{% endif %}>&larr; Back</button>
+    </div>
+    {% endfor %}
+
+    <!-- Result: Eligible -->
+    <div class="quiz-result quiz-result-eligible" id="quiz-result-eligible" hidden>
+      <div class="quiz-result-icon" aria-hidden="true">&#10003;</div>
+      <h2>You likely qualify</h2>
+      <p>{{ quiz.eligible_message }}</p>
+      <a href="{{ quiz.cta_url }}" class="btn btn--primary">{{ quiz.cta_label }} &rarr;</a>
+      <button type="button" class="quiz-restart" data-action="restart">Retake Quiz</button>
+    </div>
+
+    <!-- Result: Ineligible -->
+    <div class="quiz-result quiz-result-ineligible" id="quiz-result-ineligible" hidden>
+      <div class="quiz-result-icon" aria-hidden="true">!</div>
+      <h2>You may not currently qualify</h2>
+      <p id="quiz-result-reason">{{ quiz.ineligible_message }}</p>
+      <p style="font-size:0.9rem;color:var(--sr-gray-text);margin-top:1rem;">
+        Eligibility rules can be complex — you may still qualify under exceptions or special programs. We recommend speaking with an accredited Veterans Service Organization (VSO) for a free review of your situation.
+      </p>
+      <a href="{{ quiz.cta_url }}" class="btn btn--outline" style="margin-top:0.5rem;">Read the guide anyway &rarr;</a>
+      <button type="button" class="quiz-restart" data-action="restart">Retake Quiz</button>
+    </div>
+
+  </div>
+
+  <p style="font-size:0.8rem;color:var(--sr-gray-text);margin-top:2rem;text-align:center;">
+    This quiz provides a general eligibility estimate only and is not an official determination. For an official decision, file a claim with the VA or consult an accredited VSO.
+  </p>
+
+</main>
+
+<style>
+  .quiz-shell {
+    background: var(--white);
+    border: 1px solid var(--sr-gray-light);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+  }
+
+  .quiz-progress {
+    height: 6px;
+    background: var(--sr-gray-light);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .quiz-progress-bar {
+    height: 100%;
+    background: var(--sr-blue);
+    transition: width 0.3s ease;
+  }
+
+  .quiz-meta {
+    font-size: 0.78rem;
+    color: var(--sr-gray-text);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .quiz-question h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .quiz-help {
+    font-size: 0.875rem;
+    color: var(--sr-gray-text);
+    margin-bottom: 1.25rem;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1.25rem 0;
+  }
+
+  .quiz-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 1rem 1.25rem;
+    background: var(--white);
+    border: 2px solid var(--sr-gray-light);
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--sr-dark-text);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    font-family: inherit;
+  }
+
+  .quiz-option:hover {
+    border-color: var(--sr-blue);
+    background: var(--sr-gray-bg);
+  }
+
+  .quiz-option:active { transform: scale(0.99); }
+
+  .quiz-back, .quiz-restart {
+    background: none;
+    border: none;
+    color: var(--sr-blue);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    font-family: inherit;
+  }
+
+  .quiz-back:hover, .quiz-restart:hover { color: var(--sr-red); text-decoration: underline; }
+
+  .quiz-result {
+    text-align: center;
+    padding: 1rem 0;
+  }
+
+  .quiz-result-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .quiz-result-eligible .quiz-result-icon { background: #2e7d32; }
+  .quiz-result-ineligible .quiz-result-icon { background: #ed6c02; }
+
+  .quiz-result h2 { margin-bottom: 0.75rem; }
+  .quiz-result p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.25rem; }
+  .quiz-result .btn { margin-top: 0.5rem; }
+  .quiz-result .quiz-restart { display: block; margin: 1rem auto 0; }
+</style>
+
+<script>
+  (function() {
+    var shell = document.getElementById('quiz-shell');
+    if (!shell) return;
+    var questions = shell.querySelectorAll('.quiz-question');
+    var total = questions.length;
+    var progressBar = document.getElementById('quiz-progress-bar');
+    var currentEl = document.getElementById('quiz-current');
+    var meta = document.getElementById('quiz-meta');
+    var resultEligible = document.getElementById('quiz-result-eligible');
+    var resultIneligible = document.getElementById('quiz-result-ineligible');
+    var reasonEl = document.getElementById('quiz-result-reason');
+    var originalReason = reasonEl ? reasonEl.textContent : '';
+
+    var state = { index: 0, answers: [] };
+
+    function showQuestion(i) {
+      questions.forEach(function(q) { q.hidden = true; });
+      resultEligible.hidden = true;
+      resultIneligible.hidden = true;
+      meta.hidden = false;
+      shell.querySelector('.quiz-progress').hidden = false;
+      questions[i].hidden = false;
+      currentEl.textContent = (i + 1);
+      progressBar.style.width = ((i + 1) / total * 100) + '%';
+    }
+
+    function showResult(eligible, reason) {
+      questions.forEach(function(q) { q.hidden = true; });
+      meta.hidden = true;
+      shell.querySelector('.quiz-progress').hidden = true;
+      progressBar.style.width = '100%';
+      if (eligible) {
+        resultEligible.hidden = false;
+      } else {
+        if (reason && reasonEl) {
+          reasonEl.textContent = reason;
+        } else if (reasonEl) {
+          reasonEl.textContent = originalReason;
+        }
+        resultIneligible.hidden = false;
+      }
+    }
+
+    shell.addEventListener('click', function(e) {
+      var target = e.target.closest('button');
+      if (!target) return;
+
+      if (target.classList.contains('quiz-option')) {
+        var qualifies = target.dataset.qualifies === '1';
+        var reason = target.dataset.reason || '';
+        state.answers.push({ qualifies: qualifies, reason: reason });
+
+        if (!qualifies) {
+          showResult(false, reason);
+          return;
+        }
+        if (state.index + 1 >= total) {
+          showResult(true);
+          return;
+        }
+        state.index++;
+        showQuestion(state.index);
+        return;
+      }
+
+      if (target.dataset.action === 'back') {
+        if (state.index === 0) return;
+        state.answers.pop();
+        state.index--;
+        showQuestion(state.index);
+        return;
+      }
+
+      if (target.dataset.action === 'restart') {
+        state = { index: 0, answers: [] };
+        showQuestion(0);
+      }
+    });
+  })();
+</script>
+{% endblock %}

@@ -19,6 +19,24 @@
 
 <main class="container" style="max-width:1000px;margin:2rem auto;padding:0 1.25rem;">
 
+  {% if quizzes %}
+  <section style="margin-bottom:2.5rem;">
+    <h2 class="section-heading">Eligibility Quizzes</h2>
+    <p style="font-size:0.9rem;color:var(--sr-gray-text);margin-bottom:1rem;">Not sure if you qualify? Take a free 60-second quiz to find out.</p>
+    <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
+      {% for q in quizzes %}
+      <a href="/tools/{{ q.slug }}-eligibility-quiz/" class="cluster-card" style="text-decoration:none;color:inherit;">
+        <span class="tool-icon" aria-hidden="true">{{ q.icon }}</span>
+        <h3 style="font-size:1rem;margin-bottom:0.3rem;">{{ q.title }}</h3>
+        <p>{{ q.description }}</p>
+        <span class="status-pill status-pill--live">Live</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <h2 class="section-heading">Calculators &amp; Tools</h2>
   <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
     {% for tool in tools %}
     <a href="/tools/{{ tool.slug }}/" class="cluster-card" style="text-decoration:none;color:inherit;">

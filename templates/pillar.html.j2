@@ -32,6 +32,18 @@
   </section>
   {% endif %}
 
+  <!-- Eligibility quiz CTA -->
+  {% if quiz_url %}
+  <a href="{{ quiz_url }}" class="quiz-cta-banner">
+    <div class="quiz-cta-icon" aria-hidden="true">?</div>
+    <div class="quiz-cta-body">
+      <h3>{{ quiz_cta_title or "Not sure if you qualify?" }}</h3>
+      <p>{{ quiz_cta_text or "Take our free 60-second eligibility quiz." }}</p>
+    </div>
+    <span class="quiz-cta-arrow" aria-hidden="true">&rarr;</span>
+  </a>
+  {% endif %}
+
   <!-- Spoke cards -->
   {% if spokes %}
   <section class="bucket-select" aria-label="Topics in this guide">
