@@ -23,6 +23,7 @@ PAGE_TTLS = {
 PILLARS = [
     "va-claims",
     "va-disability",
+    "va-benefits",
     "military-retirement",
     "military-pay",
     "state-benefits",
@@ -53,6 +54,17 @@ CONDITIONS = [
     "radiculopathy-upper", "degenerative-disc-disease", "hemorrhoids",
     "irritable-bowel-syndrome", "gerd", "rhinitis", "sinusitis",
     "skin-conditions-dermatitis",
+]
+
+VA_BENEFITS_SPOKES = [
+    "gi-bill",
+    "dic",
+    "va-home-loan",
+    "sgli",
+    "vgli",
+    "va-healthcare",
+    "va-pension",
+    "vocational-rehab",
 ]
 
 RETIREMENT_SPOKES = [
@@ -134,6 +146,161 @@ STATE_RESEARCH = {
     },
 }
 
+VA_BENEFITS_SPOKE_RESEARCH = {
+    "gi-bill": {
+        "title": "GI Bill Benefits Guide",
+        "seo_title": "GI Bill Benefits 2026: Post-9/11, Montgomery & Comparison",
+        "h1": "GI Bill Benefits: Everything Veterans Need to Know in 2026",
+        "seo_description": "Complete GI Bill guide — compare Post-9/11 vs. Montgomery GI Bill, learn eligibility, housing stipend (BAH rates), tuition coverage, and how to apply.",
+        "primary_keyword": "gi bill",
+        "secondary_keywords": ["post 9/11 gi bill", "gi bill comparison", "va education benefits", "gi bill housing stipend", "montgomery gi bill"],
+        "key_points": [
+            "The Post-9/11 GI Bill covers 100% of in-state tuition at public schools, plus a monthly housing allowance based on BAH rates.",
+            "You have 36 months of total GI Bill benefits — plan your semesters carefully.",
+            "The GI Bill housing stipend equals the E-5 with dependents BAH rate for your school's zip code.",
+            "You can transfer unused GI Bill benefits to a spouse or child if you commit to additional service.",
+        ],
+        "internal_links": {
+            "BAH Calculator": "/tools/bah-calculator/",
+            "Military Pay": "/military-pay/",
+            "VA Benefits Hub": "/va-benefits/",
+        },
+    },
+    "dic": {
+        "title": "DIC Benefits for Surviving Spouses",
+        "seo_title": "DIC Benefits 2026: Dependency & Indemnity Compensation Guide",
+        "h1": "DIC Benefits: Dependency and Indemnity Compensation for Survivors",
+        "seo_description": "DIC benefits guide for surviving spouses and dependents — 2026 rates, eligibility, how to apply, and how DIC compares to the Survivor Benefit Plan (SBP).",
+        "primary_keyword": "dic benefits",
+        "secondary_keywords": ["dependency and indemnity compensation", "va survivor benefits", "dic vs sbp", "dic rates 2026", "va death benefits"],
+        "key_points": [
+            "DIC pays surviving spouses a tax-free monthly benefit — $1,612.75/month in 2025 (2026 rates pending COLA).",
+            "DIC is available when a veteran's death is service-connected or when a 100% P&T-rated veteran dies.",
+            "DIC and SBP are separate programs — you may qualify for both, but an SBP offset applies.",
+            "You must file VA Form 21-534EZ to apply for DIC benefits.",
+        ],
+        "internal_links": {
+            "Survivor Benefit Plan": "/military-retirement/survivor-benefit-plan/",
+            "VA Disability Ratings": "/va-disability/",
+            "VA Benefits Hub": "/va-benefits/",
+        },
+    },
+    "va-home-loan": {
+        "title": "VA Home Loan Guide",
+        "seo_title": "VA Home Loan 2026: Eligibility, Rates & How to Apply",
+        "h1": "VA Home Loan: The Complete Guide for Veterans and Servicemembers",
+        "seo_description": "VA home loan guide — no down payment, no PMI, competitive rates. Learn eligibility, funding fees, loan limits, and how to get your Certificate of Eligibility (COE).",
+        "primary_keyword": "va home loan",
+        "secondary_keywords": ["va loan requirements", "va loan rates", "va certificate of eligibility", "va loan no down payment", "va funding fee"],
+        "key_points": [
+            "VA home loans require zero down payment and no private mortgage insurance (PMI).",
+            "You need a Certificate of Eligibility (COE) from the VA — apply online through eBenefits or VA.gov.",
+            "The VA funding fee ranges from 1.25% to 3.3% depending on service type, down payment, and whether it's your first use.",
+            "Veterans with a 10%+ VA disability rating are exempt from the VA funding fee — saving thousands.",
+        ],
+        "internal_links": {
+            "VA Disability Ratings": "/va-disability/",
+            "VA Benefits Hub": "/va-benefits/",
+            "BAH Rates": "/military-pay/basic-allowance-housing/",
+        },
+    },
+    "sgli": {
+        "title": "SGLI: Servicemembers' Group Life Insurance",
+        "seo_title": "SGLI Explained 2026: Coverage, Rates, Cost & Beneficiaries",
+        "h1": "SGLI: Servicemembers' Group Life Insurance Guide",
+        "seo_description": "SGLI guide — $500,000 max coverage, low-cost premiums, how to update beneficiaries, and what happens to your SGLI when you separate. Rates and enrollment explained.",
+        "primary_keyword": "sgli",
+        "secondary_keywords": ["sgli coverage amount", "sgli rates", "sgli beneficiary", "servicemembers group life insurance", "sgli cost"],
+        "key_points": [
+            "SGLI provides up to $500,000 in low-cost life insurance for active-duty servicemembers.",
+            "Monthly premiums are just $25/month for the full $500,000 coverage (as of 2025).",
+            "SGLI coverage ends 120 days after separation — you must convert to VGLI or a private policy.",
+            "Update your SGLI beneficiaries through SOES (Servicemembers Online Enrollment System) — don't rely on outdated DD Form 93.",
+        ],
+        "internal_links": {
+            "VGLI": "/va-benefits/vgli/",
+            "Survivor Benefit Plan": "/military-retirement/survivor-benefit-plan/",
+            "VA Benefits Hub": "/va-benefits/",
+        },
+    },
+    "vgli": {
+        "title": "VGLI: Veterans' Group Life Insurance",
+        "seo_title": "VGLI 2026: Rates, Eligibility & How to Convert from SGLI",
+        "h1": "VGLI: Veterans' Group Life Insurance After Separation",
+        "seo_description": "VGLI guide for veterans — convert your SGLI within 240 days of separation. Compare VGLI rates, coverage amounts, and whether VGLI or private insurance is the better deal.",
+        "primary_keyword": "vgli",
+        "secondary_keywords": ["vgli rates", "vgli vs sgli", "vgli enrollment", "veterans group life insurance", "vgli cost by age"],
+        "key_points": [
+            "You have 240 days after separation to convert SGLI to VGLI with no health screening required.",
+            "VGLI premiums increase every 5 years as you age — it gets expensive after 50.",
+            "VGLI coverage maxes at $500,000 (matching your SGLI amount at separation).",
+            "For younger, healthy veterans, a private term life policy is almost always cheaper than VGLI.",
+        ],
+        "internal_links": {
+            "SGLI": "/va-benefits/sgli/",
+            "Survivor Benefit Plan": "/military-retirement/survivor-benefit-plan/",
+            "VA Benefits Hub": "/va-benefits/",
+        },
+    },
+    "va-healthcare": {
+        "title": "VA Healthcare Benefits",
+        "seo_title": "VA Healthcare 2026: Eligibility, Priority Groups & Enrollment",
+        "h1": "VA Healthcare: Eligibility, Enrollment, and What's Covered",
+        "seo_description": "VA healthcare guide — eligibility requirements, 8 priority groups, how to enroll, copays, and what VA medical centers cover. Separate from TRICARE.",
+        "primary_keyword": "va healthcare",
+        "secondary_keywords": ["va health benefits", "va healthcare eligibility", "va priority groups", "va medical center", "va healthcare enrollment"],
+        "key_points": [
+            "VA healthcare is separate from TRICARE — it's a VA-run system of 1,300+ medical facilities.",
+            "Eligibility is based on 8 priority groups — veterans with service-connected disabilities get the highest priority.",
+            "Veterans with a 50%+ disability rating get free VA healthcare with no copays.",
+            "Enroll through VA.gov, by phone (1-877-222-8387), or in person at any VA medical center.",
+        ],
+        "internal_links": {
+            "TRICARE Options": "/explainers/tricare-options-explained/",
+            "VA Disability Ratings": "/va-disability/",
+            "VA Benefits Hub": "/va-benefits/",
+        },
+    },
+    "va-pension": {
+        "title": "VA Pension for Wartime Veterans",
+        "seo_title": "VA Pension 2026: Eligibility, Rates & Aid and Attendance",
+        "h1": "VA Pension: Income-Based Benefits for Wartime Veterans",
+        "seo_description": "VA pension guide — not the same as VA disability compensation. Learn eligibility (wartime service + income limits), 2026 rates, Aid and Attendance, and Housebound benefits.",
+        "primary_keyword": "va pension",
+        "secondary_keywords": ["va pension rates", "aid and attendance", "housebound benefit", "va pension vs disability", "wartime veteran pension"],
+        "key_points": [
+            "VA pension is NOT the same as VA disability compensation — it's income-based, not tied to a service-connected condition.",
+            "You must have 90+ days of active service with at least 1 day during a wartime period.",
+            "The Aid and Attendance add-on increases monthly pension for veterans who need daily living assistance.",
+            "VA pension is reduced dollar-for-dollar by other income sources — countable income must fall below the Maximum Annual Pension Rate (MAPR).",
+        ],
+        "internal_links": {
+            "VA Disability Ratings": "/va-disability/",
+            "VA Benefits Hub": "/va-benefits/",
+            "Military Retirement Pay": "/military-retirement/",
+        },
+    },
+    "vocational-rehab": {
+        "title": "VA Vocational Rehabilitation (VR&E / Chapter 31)",
+        "seo_title": "VA Vocational Rehab 2026: Chapter 31 VR&E Eligibility & Benefits",
+        "h1": "VA Vocational Rehab: Chapter 31 VR&E Program Guide",
+        "seo_description": "VA Vocational Rehabilitation (VR&E / Chapter 31) guide — eligibility, 5 career tracks, how it compares to the GI Bill, and how to apply. For veterans with service-connected disabilities.",
+        "primary_keyword": "va vocational rehab",
+        "secondary_keywords": ["chapter 31 vre", "va voc rehab eligibility", "vre benefits", "vocational rehabilitation veterans", "vre vs gi bill"],
+        "key_points": [
+            "VR&E (Chapter 31) provides career counseling, training, education, and job placement for veterans with service-connected disabilities.",
+            "You need at least a 10% VA disability rating and an employment handicap to qualify.",
+            "VR&E can cover tuition, books, supplies, and a monthly subsistence allowance — similar to GI Bill but with more support services.",
+            "Using VR&E does NOT consume your GI Bill entitlement — they're separate benefits (though you can't use both simultaneously).",
+        ],
+        "internal_links": {
+            "GI Bill": "/va-benefits/gi-bill/",
+            "VA Disability Ratings": "/va-disability/",
+            "VA Benefits Hub": "/va-benefits/",
+        },
+    },
+}
+
 EXPLAINER_RESEARCH = {
     "what-is-a-nexus-letter": {
         "title": "What Is a Nexus Letter?",
@@ -145,8 +312,8 @@ EXPLAINER_RESEARCH = {
         ],
     },
     "va-disability-rating-explained": {
-        "title": "VA Disability Rating Explained",
-        "subtitle": "How the combined rating formula works — and why it's not simple addition",
+        "title": "VA Disability Rates & Rating Explained",
+        "subtitle": "VA disability rates, the combined rating formula, and why it's not simple addition",
         "key_points": [
             "VA uses a 'whole person' method: each rating reduces the remaining able-bodied percentage.",
             "50% + 50% does NOT equal 100% under VA math.",
@@ -154,12 +321,12 @@ EXPLAINER_RESEARCH = {
         ],
     },
     "pact-act-explained": {
-        "title": "PACT Act Explained",
-        "subtitle": "What the Sergeant First Class Heath Robinson PACT Act means for burn-pit veterans",
+        "title": "PACT Act & Presumptive Conditions Explained",
+        "subtitle": "The PACT Act's presumptive conditions list and what it means for burn-pit veterans",
         "key_points": [
-            "Signed into law August 2022, the PACT Act is the largest expansion of VA benefits in decades.",
+            "Signed into law August 2022, the PACT Act is the largest expansion of VA presumptive benefits in decades.",
             "It establishes presumptive service connection for 23 burn-pit/toxic-exposure cancers.",
-            "Veterans who deployed to Southwest Asia on or after August 2, 1990 may qualify.",
+            "Veterans who deployed to Southwest Asia on or after August 2, 1990 may qualify under presumptive coverage.",
         ],
     },
 }
@@ -257,7 +424,8 @@ def generate_pillar_page(slug: str, dry_run: bool = False) -> Optional[LandingPa
 
     titles = {
         "va-claims": ("VA Claims Guide", "How to File a VA Claim", "A complete guide to filing and winning your VA disability claim"),
-        "va-disability": ("VA Disability Ratings", "VA Disability Ratings Explained", "How VA rates disabilities and calculates your combined rating"),
+        "va-disability": ("VA Disability Ratings", "VA Disability Ratings & Benefits for Disabled Veterans", "How VA rates disabilities, calculates your combined rating, and what disability benefits you qualify for"),
+        "va-benefits": ("VA Benefits", "VA Benefits: The Complete Guide for Veterans", "All VA benefits in one place — disability compensation, GI Bill, VA home loans, healthcare, life insurance, survivor benefits, and more"),
         "military-retirement": ("Military Retirement Pay", "Military Retirement Pay Guide", "Everything you need to know about military retirement and the BRS"),
         "military-pay": ("Military Pay Charts", "Military Pay Tables & BAH Rates", "Current military pay tables, BAH rates, and BAS allowances"),
         "state-benefits": ("State Veterans Benefits", "State Veterans Benefits by State", "Property tax exemptions, tuition waivers, and more — by state"),
@@ -268,12 +436,38 @@ def generate_pillar_page(slug: str, dry_run: bool = False) -> Optional[LandingPa
         return None
 
     title, h1, subtitle = titles[slug]
-    prompt = (
-        f"Write a 400-word pillar page introduction for '{h1}'. "
-        "Explain the topic, why it matters to veterans, and what the reader will learn. "
-        "Use h2, p, and ul/li HTML only. Link internally where relevant."
-    )
-    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+
+    if slug == "va-benefits":
+        prompt = (
+            "You are an expert SEO content writer. Write a 1,500-word hub page for 'VA Benefits: The Complete Guide for Veterans'. "
+            "\n\nPrimary keywords: 'va benefits' and 'veterans benefits' — use them in the first paragraph, 2-3 H2s, and conclusion."
+            "\n\nThis page is a comprehensive overview hub that links to deeper spoke pages. "
+            "Cover each major VA benefit category with a 2-3 paragraph summary and link to its dedicated page:"
+            "\n- Disability Compensation → <a href='/va-disability/'>VA Disability Ratings</a>"
+            "\n- Filing a VA Claim → <a href='/va-claims/'>VA Claims Guide</a>"
+            "\n- GI Bill & Education → <a href='/va-benefits/gi-bill/'>GI Bill Benefits</a>"
+            "\n- VA Home Loans → <a href='/va-benefits/va-home-loan/'>VA Home Loan Guide</a>"
+            "\n- VA Healthcare → <a href='/va-benefits/va-healthcare/'>VA Healthcare</a>"
+            "\n- DIC & Survivor Benefits → <a href='/va-benefits/dic/'>DIC Benefits</a>"
+            "\n- Life Insurance (SGLI/VGLI) → <a href='/va-benefits/sgli/'>SGLI</a> and <a href='/va-benefits/vgli/'>VGLI</a>"
+            "\n- VA Pension → <a href='/va-benefits/va-pension/'>VA Pension</a>"
+            "\n- Vocational Rehab (VR&E) → <a href='/va-benefits/vocational-rehab/'>Vocational Rehab</a>"
+            "\n- Military Retirement → <a href='/military-retirement/'>Retirement Pay Guide</a>"
+            "\n\nAlso link to tools: <a href='/tools/va-disability-rating-calculator/'>VA Rating Calculator</a>, "
+            "<a href='/tools/bah-calculator/'>BAH Calculator</a>."
+            "\n\nStructure: Use h2 for each benefit category, h3 for sub-topics, p and ul/li for content. "
+            "Include a table of contents at the top. Add a comparison table summarizing all benefits "
+            "(columns: Benefit, Who Qualifies, Monthly Value, How to Apply). "
+            "End with a strong CTA. Include 2026 references. Use plain HTML only, no markdown."
+        )
+    else:
+        prompt = (
+            f"Write a 400-word pillar page introduction for '{h1}'. "
+            "Explain the topic, why it matters to veterans, and what the reader will learn. "
+            "Use h2, p, and ul/li HTML only. Link internally where relevant."
+        )
+    max_tok = 4000 if slug == "va-benefits" else 1200
+    body = "" if dry_run else (_llm_generate(prompt, settings, max_tokens=max_tok) or "")
 
     page_key = f"pillar:{slug}"
     with Session(engine) as session:
@@ -297,13 +491,53 @@ def generate_pillar_page(slug: str, dry_run: bool = False) -> Optional[LandingPa
 def generate_spoke_page(pillar: str, spoke_slug: str, dry_run: bool = False) -> Optional[LandingPage]:
     from src.config import settings
 
-    display = spoke_slug.replace("-", " ").title()
-    prompt = (
-        f"Write a 600-word guide about '{display}' for veterans. "
-        "Include: why it matters, step-by-step guidance, common mistakes, and tips. "
-        "Use h2, h3, p, ul/li HTML only."
-    )
-    body = "" if dry_run else (_llm_generate(prompt, settings) or "")
+    # Check for structured research data (VA Benefits spokes have detailed SEO metadata)
+    research = VA_BENEFITS_SPOKE_RESEARCH.get(spoke_slug, {})
+
+    if research:
+        display = research["title"]
+        seo_title = research.get("seo_title", f"{display} | Rank and Pay")
+        h1 = research.get("h1", display)
+        seo_desc = research.get("seo_description", f"Complete guide to {display.lower()} for veterans.")
+        key_points = research.get("key_points", [])
+        primary_kw = research.get("primary_keyword", "")
+        secondary_kws = research.get("secondary_keywords", [])
+        internal_links = research.get("internal_links", {})
+
+        # Build a detailed SEO-optimized prompt using the research data
+        links_str = ", ".join([f"{label} ({url})" for label, url in internal_links.items()])
+        secondary_str = ", ".join(secondary_kws)
+        prompt = (
+            f"You are an expert SEO content writer creating a high-ranking, helpful article. "
+            f"Write a 2,000-word guide about '{h1}'. "
+            f"\n\nPrimary keyword: '{primary_kw}' — use it in the first paragraph, conclusion, and 2-3 H2/H3 headings. "
+            f"Secondary keywords to weave in naturally: {secondary_str}. "
+            f"\n\nKey facts to cover:\n" + "\n".join(f"- {pt}" for pt in key_points) +
+            f"\n\nStructure requirements:"
+            f"\n- Use h2, h3, p, ul/li, and table HTML only. No markdown."
+            f"\n- Include a table of contents at the top with anchor links."
+            f"\n- Add an FAQ section with 4-5 common questions at the bottom."
+            f"\n- Include comparison tables where relevant."
+            f"\n- Add internal links using <a> tags to these pages: {links_str}"
+            f"\n- Include 2026 data, current rates, and recent policy changes where applicable."
+            f"\n- End with a clear conclusion and call-to-action directing readers to related tools or guides."
+            f"\n- Demonstrate E-E-A-T: cite VA.gov, CFR references, and official program details."
+            f"\n- Optimize for featured snippets: use concise definitions, numbered lists, and direct answers."
+            f"\n\nWrite factual, practical content. No fluff, no filler. Every paragraph should teach something."
+        )
+    else:
+        display = spoke_slug.replace("-", " ").title()
+        seo_title = f"{display} | Rank and Pay"
+        h1 = display
+        seo_desc = f"Learn everything about {display.lower()} for your VA claim."
+        key_points = []
+        prompt = (
+            f"Write a 600-word guide about '{display}' for veterans. "
+            "Include: why it matters, step-by-step guidance, common mistakes, and tips. "
+            "Use h2, h3, p, ul/li HTML only."
+        )
+
+    body = "" if dry_run else (_llm_generate(prompt, settings, max_tokens=4000) or "")
 
     page_key = f"spoke:{pillar}:{spoke_slug}"
     with Session(engine) as session:
@@ -312,11 +546,12 @@ def generate_spoke_page(pillar: str, spoke_slug: str, dry_run: bool = False) -> 
             slug=page_key,
             canonical_path=f"/{pillar}/{spoke_slug}/",
             page_type="spoke",
-            title=f"{display} | Rank and Pay",
-            h1=display,
-            subtitle=f"A complete guide to {display.lower()} for veterans.",
-            seo_description=f"Learn everything about {display.lower()} for your VA claim.",
+            title=seo_title,
+            h1=h1,
+            subtitle=seo_desc,
+            seo_description=seo_desc,
             body_html=body,
+            key_takeaways=key_points,
             cache_ttl_hours=PAGE_TTLS["spoke"] * 24,
         )
         session.commit()
@@ -473,6 +708,13 @@ def generate_all_landing_pages(
                 counts["spokes"] += 1
             except Exception as exc:
                 logger.error("spoke va-claims/%s: %s", slug, exc)
+                counts["errors"] += 1
+        for slug in VA_BENEFITS_SPOKES:
+            try:
+                generate_spoke_page("va-benefits", slug, dry_run=dry_run)
+                counts["spokes"] += 1
+            except Exception as exc:
+                logger.error("spoke va-benefits/%s: %s", slug, exc)
                 counts["errors"] += 1
         for slug in RETIREMENT_SPOKES:
             try:

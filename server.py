@@ -105,6 +105,11 @@ MILITARY_PAY_SPOKES = {
     "basic-pay", "basic-allowance-housing", "special-pays",
 }
 
+VA_BENEFITS_SPOKES = {
+    "gi-bill", "dic", "va-home-loan", "sgli", "vgli",
+    "va-healthcare", "va-pension", "vocational-rehab",
+}
+
 TOOLS_DATA = [
     {
         "slug": "va-disability-rating-calculator",
@@ -113,8 +118,8 @@ TOOLS_DATA = [
         "icon": "⚖️",
         "live": True,
         "template": "tool_va_rating.html.j2",
-        "seo_title": "VA Disability Rating Calculator 2026 | Rank and Pay",
-        "seo_description": "Calculate your combined VA disability rating using the official whole-person method. Get your estimated 2026 monthly compensation and check TDIU eligibility — free, no signup.",
+        "seo_title": "VA Disability Rating Calculator 2026 | Free VA Calculator | Rank and Pay",
+        "seo_description": "Free VA calculator — compute your combined VA disability rating using the official whole-person method. Get your estimated 2026 monthly compensation and check TDIU eligibility. No signup required.",
     },
     {
         "slug": "military-retirement-calculator",
@@ -288,6 +293,7 @@ def _build_breadcrumbs(page: LandingPage) -> list[dict]:
     label_map = {
         "va-claims": "VA Claims",
         "va-disability": "VA Disability",
+        "va-benefits": "VA Benefits",
         "military-retirement": "Military Retirement",
         "military-pay": "Military Pay",
         "state-benefits": "State Benefits",
@@ -701,6 +707,34 @@ def military_pay_spoke(spoke: str):
 
 
 # ---------------------------------------------------------------------------
+# Routes — VA Benefits pillar + spoke pages
+# ---------------------------------------------------------------------------
+
+@app.route("/va-benefits/")
+def va_benefits_pillar():
+    spoke_links = [
+        {"url": "/va-benefits/gi-bill/", "label": "GI Bill Benefits", "description": "Post-9/11, Montgomery GI Bill, housing stipend, and eligibility."},
+        {"url": "/va-benefits/va-home-loan/", "label": "VA Home Loan", "description": "Zero down payment, no PMI, and how to get your COE."},
+        {"url": "/va-benefits/va-healthcare/", "label": "VA Healthcare", "description": "Eligibility, priority groups, enrollment, and copays."},
+        {"url": "/va-benefits/dic/", "label": "DIC Survivor Benefits", "description": "Dependency and Indemnity Compensation for surviving spouses."},
+        {"url": "/va-benefits/sgli/", "label": "SGLI Life Insurance", "description": "Active-duty life insurance — coverage, rates, and beneficiaries."},
+        {"url": "/va-benefits/vgli/", "label": "VGLI Life Insurance", "description": "Convert your SGLI after separation — rates and enrollment."},
+        {"url": "/va-benefits/va-pension/", "label": "VA Pension", "description": "Income-based benefits for wartime veterans and Aid & Attendance."},
+        {"url": "/va-benefits/vocational-rehab/", "label": "Vocational Rehab (VR&E)", "description": "Chapter 31 career training for disabled veterans."},
+        {"url": "/va-disability/", "label": "VA Disability Ratings", "description": "How VA rates service-connected disabilities."},
+        {"url": "/va-claims/", "label": "VA Claims Guide", "description": "Step-by-step guide to filing your VA disability claim."},
+    ]
+    return _serve_landing_page("pillar:va-benefits", spokes=spoke_links)
+
+
+@app.route("/va-benefits/<spoke>/")
+def va_benefits_spoke(spoke: str):
+    if spoke not in VA_BENEFITS_SPOKES:
+        abort(404)
+    return _serve_landing_page(f"spoke:va-benefits:{spoke}")
+
+
+# ---------------------------------------------------------------------------
 # Routes — State Benefits
 # ---------------------------------------------------------------------------
 
@@ -771,6 +805,7 @@ def sitemap():
         (f"{base}/va-disability/", now, "weekly"),
         (f"{base}/military-retirement/", now, "weekly"),
         (f"{base}/military-pay/", now, "weekly"),
+        (f"{base}/va-benefits/", now, "weekly"),
         (f"{base}/state-benefits/", now, "weekly"),
         (f"{base}/about/", now, "monthly"),
         (f"{base}/privacy/", now, "monthly"),
@@ -784,6 +819,8 @@ def sitemap():
         urls.append((f"{base}/military-retirement/{spoke}/", now, "monthly"))
     for spoke in sorted(MILITARY_PAY_SPOKES):
         urls.append((f"{base}/military-pay/{spoke}/", now, "monthly"))
+    for spoke in sorted(VA_BENEFITS_SPOKES):
+        urls.append((f"{base}/va-benefits/{spoke}/", now, "monthly"))
     for tool in sorted(TOOL_SLUGS):
         urls.append((f"{base}/tools/{tool}/", now, "monthly"))
     for state in sorted(US_STATES):
