@@ -29,7 +29,6 @@
         <span class="tool-icon" aria-hidden="true">{{ q.icon }}</span>
         <h3 style="font-size:1rem;margin-bottom:0.3rem;">{{ q.title }}</h3>
         <p>{{ q.description }}</p>
-        <span class="status-pill status-pill--live">Live</span>
       </a>
       {% endfor %}
     </div>
@@ -43,9 +42,7 @@
       <span class="tool-icon">{{ tool.icon }}</span>
       <h2 style="font-size:1rem;margin-bottom:0.3rem;">{{ tool.title }}</h2>
       <p>{{ tool.description }}</p>
-      <span class="status-pill {% if tool.live %}status-pill--live{% endif %}">
-        {{ 'Live' if tool.live else 'Coming soon' }}
-      </span>
+      {% if not tool.live %}<span class="status-pill">Coming soon</span>{% endif %}
     </a>
     {% endfor %}
   </div>
