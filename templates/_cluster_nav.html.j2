@@ -1,5 +1,5 @@
 {% macro cluster_nav(ctx) %}
-{% if ctx %}
+{% if ctx and ctx.hub_label %}
 <nav class="cluster-nav" aria-label="Related topics">
   <h3 class="cluster-nav-heading">In this guide</h3>
   <ul class="cluster-nav-list">

@@ -1,7 +1,5 @@
 {% extends "_base.html.j2" %}
-{% from "_cluster_nav.html.j2" import cluster_nav %}
 {% block title %}{{ seo.title }}{% endblock %}
-{# seo dict is handled in _base.html.j2 head — canonical, description, OG, JSON-LD all auto-rendered #}
 
 {% block content %}
 <section class="hero" style="padding:2.5rem 0 2rem;">
@@ -11,11 +9,11 @@
   </div>
 </section>
 
-<main class="container--narrow" style="margin:2rem auto;padding:0 1.25rem;">
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
 
   <!-- Breadcrumb -->
   {% if breadcrumbs %}
-  <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.25rem;color:var(--sr-gray-text);">
+  <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.5rem;color:var(--sr-gray-text);">
     {% for crumb in breadcrumbs %}
     {% if not loop.last %}
     <a href="{{ crumb.url }}">{{ crumb.label }}</a> &rsaquo;
@@ -26,34 +24,35 @@
   </nav>
   {% endif %}
 
-  <!-- Key takeaways -->
-  {% if page.key_takeaways %}
-  <aside style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-left:4px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.75rem;">
-    <h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-gray-text);margin-bottom:0.75rem;">Key Takeaways</h2>
-    <ul style="margin:0;padding-left:1.25rem;">
-      {% for t in page.key_takeaways %}
-      <li style="margin-bottom:0.35rem;font-size:0.9rem;line-height:1.5;">{{ t }}</li>
-      {% endfor %}
-    </ul>
-  </aside>
+  <!-- Intro -->
+  {% if intro_heading %}
+  <section style="margin-bottom:1.75rem;">
+    <h2 class="section-heading">{{ intro_heading }}</h2>
+    {% if intro_text %}<p style="font-size:0.95rem;color:var(--sr-gray-text);line-height:1.6;max-width:720px;">{{ intro_text }}</p>{% endif %}
+  </section>
   {% endif %}
 
-  <!-- Table of contents -->
-  {% if toc %}
-  <nav class="toc-inline" aria-label="Table of contents">
-    <h2>Table of Contents</h2>
-    <ol>
-      {% for item in toc %}
-      <li><a href="#{{ item.anchor }}">{{ item.label }}</a></li>
+  <!-- Spoke cards -->
+  {% if spokes %}
+  <section class="bucket-select" aria-label="Topics in this guide">
+    <div class="bucket-grid">
+      {% for s in spokes %}
+      <a href="{{ s.url }}" class="bucket-card">
+        {% if s.icon %}<span class="bucket-icon" aria-hidden="true">{{ s.icon }}</span>{% endif %}
+        <h3>{{ s.label }}</h3>
+        {% if s.description %}<p>{{ s.description }}</p>{% endif %}
+      </a>
       {% endfor %}
-    </ol>
-  </nav>
+    </div>
+  </section>
   {% endif %}
 
-  <!-- Body -->
-  <div class="article-body" style="line-height:1.75;">
+  <!-- Body (below the fold) -->
+  {% if page.body_html %}
+  <div class="article-body" style="line-height:1.75;margin-top:2rem;">
     {{ page.body_html | safe }}
   </div>
+  {% endif %}
 
   <!-- FAQ accordion -->
   {% if faq %}
@@ -62,28 +61,11 @@
     <div class="faq-list">
       {% for item in faq %}
       <details class="faq-item">
-        <summary>
-          {{ item.question }}
-        </summary>
+        <summary>{{ item.question }}</summary>
         <div style="padding:0.75rem 1.25rem 1rem;font-size:0.9rem;line-height:1.6;color:var(--sr-dark-text);">
           {{ item.answer }}
         </div>
       </details>
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
-
-  <!-- Spoke links (for pillar pages) -->
-  {% if spokes %}
-  <section style="margin-top:2.5rem;">
-    <h2>In This Guide</h2>
-    <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));">
-      {% for s in spokes %}
-      <a href="{{ s.url }}" class="cluster-card" style="text-decoration:none;color:inherit;">
-        <h3 style="font-size:0.95rem;color:var(--sr-blue);">{{ s.label }}</h3>
-        {% if s.description %}<p>{{ s.description }}</p>{% endif %}
-      </a>
       {% endfor %}
     </div>
   </section>
@@ -102,28 +84,12 @@
     </form>
   </div>
 
-  <!-- Last updated -->
-  {% if page.updated_at %}
-  <p style="font-size:0.78rem;color:var(--sr-gray-text);margin-top:2rem;">
-    Last updated: {{ page.updated_at.strftime('%B %d, %Y') }}
-  </p>
-  {% endif %}
-
   <!-- Disclaimer -->
-  <div class="page-disclaimer">
+  <div class="page-disclaimer" style="margin-top:2rem;">
     <strong>Disclaimer:</strong> Rank and Pay provides general information only and is not a
     law firm. Nothing on this site constitutes legal, financial, or benefits advice. Always
     verify information with the VA or an accredited claims agent.
   </div>
 
 </main>
-
-<script>
-  document.querySelectorAll('.faq-item summary').forEach(function(s) {
-    s.addEventListener('click', function() {
-      var plus = s.querySelector('span');
-      if (plus) plus.textContent = s.parentElement.open ? '+' : '−';
-    });
-  });
-</script>
 {% endblock %}

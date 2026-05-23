@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -373,6 +374,17 @@ def _build_breadcrumbs(page: LandingPage) -> list[dict]:
     return crumbs
 
 
+_FAQ_SECTION_RE = re.compile(
+    r'<h2[^>]*id=["\']?faq["\']?[^>]*>.*?(?=<h2[ >]|\Z)',
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+def _strip_body_faq(html: str) -> str:
+    """Remove an FAQ section from body_html so the template's faq_json version is the only one."""
+    return _FAQ_SECTION_RE.sub('', html)
+
+
 def _serve_landing_page(
     page_key: str, template: str = "landing.html.j2", **extra_ctx
 ) -> Response:
@@ -390,6 +402,8 @@ def _serve_landing_page(
                 return ""
             seo = build_landing_page_seo(page)
             faq = page.faq_json or []
+            if faq and page.body_html:
+                page.body_html = _strip_body_faq(page.body_html)
             jsonld = build_landing_page_jsonld(page, seo, faq_block=faq)
             cluster_ctx = _build_cluster_ctx(page)
             recent = _get_recent_briefings(limit=3, sector_filter=page.sector_slug)
@@ -625,7 +639,25 @@ def tool_page(tool_slug: str):
 
 @app.route("/va-claims/")
 def va_claims_pillar():
-    return _serve_landing_page("pillar:va-claims")
+    spoke_links = [
+        {"url": "/va-claims/how-to-file-a-va-claim/", "label": "How to File a VA Claim", "description": "Step-by-step walkthrough of the VA claims process from start to finish."},
+        {"url": "/va-claims/service-connection-requirements/", "label": "Service Connection", "description": "What the VA requires to link your condition to military service."},
+        {"url": "/va-claims/nexus-letter-guide/", "label": "Nexus Letters", "description": "How to get a medical nexus letter that supports your claim."},
+        {"url": "/va-claims/c-and-p-exam-tips/", "label": "C&P Exam Tips", "description": "What to expect and how to prepare for your Compensation & Pension exam."},
+        {"url": "/va-claims/va-claim-timeline/", "label": "Claim Timeline", "description": "How long VA claims take and what each stage means."},
+        {"url": "/va-claims/buddy-statement-guide/", "label": "Buddy Statements", "description": "How lay statements from fellow service members strengthen your claim."},
+        {"url": "/va-claims/va-claim-checklist/", "label": "Claim Checklist", "description": "Everything you need to gather before filing your VA claim."},
+        {"url": "/va-claims/secondary-conditions/", "label": "Secondary Conditions", "description": "How to claim conditions caused or aggravated by a service-connected disability."},
+        {"url": "/va-claims/va-rating-increase/", "label": "Rating Increase", "description": "How to request a higher VA disability rating when your condition worsens."},
+        {"url": "/va-claims/claim-for-increase/", "label": "Claim for Increase", "description": "File a claim for increase when your disability has gotten worse."},
+        {"url": "/va-claims/benefits-delivery-at-discharge/", "label": "BDD Program", "description": "File your claim 180–90 days before separation for faster benefits."},
+        {"url": "/va-claims/va-claim-denied/", "label": "Claim Denied?", "description": "Your options after a VA claim denial — supplemental claims, HLR, and appeals."},
+    ]
+    return _serve_landing_page(
+        "pillar:va-claims", template="pillar.html.j2", spokes=spoke_links,
+        intro_heading="Navigate the VA Claims Process",
+        intro_text="Filing a VA disability claim can be overwhelming. Use the guides below to understand each step — from gathering evidence to appealing a denial.",
+    )
 
 
 @app.route("/va-claims/<spoke>/")
@@ -641,11 +673,36 @@ def va_claims_spoke(spoke: str):
 
 @app.route("/va-disability/")
 def va_disability_pillar():
-    return _serve_landing_page("pillar:va-disability")
+    db = SessionLocal()
+    try:
+        conditions = db.query(VACondition).order_by(VACondition.display_name).all()
+        spoke_links = [
+            {
+                "url": f"/va-disability/{c.slug}/",
+                "label": c.display_name,
+                "description": c.short_description or "",
+            }
+            for c in conditions
+        ]
+    finally:
+        db.close()
+    return _serve_landing_page(
+        "pillar:va-disability", template="pillar.html.j2", spokes=spoke_links,
+        intro_heading="VA Disability Ratings by Condition",
+        intro_text="Select a condition below to see how the VA rates it, what evidence you need, and which secondary conditions may apply.",
+    )
 
 
 @app.route("/va-disability/<condition>/")
 def va_disability_condition(condition: str):
+    cache_key = f"va-disability-condition:{condition}"
+    if cache_key in _PAGE_CACHE:
+        ts, cached_html = _PAGE_CACHE[cache_key]
+        if time.time() - ts < _PAGE_CACHE_TTL:
+            if cached_html == "__404__":
+                abort(404)
+            return _gzip_response(cached_html)
+
     db = SessionLocal()
     try:
         va_condition = (
@@ -660,6 +717,9 @@ def va_disability_condition(condition: str):
             )
             if landing:
                 faq = landing.faq_json or []
+                body_html = landing.body_html or ""
+                if faq and body_html:
+                    body_html = _strip_body_faq(body_html)
                 seo = build_landing_page_seo(landing)
                 jsonld = build_landing_page_jsonld(landing, seo, faq_block=faq)
                 cluster_ctx = _build_cluster_ctx(landing)
@@ -676,7 +736,7 @@ def va_disability_condition(condition: str):
                     seo=seo,
                     jsonld=jsonld,
                     faq=faq,
-                    body_html=landing.body_html,
+                    body_html=body_html,
                     key_takeaways=landing.key_takeaways,
                     breadcrumbs=breadcrumbs,
                     cluster_ctx=cluster_ctx,
@@ -709,6 +769,7 @@ def va_disability_condition(condition: str):
                     cluster_ctx={},
                     recent_briefings=[],
                 )
+            _PAGE_CACHE[cache_key] = (time.time(), html)
             return _gzip_response(html)
 
         # No VACondition row — check for a LandingPage
@@ -718,6 +779,7 @@ def va_disability_condition(condition: str):
             .first()
         )
         if not landing:
+            _PAGE_CACHE[cache_key] = (time.time(), "__404__")
             abort(404)
         faq = landing.faq_json or []
         seo = build_landing_page_seo(landing)
@@ -735,6 +797,7 @@ def va_disability_condition(condition: str):
             cluster_ctx=cluster_ctx,
             recent_briefings=recent,
         )
+        _PAGE_CACHE[cache_key] = (time.time(), html)
         return _gzip_response(html)
     finally:
         db.close()
@@ -746,7 +809,21 @@ def va_disability_condition(condition: str):
 
 @app.route("/military-retirement/")
 def military_retirement_pillar():
-    return _serve_landing_page("pillar:military-retirement")
+    spoke_links = [
+        {"url": "/military-retirement/final-pay-retirement/", "label": "Final Pay Retirement", "description": "Legacy retirement system based on your final base pay at retirement."},
+        {"url": "/military-retirement/high-36-retirement/", "label": "High-36 Retirement", "description": "Retirement pay calculated from your highest 36 months of base pay."},
+        {"url": "/military-retirement/blended-retirement-system/", "label": "Blended Retirement (BRS)", "description": "The new system combining reduced pension with TSP matching."},
+        {"url": "/military-retirement/disability-retirement-vs-chapter61/", "label": "Disability Retirement", "description": "Medical retirement vs. Chapter 61 separation — key differences."},
+        {"url": "/military-retirement/reserve-retirement-points/", "label": "Reserve Retirement Points", "description": "How Guard and Reserve members earn and calculate retirement points."},
+        {"url": "/military-retirement/survivor-benefit-plan/", "label": "Survivor Benefit Plan (SBP)", "description": "Protecting your spouse's income after you pass — costs and coverage."},
+        {"url": "/military-retirement/concurrent-receipt-crsc-crdp/", "label": "CRSC & CRDP", "description": "Concurrent receipt rules for collecting both retirement and VA disability pay."},
+        {"url": "/tools/military-retirement-calculator/", "label": "Retirement Calculator", "description": "Estimate your monthly retirement pay under any system."},
+    ]
+    return _serve_landing_page(
+        "pillar:military-retirement", template="pillar.html.j2", spokes=spoke_links,
+        intro_heading="Plan Your Military Retirement",
+        intro_text="Whether you're under the legacy system or BRS, the guides below cover every aspect of military retirement pay, survivor benefits, and concurrent receipt.",
+    )
 
 
 @app.route("/military-retirement/<spoke>/")
@@ -762,7 +839,19 @@ def military_retirement_spoke(spoke: str):
 
 @app.route("/military-pay/")
 def military_pay_pillar():
-    return _serve_landing_page("pillar:military-pay")
+    spoke_links = [
+        {"url": "/military-pay/basic-pay/", "label": "Base Pay Tables", "description": "Monthly base pay by rank and years of service for all branches."},
+        {"url": "/military-pay/basic-allowance-housing/", "label": "BAH Rates", "description": "Basic Allowance for Housing rates by location, rank, and dependents."},
+        {"url": "/military-pay/special-pays/", "label": "Special & Incentive Pay", "description": "Hazardous duty, flight pay, dive pay, and other special pays."},
+        {"url": "/military-pay/pcs-entitlements/", "label": "PCS Entitlements", "description": "Moving allowances, DITY moves, TLE, and per diem for PCS orders."},
+        {"url": "/tools/bah-calculator/", "label": "BAH Calculator", "description": "Look up your BAH rate by zip code, rank, and dependency status."},
+        {"url": "/tools/military-pay-calculator/", "label": "Military Pay Calculator", "description": "Estimate your total military compensation including allowances."},
+    ]
+    return _serve_landing_page(
+        "pillar:military-pay", template="pillar.html.j2", spokes=spoke_links,
+        intro_heading="Understand Your Military Pay",
+        intro_text="Base pay, BAH, BAS, and special pays — use the guides and calculators below to see exactly what you're entitled to.",
+    )
 
 
 @app.route("/military-pay/<spoke>/")
@@ -790,7 +879,11 @@ def va_benefits_pillar():
         {"url": "/va-disability/", "label": "VA Disability Ratings", "description": "How VA rates service-connected disabilities."},
         {"url": "/va-claims/", "label": "VA Claims Guide", "description": "Step-by-step guide to filing your VA disability claim."},
     ]
-    return _serve_landing_page("pillar:va-benefits", spokes=spoke_links)
+    return _serve_landing_page(
+        "pillar:va-benefits", template="pillar.html.j2", spokes=spoke_links,
+        intro_heading="Explore Your VA Benefits",
+        intro_text="From the GI Bill to VA home loans, the guides below break down every major benefit available to veterans and their families.",
+    )
 
 
 @app.route("/va-benefits/<spoke>/")
@@ -806,7 +899,15 @@ def va_benefits_spoke(spoke: str):
 
 @app.route("/state-benefits/")
 def state_benefits_hub():
-    return _serve_landing_page("pillar:state-benefits")
+    spoke_links = [
+        {"url": f"/state-benefits/{s}/", "label": s.replace("-", " ").title()}
+        for s in sorted(US_STATES)
+    ]
+    return _serve_landing_page(
+        "pillar:state-benefits", template="pillar.html.j2", spokes=spoke_links,
+        intro_heading="Find Your State's Veterans Benefits",
+        intro_text="Every state offers its own veterans benefits — property tax exemptions, tuition waivers, and more. Select your state below to see what's available.",
+    )
 
 
 @app.route("/state-benefits/<state>/")

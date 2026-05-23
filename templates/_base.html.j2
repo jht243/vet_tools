@@ -30,21 +30,32 @@
   <script type="application/ld+json">{{ jsonld | safe }}</script>
   {% endif %}
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts (non-blocking) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=swap"></noscript>
 
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RRYRHFJG2Q"></script>
+  <!-- Google Analytics (deferred until after load) -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-RRYRHFJG2Q');
+    (function(){
+      var load = function(){
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-RRYRHFJG2Q';
+        document.head.appendChild(s);
+      };
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(load, {timeout: 4000});
+      } else {
+        window.addEventListener('load', function(){ setTimeout(load, 1500); });
+      }
+    })();
   </script>
-
-  {% include "_google_tag.html.j2" %}
 
   {% block extra_head %}{% endblock %}
 
@@ -240,6 +251,94 @@
 
     .nav-mobile a:last-child { border-bottom: none; }
     .nav-mobile a:hover { color: var(--white); }
+
+    /* Nav dropdown */
+    .nav-dropdown {
+      position: relative;
+    }
+
+    .nav-dropdown-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.75rem;
+      color: rgba(255,255,255,0.88);
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: none;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .nav-dropdown-toggle:hover,
+    .nav-dropdown.open .nav-dropdown-toggle {
+      background: rgba(255,255,255,0.15);
+      color: var(--white);
+    }
+
+    .nav-dropdown-toggle svg {
+      transition: transform 0.2s;
+    }
+
+    .nav-dropdown.open .nav-dropdown-toggle svg {
+      transform: rotate(180deg);
+    }
+
+    .nav-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      list-style: none;
+      margin: 0;
+      padding: 0.4rem 0;
+      min-width: 220px;
+      z-index: 200;
+    }
+
+    .nav-dropdown.open .nav-dropdown-menu {
+      display: block;
+    }
+
+    .nav-dropdown-menu a {
+      display: block;
+      padding: 0.55rem 1rem;
+      color: var(--sr-dark-text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .nav-dropdown-menu a:hover {
+      background: var(--sr-gray-bg);
+      color: var(--sr-blue);
+    }
+
+    /* Mobile nav enhancements */
+    .nav-mobile-heading {
+      padding: 0.5rem 0.5rem 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.5);
+      list-style: none;
+    }
+
+    .nav-mobile-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 0.4rem 0.5rem;
+      list-style: none;
+    }
 
     @media (max-width: 768px) {
       .nav-links { display: none; }
@@ -903,23 +1002,23 @@
     .hero {
       background: linear-gradient(135deg, var(--sr-blue) 0%, var(--sr-blue-dark) 100%);
       color: var(--white);
-      padding: 4rem 0 3.5rem;
+      padding: 2.5rem 0 2rem;
       text-align: center;
     }
 
     .hero h1 {
       color: var(--white);
-      font-size: clamp(1.8rem, 4vw, 2.75rem);
+      font-size: clamp(1.4rem, 3vw, 2rem);
       margin-bottom: 0.75rem;
-      max-width: 700px;
+      max-width: 800px;
       margin-left: auto;
       margin-right: auto;
     }
 
     .hero p {
       color: rgba(255,255,255,0.85);
-      font-size: 1.05rem;
-      max-width: 600px;
+      font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+      max-width: 700px;
       margin: 0 auto 1.75rem;
     }
 
@@ -970,6 +1069,63 @@
     /* =========================================================
        Cluster / content sections
     ========================================================= */
+    /* =========================================================
+       Bucket select (homepage "I'm Looking For Help With...")
+    ========================================================= */
+    .bucket-select { margin-bottom: 3rem; }
+
+    .bucket-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .bucket-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: var(--white);
+      border: 2px solid var(--sr-gray-light);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+
+    .bucket-card:hover {
+      border-color: var(--sr-blue);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-3px);
+    }
+
+    .bucket-icon {
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--sr-blue);
+    }
+
+    .bucket-card h3 {
+      font-size: 1rem;
+      color: var(--sr-blue);
+      margin-bottom: 0.35rem;
+    }
+
+    .bucket-card p {
+      font-size: 0.82rem;
+      color: var(--sr-gray-text);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .bucket-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .bucket-grid { grid-template-columns: 1fr; }
+    }
+
     .content-clusters { margin: 2.5rem 0; }
 
     .cluster-card {
@@ -1071,6 +1227,40 @@
 
     .toc-aside a:hover { text-decoration: underline; color: var(--sr-red); }
 
+    .toc-inline {
+      background: var(--sr-gray-bg);
+      border: 1px solid var(--sr-gray-light);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .toc-inline h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .toc-inline ol {
+      margin: 0;
+      padding-left: 1.25rem;
+      columns: 2;
+      column-gap: 2rem;
+    }
+
+    .toc-inline li { margin-bottom: 0.35rem; }
+
+    .toc-inline a {
+      color: var(--sr-blue);
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+
+    .toc-inline a:hover { text-decoration: underline; color: var(--sr-red); }
+
+    @media (max-width: 580px) {
+      .toc-inline ol { columns: 1; }
+    }
+
     /* =========================================================
        Disclaimer
     ========================================================= */
@@ -1156,7 +1346,6 @@
 <body>
 
 <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Site Header / Nav -->
 <header class="site-header">
@@ -1171,11 +1360,21 @@
 
     <nav aria-label="Main navigation">
       <ul class="nav-links">
-        <li><a href="/briefing/">Briefings</a></li>
+        <li class="nav-dropdown">
+          <button class="nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+            Guides <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <ul class="nav-dropdown-menu">
+            <li><a href="/va-benefits/">VA Benefits</a></li>
+            <li><a href="/va-claims/">VA Claims</a></li>
+            <li><a href="/va-disability/">VA Disability Ratings</a></li>
+            <li><a href="/military-pay/">Military Pay</a></li>
+            <li><a href="/military-retirement/">Military Retirement</a></li>
+            <li><a href="/state-benefits/">State Veterans Benefits</a></li>
+          </ul>
+        </li>
         <li><a href="/tools/">Tools</a></li>
-        <li><a href="/va-claims/">VA Claims</a></li>
-        <li><a href="/military-retirement/">Retirement</a></li>
-        <li><a href="/state-benefits/">State Benefits</a></li>
+        <li><a href="/briefing/">Briefings</a></li>
       </ul>
     </nav>
 
@@ -1186,11 +1385,16 @@
 
   <nav class="nav-mobile" id="nav-mobile" aria-label="Mobile navigation">
     <ul>
-      <li><a href="/briefing/">Briefings</a></li>
-      <li><a href="/tools/">Tools</a></li>
+      <li class="nav-mobile-heading">Guides</li>
+      <li><a href="/va-benefits/">VA Benefits</a></li>
       <li><a href="/va-claims/">VA Claims</a></li>
-      <li><a href="/military-retirement/">Retirement</a></li>
-      <li><a href="/state-benefits/">State Benefits</a></li>
+      <li><a href="/va-disability/">VA Disability Ratings</a></li>
+      <li><a href="/military-pay/">Military Pay</a></li>
+      <li><a href="/military-retirement/">Military Retirement</a></li>
+      <li><a href="/state-benefits/">State Veterans Benefits</a></li>
+      <li class="nav-mobile-divider"></li>
+      <li><a href="/tools/">Tools</a></li>
+      <li><a href="/briefing/">Briefings</a></li>
     </ul>
   </nav>
 </header>
@@ -1304,6 +1508,24 @@
       var isOpen = mobile.classList.toggle('open');
       toggle.classList.toggle('open', isOpen);
       toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+  })();
+
+  // Guides dropdown
+  (function() {
+    var dd = document.querySelector('.nav-dropdown');
+    var btn = dd && dd.querySelector('.nav-dropdown-toggle');
+    if (!dd || !btn) return;
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var open = dd.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function(e) {
+      if (!dd.contains(e.target)) {
+        dd.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
     });
   })();
 

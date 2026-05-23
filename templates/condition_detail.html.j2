@@ -21,110 +21,103 @@
   </div>
 </section>
 
-<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
-  <div class="layout-with-sidebar">
+<main class="container--narrow" style="margin:2rem auto;padding:0 1.25rem;">
 
-    <div>
-      <!-- Breadcrumb -->
-      <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.25rem;color:var(--sr-gray-text);">
-        <a href="/">Home</a> &rsaquo;
-        <a href="/va-disability/">VA Disability</a> &rsaquo;
-        <span>{{ condition.display_name }}</span>
-      </nav>
+  <!-- Breadcrumb -->
+  <nav aria-label="Breadcrumb" style="font-size:0.82rem;margin-bottom:1.25rem;color:var(--sr-gray-text);">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/va-disability/">VA Disability</a> &rsaquo;
+    <span>{{ condition.display_name }}</span>
+  </nav>
 
-      <!-- Quick stats -->
-      {% if condition.typical_rating_pct or condition.cfr_citation %}
-      <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;">
-        {% if condition.typical_rating_pct %}
-        <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem 1.25rem;flex:1;min-width:140px;">
-          <span style="display:block;font-size:1.6rem;font-weight:700;color:var(--sr-blue);font-family:var(--font-serif);">{{ condition.typical_rating_pct }}%</span>
-          <span style="font-size:0.8rem;color:var(--sr-gray-text);">Typical VA rating</span>
-        </div>
-        {% endif %}
-        {% if condition.cfr_citation %}
-        <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem 1.25rem;flex:2;min-width:200px;">
-          <span style="display:block;font-size:0.9rem;font-weight:600;">{{ condition.cfr_citation }}</span>
-          <span style="font-size:0.8rem;color:var(--sr-gray-text);">CFR Citation (Diagnostic Code)</span>
-        </div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <!-- Key takeaways -->
-      {% if key_takeaways %}
-      <aside style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-left:4px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.75rem;">
-        <h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-gray-text);margin-bottom:0.75rem;">Key Takeaways</h2>
-        <ul style="margin:0;padding-left:1.25rem;">
-          {% for t in key_takeaways %}
-          <li style="margin-bottom:0.35rem;font-size:0.9rem;line-height:1.5;">{{ t }}</li>
-          {% endfor %}
-        </ul>
-      </aside>
-      {% endif %}
-
-      <!-- Body from LandingPage or condition.long_description -->
-      {% if body_html %}
-      <div class="article-body" style="line-height:1.75;">{{ body_html | safe }}</div>
-      {% elif condition.long_description %}
-      <div class="article-body" style="line-height:1.75;">
-        <p>{{ condition.long_description }}</p>
-      </div>
-      {% endif %}
-
-      <!-- FAQ -->
-      {% if faq %}
-      <section style="margin-top:2.5rem;" aria-labelledby="faq-heading">
-        <h2 id="faq-heading">Frequently Asked Questions</h2>
-        <div class="faq-list">
-          {% for item in faq %}
-          <details class="faq-item" style="border-bottom:1px solid var(--sr-gray-light);padding:0.75rem 0;">
-            <summary style="font-weight:600;cursor:pointer;font-size:0.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">
-              {{ item.question }}
-              <span style="font-size:1.2rem;color:var(--sr-blue);margin-left:0.5rem;flex-shrink:0;">+</span>
-            </summary>
-            <div style="padding:0.75rem 0 0.25rem;font-size:0.9rem;line-height:1.6;">{{ item.answer }}</div>
-          </details>
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      <!-- Related conditions -->
-      {% if related_conditions %}
-      <section style="margin-top:2.5rem;">
-        <h2 style="font-size:1rem;">Related Conditions</h2>
-        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:0.5rem;">
-          {% for rc in related_conditions %}
-          <li><a href="/va-disability/{{ rc.slug }}/" class="tag" style="display:inline-block;padding:0.3rem 0.75rem;background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:20px;font-size:0.82rem;color:var(--sr-blue);text-decoration:none;">{{ rc.display_name }}</a></li>
-          {% endfor %}
-        </ul>
-      </section>
-      {% endif %}
-
-      <!-- Disclaimer -->
-      <div class="page-disclaimer" style="margin-top:2rem;">
-        <strong>Disclaimer:</strong> Rating percentages shown are illustrative. Actual VA ratings depend on your specific medical evidence, nexus letter, and C&P exam results. Consult an accredited VSO or claims agent for guidance on your claim.
-      </div>
-
-      <p style="margin-top:1.5rem;font-size:0.875rem;"><a href="/va-disability/">&larr; All VA Disability conditions</a></p>
+  <!-- Quick stats -->
+  {% if condition.typical_rating_pct or condition.cfr_citation %}
+  <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;">
+    {% if condition.typical_rating_pct %}
+    <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem 1.25rem;flex:1;min-width:140px;">
+      <span style="display:block;font-size:1.6rem;font-weight:700;color:var(--sr-blue);font-family:var(--font-serif);">{{ condition.typical_rating_pct }}%</span>
+      <span style="font-size:0.8rem;color:var(--sr-gray-text);">Typical VA rating</span>
     </div>
-
-    <!-- Sidebar -->
-    <aside class="layout-sidebar">
-      {{ cluster_nav(cluster_ctx) }}
-
-      <div style="background:var(--sr-blue);color:var(--white);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-top:1.5rem;">
-        <h3 style="color:var(--white);font-size:0.95rem;margin-bottom:0.4rem;">Get free updates</h3>
-        <p style="font-size:0.82rem;opacity:0.85;margin-bottom:0.75rem;line-height:1.5;">Rate changes, new rulings, and claim tips — free.</p>
-        <form action="/api/subscribe" method="POST" style="display:flex;flex-direction:column;gap:0.5rem;">
-          <input type="email" name="email" placeholder="you@example.com" required
-                 style="padding:0.5rem 0.75rem;border-radius:var(--radius);border:none;font-size:0.875rem;">
-          <button type="submit" class="btn btn--primary" style="background:var(--sr-red);border-color:var(--sr-red);">Subscribe</button>
-        </form>
-      </div>
-    </aside>
-
+    {% endif %}
+    {% if condition.cfr_citation %}
+    <div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem 1.25rem;flex:2;min-width:200px;">
+      <span style="display:block;font-size:0.9rem;font-weight:600;">{{ condition.cfr_citation }}</span>
+      <span style="font-size:0.8rem;color:var(--sr-gray-text);">CFR Citation (Diagnostic Code)</span>
+    </div>
+    {% endif %}
   </div>
+  {% endif %}
+
+  <!-- Key takeaways -->
+  {% if key_takeaways %}
+  <aside style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-left:4px solid var(--sr-blue);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.75rem;">
+    <h2 style="font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-gray-text);margin-bottom:0.75rem;">Key Takeaways</h2>
+    <ul style="margin:0;padding-left:1.25rem;">
+      {% for t in key_takeaways %}
+      <li style="margin-bottom:0.35rem;font-size:0.9rem;line-height:1.5;">{{ t }}</li>
+      {% endfor %}
+    </ul>
+  </aside>
+  {% endif %}
+
+  <!-- Body from LandingPage or condition.long_description -->
+  {% if body_html %}
+  <div class="article-body" style="line-height:1.75;">{{ body_html | safe }}</div>
+  {% elif condition.long_description %}
+  <div class="article-body" style="line-height:1.75;">
+    <p>{{ condition.long_description }}</p>
+  </div>
+  {% endif %}
+
+  <!-- FAQ -->
+  {% if faq %}
+  <section style="margin-top:2.5rem;" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">Frequently Asked Questions</h2>
+    <div class="faq-list">
+      {% for item in faq %}
+      <details class="faq-item">
+        <summary>
+          {{ item.question }}
+        </summary>
+        <div style="padding:0.75rem 1.25rem 1rem;font-size:0.9rem;line-height:1.6;">{{ item.answer }}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Related conditions -->
+  {% if related_conditions %}
+  <section style="margin-top:2.5rem;">
+    <h2 style="font-size:1rem;">Related Conditions</h2>
+    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:0.5rem;">
+      {% for rc in related_conditions %}
+      <li><a href="/va-disability/{{ rc.slug }}/" class="tag" style="display:inline-block;padding:0.3rem 0.75rem;background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:20px;font-size:0.82rem;color:var(--sr-blue);text-decoration:none;">{{ rc.display_name }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <!-- Email capture -->
+  <div style="background:var(--sr-blue);color:var(--white);border-radius:var(--radius);padding:1.5rem 2rem;margin-top:2.5rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;">
+      <h3 style="color:var(--white);font-size:1rem;margin-bottom:0.25rem;">Get free updates</h3>
+      <p style="font-size:0.85rem;opacity:0.85;margin:0;line-height:1.4;">Rate changes, new rulings, and claim tips — free.</p>
+    </div>
+    <form action="/api/subscribe" method="POST" style="display:flex;gap:0.5rem;flex:1;min-width:260px;">
+      <input type="email" name="email" placeholder="you@example.com" required
+             style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:none;font-size:0.875rem;">
+      <button type="submit" class="btn btn--primary" style="background:var(--sr-red);border-color:var(--sr-red);white-space:nowrap;">Subscribe</button>
+    </form>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="page-disclaimer" style="margin-top:2rem;">
+    <strong>Disclaimer:</strong> Rating percentages shown are illustrative. Actual VA ratings depend on your specific medical evidence, nexus letter, and C&P exam results. Consult an accredited VSO or claims agent for guidance on your claim.
+  </div>
+
+  <p style="margin-top:1.5rem;font-size:0.875rem;"><a href="/va-disability/">&larr; All VA Disability conditions</a></p>
+
 </main>
 
 <script>
