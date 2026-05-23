@@ -30,11 +30,11 @@
   <script type="application/ld+json">{{ jsonld | safe }}</script>
   {% endif %}
 
-  <!-- Google Fonts (non-blocking) -->
+  <!-- Google Fonts (non-blocking, font-display: optional eliminates swap-induced LCP delay) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=optional" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600;700&display=optional"></noscript>
 
   <!-- Google Analytics (deferred until after load) -->
   <script>
@@ -61,6 +61,28 @@
 
   <style>
     /* =========================================================
+       Adjusted-fallback font metrics — minimize CLS when the cached
+       web font swaps in over the system fallback. Values from the
+       Fontsource adjusted-font-fallback database.
+    ========================================================= */
+    @font-face {
+      font-family: 'Open Sans Fallback';
+      src: local('Arial');
+      ascent-override: 101.17%;
+      descent-override: 27.71%;
+      line-gap-override: 0%;
+      size-adjust: 101.18%;
+    }
+    @font-face {
+      font-family: 'Libre Baskerville Fallback';
+      src: local('Times New Roman'), local('Times');
+      ascent-override: 97.05%;
+      descent-override: 26.70%;
+      line-gap-override: 0%;
+      size-adjust: 105.49%;
+    }
+
+    /* =========================================================
        CSS Reset & Base
     ========================================================= */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,8 +96,8 @@
       --sr-gray-text: #545b62;
       --sr-dark-text: #212529;
       --white: #ffffff;
-      --font-serif: 'Libre Baskerville', 'Times New Roman', Times, serif;
-      --font-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-serif: 'Libre Baskerville', 'Libre Baskerville Fallback', 'Times New Roman', Times, serif;
+      --font-sans: 'Open Sans', 'Open Sans Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       --max-width: 1200px;
       --gap: 1.5rem;
       --radius: 6px;
@@ -1008,18 +1030,20 @@
 
     .hero h1 {
       color: var(--white);
-      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-size: clamp(1.3rem, 2.6vw, 1.85rem);
       margin-bottom: 0.75rem;
-      max-width: 800px;
+      max-width: 900px;
       margin-left: auto;
       margin-right: auto;
+      line-height: 1.2;
     }
 
     .hero p {
       color: rgba(255,255,255,0.85);
-      font-size: clamp(0.9rem, 1.5vw, 1.05rem);
-      max-width: 700px;
+      font-size: clamp(0.875rem, 1.3vw, 1rem);
+      max-width: 820px;
       margin: 0 auto 1.75rem;
+      line-height: 1.4;
     }
 
     .hero-cta {
@@ -1073,6 +1097,53 @@
        Bucket select (homepage "I'm Looking For Help With...")
     ========================================================= */
     .bucket-select { margin-bottom: 3rem; }
+
+    /* Quiz CTA banner */
+    .quiz-cta-banner {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: linear-gradient(135deg, #e8f5e9 0%, #d7ecd9 100%);
+      border: 1px solid #81c784;
+      border-left: 4px solid #2e7d32;
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.75rem;
+      text-decoration: none;
+      color: var(--sr-dark-text);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .quiz-cta-banner:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      color: var(--sr-dark-text);
+    }
+
+    .quiz-cta-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #2e7d32;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .quiz-cta-body { flex: 1; }
+    .quiz-cta-body h3 { font-size: 1rem; margin-bottom: 0.15rem; color: var(--sr-dark-text); }
+    .quiz-cta-body p { font-size: 0.85rem; color: var(--sr-gray-text); margin: 0; }
+
+    .quiz-cta-arrow {
+      font-size: 1.4rem;
+      color: #2e7d32;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
 
     .bucket-grid {
       display: grid;
