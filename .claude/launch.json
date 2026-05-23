@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "vet-tools",
+      "runtimeExecutable": "/Users/jonathanteplitsky/Desktop/Github Projects/vet_tools/.venv/bin/python",
+      "runtimeArgs": ["/Users/jonathanteplitsky/Desktop/Github Projects/vet_tools/server.py"],
+      "port": 8080
+    },
+    {
       "name": "article-preview",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["output/preview-article.py"],
