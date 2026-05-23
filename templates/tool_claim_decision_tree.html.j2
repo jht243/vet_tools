@@ -1,0 +1,616 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>VA Claim Eligibility Check</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">Can I Still File a VA Claim?</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Answer a few questions to find out if you're eligible to file a VA disability claim and which filing path is right for you.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <!-- Decision Tree Card -->
+  <div id="tree-card" style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;min-height:320px;">
+
+    <!-- Progress -->
+    <div id="tree-progress" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+      <span id="tree-step-label" style="font-size:0.85rem;color:var(--sr-gray-text);font-weight:600;">Step 1</span>
+      <div style="flex:1;height:6px;background:var(--sr-gray-bg);border-radius:3px;overflow:hidden;">
+        <div id="tree-progress-bar" style="height:100%;background:var(--sr-blue);border-radius:3px;transition:width 0.3s ease;width:25%;"></div>
+      </div>
+    </div>
+
+    <!-- Question Area -->
+    <div id="tree-question" style="transition:opacity 0.25s ease;"></div>
+
+    <!-- Navigation -->
+    <div id="tree-nav" style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+      <button id="tree-back-btn" onclick="goBack()" style="display:none;background:none;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.5rem 1.1rem;cursor:pointer;font-size:0.9rem;color:var(--sr-gray-text);font-weight:600;">&larr; Back</button>
+    </div>
+
+    <!-- Result Area (hidden until result) -->
+    <div id="tree-result" style="display:none;"></div>
+  </div>
+
+  <!-- Who Can File -->
+  <section style="margin-bottom:2rem;">
+    <h2>Who Can File a VA Disability Claim?</h2>
+    <p>Any veteran or service member who has a current medical condition related to their military service may be eligible to file a VA disability claim. Eligibility generally requires:</p>
+    <ul>
+      <li><strong>Military service:</strong> You served on active duty, active duty for training, or inactive duty training.</li>
+      <li><strong>A current diagnosed condition:</strong> You have a disability or illness that affects your body or mind.</li>
+      <li><strong>A service connection:</strong> There is a link (nexus) between your current condition and an event, injury, or exposure during your service.</li>
+    </ul>
+    <p>Importantly, there is no requirement that the condition appeared during service. Many conditions develop years or decades after separation and still qualify if a medical professional can connect them to service.</p>
+    <p>Veterans with honorable or general (under honorable conditions) discharges are eligible. Those with other discharge types may still qualify after a Character of Discharge determination by the VA.</p>
+  </section>
+
+  <!-- Common Filing Paths -->
+  <section style="margin-bottom:2rem;">
+    <h2>Common Filing Paths Explained</h2>
+    <p>The VA offers several ways to file depending on your situation:</p>
+    <ul>
+      <li><strong>Benefits Delivery at Discharge (BDD):</strong> For active duty service members separating within 90 to 180 days. File before you leave so your benefits start immediately after discharge.</li>
+      <li><strong>Standard original claim:</strong> For veterans filing their first VA disability claim after separation. No time limit applies.</li>
+      <li><strong>Claim for Increase:</strong> If a previously rated condition has gotten worse, you can request a higher rating with updated medical evidence.</li>
+      <li><strong>Supplemental claim:</strong> If your claim was previously denied, you can reopen it by submitting new and relevant evidence the VA has not reviewed before.</li>
+      <li><strong>Higher-Level Review:</strong> Request a senior reviewer to look at the same evidence if you believe the VA made an error in a previous decision.</li>
+      <li><strong>Board Appeal:</strong> Appeal directly to the Board of Veterans' Appeals if you disagree with a VA decision after other options are exhausted.</li>
+    </ul>
+    <p>Not sure which path fits? A Veterans Service Organization (VSO) can help you choose the right approach at no cost. <a href="/va-claims/how-to-file-a-va-claim/">Read the full filing guide &rarr;</a></p>
+  </section>
+
+  <!-- No Time Limit -->
+  <section style="margin-bottom:2rem;">
+    <h2>There Is No Time Limit to File</h2>
+    <p>One of the most important facts many veterans do not know: there is no deadline to file a VA disability claim. Whether you separated last year or 40 years ago, you can still file.</p>
+    <p>The only thing affected by timing is your effective date. If you file within one year of separation, your benefits can be backdated to the day after discharge. After that one-year window, your effective date is typically the date the VA receives your claim.</p>
+    <p>Do not let the belief that "it's too late" stop you. Veterans in their 60s, 70s, and beyond successfully file and receive compensation every day. If you have a condition connected to your service, you have every right to file.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I file a VA claim while still on active duty?</summary>
+      <p style="margin-top:0.75rem;">Yes. If you are separating within 180 days, you can file through the Benefits Delivery at Discharge (BDD) program. This lets the VA begin processing your claim before you leave service so benefits can start sooner. If you are more than 180 days from separation, you may still file a pre-discharge claim through other programs.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What if my claim was denied years ago?</summary>
+      <p style="margin-top:0.75rem;">You can file a Supplemental Claim at any time by submitting new and relevant evidence the VA has not previously considered. This could be a new medical opinion, updated treatment records, a buddy statement, or evidence of a previously unrecognized presumptive condition (such as those added by the PACT Act). There is no limit on how many times you can file a Supplemental Claim.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Do I need a lawyer or VSO to file?</summary>
+      <p style="margin-top:0.75rem;">No, you can file on your own through VA.gov. However, a Veterans Service Organization (VSO) can help you at no cost. They assist with gathering evidence, completing forms, and navigating the process. Studies show that veterans who work with a VSO tend to receive higher ratings. Common VSOs include the DAV, VFW, and American Legion.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is a presumptive condition?</summary>
+      <p style="margin-top:0.75rem;">A presumptive condition is one the VA automatically assumes is connected to your service based on when and where you served, without requiring you to prove a direct link. The PACT Act significantly expanded the list of presumptive conditions, particularly for veterans exposed to burn pits, Agent Orange, and other toxic substances. If you have a presumptive condition, the claims process is generally faster and simpler.</p>
+    </details>
+  </section>
+
+  <!-- Related Resources -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/va-claims/how-to-file-a-va-claim/">How to File a VA Claim: Complete Filing Guide</a></li>
+      <li><a href="/va-claims/nexus-letter-guide/">Nexus Letter Guide: What It Is and How to Get One</a></li>
+      <li><a href="/explainers/pact-act-explained/">PACT Act Explained: Expanded Benefits for Toxic Exposure</a></li>
+      <li><a href="/va-claims/va-claim-checklist/">VA Claim Checklist: Everything You Need Before Filing</a></li>
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a></li>
+      <li><a href="/va-claims/secondary-conditions/">Secondary Conditions: Claim Conditions Caused by Rated Disabilities</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This tool provides general guidance only and does not constitute legal advice. Eligibility determinations are made by the VA. Every veteran's situation is unique — consult a Veterans Service Organization (VSO) or accredited claims agent for personalized assistance. Visit <a href="https://www.va.gov" rel="noopener">VA.gov</a> for official information.
+  </div>
+
+</main>
+
+<script>
+const TREE = {
+  start: {
+    id: 'start',
+    question: 'What is your current military status?',
+    options: [
+      { label: 'Active Duty', next: 'active_duty' },
+      { label: 'Separated / Discharged', next: 'separated' },
+      { label: 'Guard / Reserve', next: 'guard_reserve' }
+    ]
+  },
+  active_duty: {
+    id: 'active_duty',
+    question: 'How soon are you separating?',
+    options: [
+      { label: 'Within 180 days', next: 'result_bdd' },
+      { label: 'More than 180 days out', next: 'result_predischarge' },
+      { label: 'Not separating', next: 'result_active_limited' }
+    ]
+  },
+  separated: {
+    id: 'separated',
+    question: 'What type of discharge did you receive?',
+    options: [
+      { label: 'Honorable', next: 'previous_claims' },
+      { label: 'General (Under Honorable Conditions)', next: 'previous_claims' },
+      { label: 'Other Than Honorable (OTH)', next: 'result_oth' },
+      { label: 'Bad Conduct / Dishonorable', next: 'result_bad_conduct' }
+    ]
+  },
+  guard_reserve: {
+    id: 'guard_reserve',
+    question: 'Were you activated for federal service (Title 10 orders) or did you have an injury during training?',
+    options: [
+      { label: 'Yes, I was activated / deployed', next: 'previous_claims' },
+      { label: 'Yes, I was injured during training (drill/AT)', next: 'previous_claims' },
+      { label: 'No federal activation or training injury', next: 'result_guard_limited' }
+    ]
+  },
+  previous_claims: {
+    id: 'previous_claims',
+    question: 'Have you filed a VA disability claim before?',
+    options: [
+      { label: 'Never filed a claim', next: 'condition_type' },
+      { label: 'Yes, and I want to claim NEW conditions', next: 'result_new_claim' },
+      { label: 'Yes, and my condition got worse', next: 'result_increase' },
+      { label: 'Yes, and I was denied', next: 'result_supplemental' }
+    ]
+  },
+  condition_type: {
+    id: 'condition_type',
+    question: 'Is your condition related to any of the following?',
+    options: [
+      { label: 'Burn pit / toxic exposure (post-9/11 service)', next: 'result_pact' },
+      { label: 'Agent Orange / Vietnam era service', next: 'result_agent_orange' },
+      { label: 'Gulf War service (1990 or later)', next: 'result_gulf_war' },
+      { label: 'Direct injury or illness during service', next: 'result_direct' },
+      { label: 'Condition developed after service but linked to service', next: 'result_secondary' }
+    ]
+  },
+
+  /* ---- RESULTS ---- */
+  result_bdd: {
+    id: 'result_bdd',
+    result: true,
+    level: 'eligible',
+    title: 'You Are Eligible: Benefits Delivery at Discharge (BDD)',
+    summary: 'As an active duty service member separating within 180 days, you qualify for the BDD program. This lets the VA process your claim before you leave service so benefits begin as soon as possible after discharge.',
+    steps: [
+      'Gather your service treatment records and any private medical records.',
+      'File your BDD claim on VA.gov between 180 and 90 days before separation.',
+      'Attend all VA-scheduled Compensation & Pension (C&P) exams before your separation date.',
+      'Ensure you are available for exams at your current duty station or a nearby VA facility.',
+      'Consider working with a VSO on your installation for free assistance.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Complete VA Claim Filing Guide' },
+      { url: '/va-claims/va-claim-checklist/', text: 'VA Claim Checklist' },
+      { url: '/tools/va-disability-rating-calculator/', text: 'Estimate Your Rating' }
+    ]
+  },
+  result_predischarge: {
+    id: 'result_predischarge',
+    result: true,
+    level: 'eligible',
+    title: 'You May Be Eligible: Pre-Discharge Claim',
+    summary: 'You are more than 180 days from separation, so the BDD program does not apply yet. However, you can still begin the claims process through a pre-discharge claim program. Contact your installation\'s VA liaison or a VSO for guidance on timing.',
+    steps: [
+      'Start documenting all conditions in your service treatment records now.',
+      'Report every injury, illness, and concern to medical during remaining service.',
+      'Consider filing a BDD claim once you are within the 180-day window.',
+      'Connect with a VSO on your installation for free pre-discharge assistance.',
+      'Gather buddy statements from fellow service members who can attest to your conditions.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_active_limited: {
+    id: 'result_active_limited',
+    result: true,
+    level: 'caution',
+    title: 'Limited Options While on Active Duty',
+    summary: 'If you are not separating, your options for filing a VA disability claim are limited. Active duty service members generally cannot receive VA disability compensation while receiving military pay. However, you should document all conditions now to strengthen a future claim.',
+    steps: [
+      'Report every injury, symptom, and condition to military medical providers.',
+      'Keep copies of all service treatment records and incident reports.',
+      'Request a Medical Evaluation Board (MEB) referral if your condition affects your ability to serve.',
+      'When you do separate, file within one year to receive benefits backdated to your discharge date.',
+      'Connect with a VSO to prepare your claim file in advance.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide (for future reference)' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_oth: {
+    id: 'result_oth',
+    result: true,
+    level: 'caution',
+    title: 'You May Need a Character of Discharge Review',
+    summary: 'Veterans with an Other Than Honorable (OTH) discharge are not automatically eligible, but you are not automatically disqualified either. The VA will conduct a Character of Discharge (COD) determination to decide if your service qualifies you for benefits.',
+    steps: [
+      'File your claim on VA.gov — the VA will initiate a Character of Discharge review.',
+      'Gather evidence of honorable service periods and any mitigating circumstances.',
+      'Consider applying for a discharge upgrade through your branch\'s Discharge Review Board.',
+      'Contact a VSO or veterans legal clinic for free assistance navigating this process.',
+      'Be aware that the VA evaluates each period of service separately — you may have qualifying service even with an OTH discharge.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' }
+    ]
+  },
+  result_bad_conduct: {
+    id: 'result_bad_conduct',
+    result: true,
+    level: 'ineligible',
+    title: 'Generally Not Eligible — But Exceptions May Apply',
+    summary: 'A Bad Conduct Discharge (issued by special court-martial) or Dishonorable Discharge (issued by general court-martial) generally bars VA disability benefits. However, there are narrow exceptions, and a discharge upgrade may be possible.',
+    steps: [
+      'Consult with a veterans legal aid organization to explore discharge upgrade options.',
+      'Apply for a discharge upgrade through your branch\'s Discharge Review Board or Board for Correction of Military Records.',
+      'If you have a Bad Conduct Discharge from a special court-martial, the VA may still conduct a Character of Discharge review.',
+      'Gather evidence of meritorious service, PTSD, TBI, or other mitigating factors that may support an upgrade.',
+      'Contact organizations like the National Veterans Legal Services Program (NVLSP) for free legal help.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' }
+    ]
+  },
+  result_guard_limited: {
+    id: 'result_guard_limited',
+    result: true,
+    level: 'caution',
+    title: 'Eligibility Depends on Your Service Details',
+    summary: 'Guard and Reserve members generally need a period of federal activation (Title 10 orders) or an injury during a training period (drill, annual training) to qualify for VA disability benefits. Without one of these, standard VA disability claims are typically not available.',
+    steps: [
+      'Review your service records for any periods of federal activation (Title 10 orders).',
+      'Check if any injury or condition occurred during Inactive Duty Training (IDT) or Active Duty for Training (ADT).',
+      'Request your Line of Duty (LOD) determination documents if you were injured during training.',
+      'Contact a VSO to review your specific service history for qualifying periods.',
+      'If you have qualifying service, proceed with filing through VA.gov.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_new_claim: {
+    id: 'result_new_claim',
+    result: true,
+    level: 'eligible',
+    title: 'You Can File for New Conditions',
+    summary: 'Even though you have an existing VA rating, you can file a new claim for additional conditions at any time. Each new service-connected condition is rated separately and added to your combined rating using the VA\'s whole-person formula.',
+    steps: [
+      'Identify all new conditions you want to claim that are not currently rated.',
+      'Gather current medical evidence (diagnosis, treatment records) for each new condition.',
+      'Obtain a nexus letter from a medical provider linking each condition to your service.',
+      'File a new claim on VA.gov or through a VSO.',
+      'Prepare for C&P exams — the VA will likely schedule one for each new condition.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' },
+      { url: '/va-claims/secondary-conditions/', text: 'Secondary Conditions Guide' },
+      { url: '/tools/va-disability-rating-calculator/', text: 'Calculate Your New Combined Rating' }
+    ]
+  },
+  result_increase: {
+    id: 'result_increase',
+    result: true,
+    level: 'eligible',
+    title: 'File a Claim for Increase',
+    summary: 'If a condition the VA already rates has gotten worse, you can request a higher rating. This is called a Claim for Increase. You will need current medical evidence showing the worsening.',
+    steps: [
+      'Get recent medical records documenting how your condition has worsened.',
+      'Consider getting a Disability Benefits Questionnaire (DBQ) filled out by your doctor.',
+      'Write a personal statement describing how the condition affects your daily life and work.',
+      'File for an increase on VA.gov under your existing claim.',
+      'Attend the C&P exam — be honest and thorough about your worst days, not just your best days.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' },
+      { url: '/tools/va-disability-rating-calculator/', text: 'Estimate Your New Rating' }
+    ]
+  },
+  result_supplemental: {
+    id: 'result_supplemental',
+    result: true,
+    level: 'eligible',
+    title: 'File a Supplemental Claim or Appeal',
+    summary: 'A previous denial does not mean the end. You can file a Supplemental Claim with new and relevant evidence, request a Higher-Level Review, or appeal to the Board of Veterans\' Appeals. Many veterans win on their second or third attempt.',
+    steps: [
+      'Review your denial letter carefully to understand the specific reasons the VA denied your claim.',
+      'Identify what evidence was missing — often a nexus letter or updated medical opinion.',
+      'Obtain new and relevant evidence the VA has not previously reviewed.',
+      'File a Supplemental Claim on VA.gov with the new evidence attached.',
+      'Consider a Higher-Level Review if you believe the VA made an error with existing evidence.',
+      'Work with a VSO or accredited claims agent — they handle appeals regularly.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Get a Nexus Letter' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_pact: {
+    id: 'result_pact',
+    result: true,
+    level: 'eligible',
+    title: 'You Likely Qualify Under the PACT Act (Presumptive)',
+    summary: 'The PACT Act (2022) dramatically expanded VA benefits for veterans exposed to burn pits, toxic substances, and other environmental hazards during post-9/11 service. If your condition is on the presumptive list, you do not need to prove a direct service connection — the VA assumes it.',
+    steps: [
+      'Check if your condition is on the PACT Act presumptive conditions list.',
+      'Register for the VA\'s burn pit registry if you have not already.',
+      'Gather your deployment records showing service in a qualifying location.',
+      'File your claim on VA.gov — select the presumptive condition category.',
+      'Get a current diagnosis from a medical provider for the claimed condition.',
+      'A nexus letter is generally not required for presumptive conditions, but having one strengthens your claim.'
+    ],
+    links: [
+      { url: '/explainers/pact-act-explained/', text: 'PACT Act Explained' },
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_agent_orange: {
+    id: 'result_agent_orange',
+    result: true,
+    level: 'eligible',
+    title: 'You Likely Qualify: Agent Orange Presumptive Claim',
+    summary: 'Veterans who served in Vietnam, Thailand, or other locations where Agent Orange (or other tactical herbicides) was used may qualify for presumptive service connection. The VA maintains a list of conditions presumed to be caused by herbicide exposure.',
+    steps: [
+      'Verify your service location qualifies (Vietnam, Thailand bases, specific test/storage sites).',
+      'Check if your condition is on the VA\'s Agent Orange presumptive conditions list.',
+      'Gather your service records showing qualifying service dates and locations.',
+      'File your claim on VA.gov under the Agent Orange / herbicide exposure category.',
+      'Get a current medical diagnosis for your condition.'
+    ],
+    links: [
+      { url: '/explainers/pact-act-explained/', text: 'PACT Act and Toxic Exposure Benefits' },
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_gulf_war: {
+    id: 'result_gulf_war',
+    result: true,
+    level: 'eligible',
+    title: 'You May Qualify: Gulf War Illness Presumptive',
+    summary: 'Veterans who served in the Southwest Asia theater of operations (1990 or later) may qualify for presumptive service connection for chronic, unexplained illnesses. Gulf War illness covers a broad range of symptoms including fatigue, joint pain, headaches, and gastrointestinal issues.',
+    steps: [
+      'Document your symptoms and how long you have experienced them (must be chronic, lasting 6+ months).',
+      'Gather deployment records confirming service in a qualifying location.',
+      'Get a current medical evaluation documenting your symptoms and ruling out other causes.',
+      'File your claim on VA.gov under the Gulf War illness category.',
+      'Consider a nexus letter if your condition is not on the standard presumptive list.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' },
+      { url: '/explainers/pact-act-explained/', text: 'PACT Act and Toxic Exposure' }
+    ]
+  },
+  result_direct: {
+    id: 'result_direct',
+    result: true,
+    level: 'eligible',
+    title: 'You Can File: Direct Service Connection',
+    summary: 'If you were directly injured or became ill during military service, you can file for direct service connection. You will need to show three things: a current diagnosis, an in-service event or injury, and a medical link (nexus) between the two.',
+    steps: [
+      'Obtain your service treatment records showing the in-service event, injury, or illness.',
+      'Get a current medical diagnosis for the condition you are claiming.',
+      'Obtain a nexus letter from a qualified medical provider linking your current condition to the in-service event.',
+      'Write a personal statement describing the in-service event and how the condition has affected you since.',
+      'Gather buddy statements from anyone who witnessed the event or your symptoms.',
+      'File your claim on VA.gov with all supporting evidence.'
+    ],
+    links: [
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' },
+      { url: '/va-claims/va-claim-checklist/', text: 'Claim Checklist' }
+    ]
+  },
+  result_secondary: {
+    id: 'result_secondary',
+    result: true,
+    level: 'eligible',
+    title: 'You Can File: Secondary Service Connection',
+    summary: 'A secondary condition is one that was caused or aggravated by an already service-connected disability. For example, a service-connected knee injury that leads to back problems. A nexus letter is essential for secondary claims.',
+    steps: [
+      'Identify which service-connected condition caused or worsened the secondary condition.',
+      'Get a current diagnosis for the secondary condition.',
+      'Obtain a nexus letter specifically stating that the secondary condition is "at least as likely as not" caused or aggravated by your service-connected disability.',
+      'Gather medical records showing the progression from your primary condition to the secondary condition.',
+      'File your claim on VA.gov as a secondary claim, clearly linking it to your existing rated condition.',
+      'Prepare for a C&P exam focused on the relationship between the two conditions.'
+    ],
+    links: [
+      { url: '/va-claims/secondary-conditions/', text: 'Secondary Conditions Guide' },
+      { url: '/va-claims/nexus-letter-guide/', text: 'Nexus Letter Guide' },
+      { url: '/va-claims/how-to-file-a-va-claim/', text: 'Filing Guide' },
+      { url: '/tools/va-disability-rating-calculator/', text: 'Calculate Your Combined Rating' }
+    ]
+  }
+};
+
+/* Step order for progress tracking */
+const STEP_DEPTHS = {
+  start: 1,
+  active_duty: 2, separated: 2, guard_reserve: 2,
+  previous_claims: 3,
+  condition_type: 4
+};
+const MAX_STEPS = 4;
+
+let history = [];
+let currentNode = 'start';
+
+function getProgressPercent(nodeId) {
+  const depth = STEP_DEPTHS[nodeId] || MAX_STEPS;
+  return Math.round((depth / MAX_STEPS) * 100);
+}
+
+function renderQuestion(nodeId, animate) {
+  const node = TREE[nodeId];
+  if (!node) return;
+
+  currentNode = nodeId;
+
+  const resultEl = document.getElementById('tree-result');
+  resultEl.style.display = 'none';
+
+  const progressEl = document.getElementById('tree-progress');
+  const questionEl = document.getElementById('tree-question');
+  const navEl = document.getElementById('tree-nav');
+  const backBtn = document.getElementById('tree-back-btn');
+
+  if (node.result) {
+    progressEl.style.display = 'none';
+    questionEl.style.display = 'none';
+    navEl.style.display = 'none';
+    renderResult(node);
+    return;
+  }
+
+  progressEl.style.display = 'flex';
+  questionEl.style.display = 'block';
+  navEl.style.display = 'flex';
+
+  const depth = STEP_DEPTHS[nodeId] || 1;
+  document.getElementById('tree-step-label').textContent = 'Step ' + depth + ' of ' + MAX_STEPS;
+  document.getElementById('tree-progress-bar').style.width = getProgressPercent(nodeId) + '%';
+
+  backBtn.style.display = history.length > 0 ? 'inline-flex' : 'none';
+
+  if (animate) {
+    questionEl.style.opacity = '0';
+    setTimeout(function() {
+      questionEl.innerHTML = buildQuestionHTML(node);
+      questionEl.style.opacity = '1';
+    }, 150);
+  } else {
+    questionEl.innerHTML = buildQuestionHTML(node);
+  }
+}
+
+function buildQuestionHTML(node) {
+  let html = '<h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">' + escapeHTML(node.question) + '</h2>';
+  html += '<div style="display:flex;flex-direction:column;gap:0.6rem;">';
+  node.options.forEach(function(opt, i) {
+    html += '<label style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);cursor:pointer;transition:border-color 0.2s,background 0.2s;" ' +
+      'onmouseover="this.style.borderColor=\'var(--sr-blue)\';this.style.background=\'var(--sr-gray-bg)\'" ' +
+      'onmouseout="this.style.borderColor=\'var(--sr-gray-light)\';this.style.background=\'#fff\'">' +
+      '<input type="radio" name="tree-choice" value="' + i + '" ' +
+      'onchange="selectOption(\'' + opt.next + '\')" ' +
+      'style="accent-color:var(--sr-blue);width:18px;height:18px;flex-shrink:0;">' +
+      '<span style="font-size:0.95rem;color:var(--sr-dark-text);">' + escapeHTML(opt.label) + '</span>' +
+      '</label>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function selectOption(nextNodeId) {
+  history.push(currentNode);
+  setTimeout(function() {
+    renderQuestion(nextNodeId, true);
+  }, 200);
+}
+
+function goBack() {
+  if (history.length === 0) return;
+  const prev = history.pop();
+  renderQuestion(prev, true);
+}
+
+function startOver() {
+  history = [];
+  renderQuestion('start', true);
+}
+
+function renderResult(node) {
+  const resultEl = document.getElementById('tree-result');
+
+  let bannerColor, bannerBg, bannerBorder, bannerIcon;
+  switch (node.level) {
+    case 'eligible':
+      bannerBg = '#d4edda'; bannerBorder = '#28a745'; bannerColor = '#155724'; bannerIcon = '✅';
+      break;
+    case 'caution':
+      bannerBg = '#fff3cd'; bannerBorder = '#ffc107'; bannerColor = '#856404'; bannerIcon = '⚠️';
+      break;
+    case 'ineligible':
+      bannerBg = '#f8d7da'; bannerBorder = '#dc3545'; bannerColor = '#721c24'; bannerIcon = '❌';
+      break;
+    default:
+      bannerBg = '#d4edda'; bannerBorder = '#28a745'; bannerColor = '#155724'; bannerIcon = '✅';
+  }
+
+  let html = '<div style="background:' + bannerBg + ';border:2px solid ' + bannerBorder + ';border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;">';
+  html += '<div style="font-size:1.2rem;font-weight:700;color:' + bannerColor + ';margin-bottom:0.4rem;">' + bannerIcon + ' ' + escapeHTML(node.title) + '</div>';
+  html += '<p style="color:' + bannerColor + ';margin:0;font-size:0.95rem;line-height:1.6;">' + escapeHTML(node.summary) + '</p>';
+  html += '</div>';
+
+  html += '<h3 style="font-size:1.05rem;margin-bottom:0.75rem;color:var(--sr-dark-text);">Recommended Next Steps</h3>';
+  html += '<ol style="padding-left:1.25rem;margin-bottom:1.25rem;">';
+  node.steps.forEach(function(step) {
+    html += '<li style="margin-bottom:0.5rem;line-height:1.5;color:var(--sr-dark-text);">' + escapeHTML(step) + '</li>';
+  });
+  html += '</ol>';
+
+  if (node.links && node.links.length > 0) {
+    html += '<div style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;">';
+    html += '<h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:0.04em;">Helpful Resources</h4>';
+    html += '<ul style="margin:0;padding-left:1.25rem;">';
+    node.links.forEach(function(link) {
+      html += '<li style="margin-bottom:0.35rem;"><a href="' + escapeAttr(link.url) + '" style="color:var(--sr-blue);text-decoration:none;font-weight:500;">' + escapeHTML(link.text) + ' &rarr;</a></li>';
+    });
+    html += '</ul>';
+    html += '</div>';
+  }
+
+  html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">';
+  html += '<button onclick="startOver()" style="background:var(--sr-blue);color:#fff;border:none;padding:0.6rem 1.25rem;border-radius:var(--radius);cursor:pointer;font-size:0.9rem;font-weight:600;">Start Over</button>';
+  html += '<button onclick="goBack()" style="background:none;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.6rem 1.25rem;cursor:pointer;font-size:0.9rem;color:var(--sr-gray-text);font-weight:600;">&larr; Go Back</button>';
+  html += '</div>';
+
+  resultEl.innerHTML = html;
+  resultEl.style.display = 'block';
+
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* Initialize */
+renderQuestion('start', false);
+</script>
+{% endblock %}

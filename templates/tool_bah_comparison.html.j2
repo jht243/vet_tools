@@ -1,0 +1,558 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>BAH Comparison Tool</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">BAH Comparison Tool 2026: Compare Housing Allowance by Location</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Use this BAH comparison tool to compare BAH rates side by side for up to three duty stations. See how your housing allowance changes when you PCS to a new location.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <p style="margin-bottom:2rem;font-size:1rem;line-height:1.7;color:var(--sr-dark-text);">Considering a PCS or weighing duty station preferences? This <strong>BAH comparison tool</strong> lets you <strong>compare BAH rates</strong> across multiple locations so you can plan your housing budget before you move. Select your pay grade, dependent status, and up to three duty stations to see the difference in monthly and annual housing allowance.</p>
+
+  <!-- Comparison Tool Card -->
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Compare BAH Rates</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Pay Grade</label>
+        <select id="cmp-grade" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <optgroup label="Enlisted">
+            <option value="E-1">E-1</option><option value="E-2">E-2</option><option value="E-3">E-3</option>
+            <option value="E-4">E-4</option><option value="E-5" selected>E-5</option><option value="E-6">E-6</option>
+            <option value="E-7">E-7</option><option value="E-8">E-8</option><option value="E-9">E-9</option>
+          </optgroup>
+          <optgroup label="Warrant Officer">
+            <option value="W-1">W-1</option><option value="W-2">W-2</option><option value="W-3">W-3</option>
+            <option value="W-4">W-4</option><option value="W-5">W-5</option>
+          </optgroup>
+          <optgroup label="Officer">
+            <option value="O-1">O-1</option><option value="O-2">O-2</option><option value="O-3">O-3</option>
+            <option value="O-4">O-4</option><option value="O-5">O-5</option><option value="O-6">O-6</option>
+            <option value="O-7">O-7</option><option value="O-8">O-8</option><option value="O-9">O-9</option>
+            <option value="O-10">O-10</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Dependent Status</label>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;padding-top:0.25rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="cmp-dep" value="with" checked style="accent-color:var(--sr-blue);"> With dependents
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.95rem;cursor:pointer;">
+            <input type="radio" name="cmp-dep" value="no" style="accent-color:var(--sr-blue);"> Without dependents
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Location 1</label>
+        <select id="cmp-loc1" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Location 2</label>
+        <select id="cmp-loc2" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        </select>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Location 3 (optional)</label>
+        <select id="cmp-loc3" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        </select>
+      </div>
+
+    </div>
+
+    <button id="cmp-btn" onclick="compareBah()" style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--sr-blue);color:#fff;border:none;padding:0.65rem 1.25rem;border-radius:var(--radius);cursor:pointer;font-size:0.95rem;font-weight:600;">
+      Compare BAH Rates
+    </button>
+
+    <!-- Results -->
+    <div id="cmp-results" style="display:none;margin-top:1.75rem;">
+
+      <div style="overflow-x:auto;margin-bottom:1.5rem;">
+        <table id="cmp-table" style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <thead>
+            <tr style="background:var(--sr-blue);color:#fff;">
+              <th style="padding:0.6rem 0.75rem;text-align:left;">Location</th>
+              <th style="padding:0.6rem 0.75rem;text-align:right;">Monthly BAH</th>
+              <th style="padding:0.6rem 0.75rem;text-align:right;">Annual BAH</th>
+              <th style="padding:0.6rem 0.75rem;text-align:right;">Diff from Location 1</th>
+            </tr>
+          </thead>
+          <tbody id="cmp-table-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Bar Chart -->
+      <div style="padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);margin-bottom:1.5rem;">
+        <h3 style="font-size:0.95rem;margin-bottom:1rem;color:var(--sr-dark-text);">Monthly BAH Comparison</h3>
+        <div id="cmp-chart" style="display:flex;flex-direction:column;gap:0.75rem;"></div>
+      </div>
+
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:var(--radius);padding:0.75rem 1rem;font-size:0.9rem;">
+        <strong>Important:</strong> These are approximate BAH rates for planning purposes. Use the official <a href="https://www.defensetravel.dod.mil/site/bahCalc.cfm" target="_blank" rel="noopener noreferrer">DoD BAH Calculator</a> for exact figures based on your duty station zip code.
+      </div>
+    </div>
+  </div>
+
+  <!-- How to Use -->
+  <section style="margin-bottom:2rem;">
+    <h2>How to Use This BAH Comparison Tool</h2>
+    <ol>
+      <li><strong>Select your pay grade</strong> from the dropdown (enlisted, warrant officer, or officer).</li>
+      <li><strong>Choose your dependent status.</strong> Having at least one dependent (spouse, child, or dependent parent) qualifies you for the higher rate.</li>
+      <li><strong>Pick two or three duty station locations</strong> you want to compare. Location 3 is optional.</li>
+      <li><strong>Click "Compare BAH Rates"</strong> to see a side-by-side breakdown of monthly and annual housing allowance for each location, along with dollar and percentage differences.</li>
+    </ol>
+    <p>The bar chart gives you a quick visual comparison so you can see at a glance which location offers the highest housing allowance.</p>
+  </section>
+
+  <!-- What Affects BAH -->
+  <section style="margin-bottom:2rem;">
+    <h2>What Affects Your BAH Rate?</h2>
+    <p>Three factors determine your Basic Allowance for Housing rate:</p>
+    <ul>
+      <li><strong>Duty station location:</strong> BAH is calculated from local rental market data collected annually by the DoD. High cost-of-living areas like San Diego, Washington D.C., and Honolulu have significantly higher rates than locations like Fort Leonard Wood or Fort Sill.</li>
+      <li><strong>Pay grade:</strong> Higher-ranking service members receive more BAH. An O-5 will always receive more than an E-5 at the same duty station, reflecting the DoD standard that housing quality should correspond to rank.</li>
+      <li><strong>Dependent status:</strong> Service members with at least one dependent receive a higher BAH rate. The rate does not increase further with additional dependents — whether you have one child or five, the "with dependents" rate is the same.</li>
+    </ul>
+  </section>
+
+  <!-- PCS and BAH -->
+  <section style="margin-bottom:2rem;">
+    <h2>PCS and BAH: What Happens When You Move</h2>
+    <p>When you receive PCS (permanent change of station) orders, your BAH rate changes to match your new duty station. Here is what you need to know:</p>
+    <ul>
+      <li><strong>Rate protection:</strong> If BAH rates decrease at your current location, you are protected at your current rate as long as you remain at that duty station with the same dependent status. This prevents sudden drops in housing allowance.</li>
+      <li><strong>Transition period:</strong> During a PCS move, you typically continue receiving your old BAH rate until you report to your new duty station. You may receive both BAH and temporary lodging expenses during the transition.</li>
+      <li><strong>New rate applies on arrival:</strong> Once you report to your new duty station, your BAH adjusts to the local rate. If you are moving from a high-cost area to a lower-cost one, plan your housing budget accordingly.</li>
+      <li><strong>TLE/TLA assistance:</strong> Temporary Lodging Expense (CONUS) or Temporary Lodging Allowance (OCONUS) can help cover hotel costs during your move, separate from BAH.</li>
+    </ul>
+    <p>Using this comparison tool before you PCS can help you budget for the difference in housing costs between your current and future duty stations.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I choose my duty station based on BAH rates?</summary>
+      <p style="margin-top:0.75rem;">In most cases, you cannot choose your duty station — assignments are based on the needs of the service. However, if you are given a preference list or are eligible for a station of choice, comparing BAH rates can help you weigh the financial impact. Keep in mind that higher BAH usually correlates with a higher local cost of living, so a bigger allowance does not always mean more purchasing power.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Why do BAH rates vary so much between locations?</summary>
+      <p style="margin-top:0.75rem;">BAH rates are based on local rental market data that the DoD collects each year. Areas with high demand, limited housing supply, or strong local economies (coastal cities, major metro areas) have much higher rental costs than rural or inland locations. The DoD aims to cover median rental costs, so rates naturally mirror the local housing market.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does higher BAH always mean I'll save more money?</summary>
+      <p style="margin-top:0.75rem;">Not necessarily. BAH is designed to cover local housing costs, so a higher rate reflects a more expensive housing market. A service member receiving $3,000/month BAH in San Diego may have less discretionary income than someone receiving $1,500/month in a lower-cost area where rents are well below their BAH. The key is finding housing below your BAH rate — the savings potential varies by market.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How often do BAH rates change?</summary>
+      <p style="margin-top:0.75rem;">BAH rates are recalculated annually by the DoD and take effect on January 1 each year. Rates can increase or decrease based on changes in local rental markets. However, individual rate protection ensures your BAH will not decrease while you remain at the same duty station with the same dependent status — only new arrivals receive the updated (potentially lower) rate.</p>
+    </details>
+  </section>
+
+  <!-- Related Resources -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/tools/bah-calculator/">BAH Calculator</a></li>
+      <li><a href="/tools/military-pay-calculator/">Military Pay Calculator</a></li>
+      <li><a href="/explainers/bah-explained/">BAH Explained</a></li>
+      <li><a href="/military-pay/">Military Pay Hub</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> BAH rates shown are approximate estimates for educational and planning purposes only. Actual BAH rates are determined annually by the Department of Defense based on local housing cost surveys and may differ from the figures shown here. Always verify your exact BAH rate using the official <a href="https://www.defensetravel.dod.mil/site/bahCalc.cfm" rel="noopener" target="_blank">DoD BAH Calculator</a>.
+  </div>
+
+</main>
+
+<script>
+/* Approximate 2026 BAH data: BAH_DATA[location][grade] = {no: X, with: Y} */
+const BAH_DATA = {
+  "Fort Liberty, NC": {
+    "E-1":{no:918,with:1170},"E-2":{no:972,with:1224},"E-3":{no:1026,with:1278},"E-4":{no:1116,with:1380},
+    "E-5":{no:1218,with:1500},"E-6":{no:1350,with:1632},"E-7":{no:1464,with:1740},"E-8":{no:1590,with:1872},
+    "E-9":{no:1692,with:1980},"W-1":{no:1380,with:1650},"W-2":{no:1500,with:1776},"W-3":{no:1620,with:1908},
+    "W-4":{no:1740,with:2064},"W-5":{no:1890,with:2220},"O-1":{no:1308,with:1620},"O-2":{no:1464,with:1776},
+    "O-3":{no:1680,with:1980},"O-4":{no:1872,with:2196},"O-5":{no:2064,with:2400},"O-6":{no:2268,with:2616},
+    "O-7":{no:2448,with:2820},"O-8":{no:2580,with:2964},"O-9":{no:2688,with:3084},"O-10":{no:2796,with:3192}
+  },
+  "San Diego, CA": {
+    "E-1":{no:1500,with:1920},"E-2":{no:1590,with:2010},"E-3":{no:1680,with:2100},"E-4":{no:1830,with:2280},
+    "E-5":{no:2010,with:3204},"E-6":{no:2250,with:2820},"E-7":{no:2460,with:3000},"E-8":{no:2670,with:3210},
+    "E-9":{no:2850,with:3396},"W-1":{no:2310,with:2820},"W-2":{no:2520,with:3048},"W-3":{no:2730,with:3270},
+    "W-4":{no:2940,with:3480},"W-5":{no:3150,with:3708},"O-1":{no:2190,with:2760},"O-2":{no:2460,with:3036},
+    "O-3":{no:2790,with:3360},"O-4":{no:3060,with:3660},"O-5":{no:3330,with:3960},"O-6":{no:3540,with:4188},
+    "O-7":{no:3720,with:4380},"O-8":{no:3870,with:4530},"O-9":{no:3990,with:4656},"O-10":{no:4110,with:4776}
+  },
+  "Norfolk, VA": {
+    "E-1":{no:1068,with:1362},"E-2":{no:1128,with:1428},"E-3":{no:1194,with:1500},"E-4":{no:1308,with:1620},
+    "E-5":{no:1434,with:1764},"E-6":{no:1590,with:1920},"E-7":{no:1728,with:2064},"E-8":{no:1872,with:2220},
+    "E-9":{no:1998,with:2352},"W-1":{no:1620,with:1944},"W-2":{no:1764,with:2100},"W-3":{no:1920,with:2268},
+    "W-4":{no:2064,with:2436},"W-5":{no:2232,with:2616},"O-1":{no:1536,with:1908},"O-2":{no:1728,with:2100},
+    "O-3":{no:1980,with:2352},"O-4":{no:2196,with:2580},"O-5":{no:2424,with:2820},"O-6":{no:2640,with:3048},
+    "O-7":{no:2832,with:3264},"O-8":{no:2976,with:3420},"O-9":{no:3096,with:3552},"O-10":{no:3216,with:3684}
+  },
+  "Fort Cavazos, TX": {
+    "E-1":{no:834,with:1062},"E-2":{no:882,with:1110},"E-3":{no:936,with:1164},"E-4":{no:1020,with:1260},
+    "E-5":{no:1116,with:1374},"E-6":{no:1236,with:1494},"E-7":{no:1344,with:1596},"E-8":{no:1464,with:1716},
+    "E-9":{no:1560,with:1818},"W-1":{no:1260,with:1506},"W-2":{no:1374,with:1626},"W-3":{no:1494,with:1752},
+    "W-4":{no:1608,with:1896},"W-5":{no:1746,with:2046},"O-1":{no:1200,with:1488},"O-2":{no:1344,with:1632},
+    "O-3":{no:1542,with:1818},"O-4":{no:1716,with:2016},"O-5":{no:1896,with:2208},"O-6":{no:2088,with:2406},
+    "O-7":{no:2256,with:2592},"O-8":{no:2376,with:2724},"O-9":{no:2472,with:2832},"O-10":{no:2568,with:2940}
+  },
+  "Joint Base Lewis-McChord, WA": {
+    "E-1":{no:1200,with:1536},"E-2":{no:1272,with:1608},"E-3":{no:1344,with:1680},"E-4":{no:1470,with:1824},
+    "E-5":{no:1614,with:1992},"E-6":{no:1800,with:2184},"E-7":{no:1968,with:2364},"E-8":{no:2136,with:2544},
+    "E-9":{no:2280,with:2700},"W-1":{no:1848,with:2220},"W-2":{no:2016,with:2400},"W-3":{no:2184,with:2580},
+    "W-4":{no:2352,with:2772},"W-5":{no:2532,with:2964},"O-1":{no:1752,with:2172},"O-2":{no:1968,with:2400},
+    "O-3":{no:2244,with:2688},"O-4":{no:2472,with:2940},"O-5":{no:2724,with:3204},"O-6":{no:2940,with:3432},
+    "O-7":{no:3132,with:3648},"O-8":{no:3288,with:3828},"O-9":{no:3408,with:3960},"O-10":{no:3528,with:4092}
+  },
+  "Fort Stewart, GA": {
+    "E-1":{no:852,with:1086},"E-2":{no:900,with:1134},"E-3":{no:954,with:1188},"E-4":{no:1038,with:1284},
+    "E-5":{no:1134,with:1398},"E-6":{no:1260,with:1524},"E-7":{no:1368,with:1626},"E-8":{no:1488,with:1746},
+    "E-9":{no:1584,with:1848},"W-1":{no:1284,with:1536},"W-2":{no:1398,with:1656},"W-3":{no:1518,with:1782},
+    "W-4":{no:1632,with:1920},"W-5":{no:1770,with:2076},"O-1":{no:1218,with:1512},"O-2":{no:1368,with:1656},
+    "O-3":{no:1566,with:1848},"O-4":{no:1740,with:2046},"O-5":{no:1920,with:2244},"O-6":{no:2112,with:2436},
+    "O-7":{no:2280,with:2616},"O-8":{no:2400,with:2748},"O-9":{no:2496,with:2856},"O-10":{no:2592,with:2964}
+  },
+  "Fort Campbell, KY": {
+    "E-1":{no:870,with:1110},"E-2":{no:918,with:1158},"E-3":{no:972,with:1212},"E-4":{no:1062,with:1314},
+    "E-5":{no:1164,with:1434},"E-6":{no:1290,with:1560},"E-7":{no:1404,with:1668},"E-8":{no:1524,with:1788},
+    "E-9":{no:1620,with:1896},"W-1":{no:1314,with:1572},"W-2":{no:1434,with:1692},"W-3":{no:1554,with:1824},
+    "W-4":{no:1668,with:1962},"W-5":{no:1812,with:2124},"O-1":{no:1248,with:1548},"O-2":{no:1404,with:1692},
+    "O-3":{no:1608,with:1896},"O-4":{no:1788,with:2100},"O-5":{no:1968,with:2304},"O-6":{no:2160,with:2496},
+    "O-7":{no:2340,with:2688},"O-8":{no:2460,with:2820},"O-9":{no:2556,with:2928},"O-10":{no:2652,with:3036}
+  },
+  "Colorado Springs, CO": {
+    "E-1":{no:1140,with:1458},"E-2":{no:1206,with:1524},"E-3":{no:1278,with:1596},"E-4":{no:1392,with:1728},
+    "E-5":{no:1530,with:1884},"E-6":{no:1704,with:2064},"E-7":{no:1860,with:2232},"E-8":{no:2016,with:2400},
+    "E-9":{no:2148,with:2544},"W-1":{no:1746,with:2100},"W-2":{no:1908,with:2268},"W-3":{no:2064,with:2436},
+    "W-4":{no:2220,with:2616},"W-5":{no:2388,with:2796},"O-1":{no:1656,with:2052},"O-2":{no:1860,with:2268},
+    "O-3":{no:2124,with:2544},"O-4":{no:2340,with:2784},"O-5":{no:2580,with:3036},"O-6":{no:2784,with:3252},
+    "O-7":{no:2964,with:3456},"O-8":{no:3108,with:3624},"O-9":{no:3228,with:3756},"O-10":{no:3348,with:3888}
+  },
+  "Honolulu, HI": {
+    "E-1":{no:1680,with:2148},"E-2":{no:1776,with:2244},"E-3":{no:1878,with:2346},"E-4":{no:2046,with:2544},
+    "E-5":{no:2244,with:2784},"E-6":{no:2508,with:3060},"E-7":{no:2742,with:3312},"E-8":{no:2976,with:3564},
+    "E-9":{no:3174,with:3780},"W-1":{no:2580,with:3120},"W-2":{no:2808,with:3372},"W-3":{no:3048,with:3624},
+    "W-4":{no:3276,with:3876},"W-5":{no:3516,with:4128},"O-1":{no:2448,with:3060},"O-2":{no:2748,with:3372},
+    "O-3":{no:3120,with:3744},"O-4":{no:3420,with:4068},"O-5":{no:3720,with:4404},"O-6":{no:3960,with:4668},
+    "O-7":{no:4152,with:4872},"O-8":{no:4308,with:5040},"O-9":{no:4440,with:5184},"O-10":{no:4572,with:5328}
+  },
+  "Washington, D.C.": {
+    "E-1":{no:1560,with:1992},"E-2":{no:1650,with:2082},"E-3":{no:1746,with:2178},"E-4":{no:1902,with:2364},
+    "E-5":{no:2088,with:2592},"E-6":{no:2334,with:2844},"E-7":{no:2550,with:3072},"E-8":{no:2766,with:3312},
+    "E-9":{no:2952,with:3516},"W-1":{no:2400,with:2904},"W-2":{no:2616,with:3132},"W-3":{no:2832,with:3366},
+    "W-4":{no:3048,with:3600},"W-5":{no:3270,with:3840},"O-1":{no:2280,with:2844},"O-2":{no:2556,with:3132},
+    "O-3":{no:2904,with:3480},"O-4":{no:3180,with:3780},"O-5":{no:3468,with:4092},"O-6":{no:3684,with:4332},
+    "O-7":{no:3864,with:4524},"O-8":{no:4008,with:4680},"O-9":{no:4128,with:4812},"O-10":{no:4248,with:4944}
+  },
+  "Fort Drum, NY": {
+    "E-1":{no:906,with:1158},"E-2":{no:960,with:1212},"E-3":{no:1014,with:1266},"E-4":{no:1104,with:1368},
+    "E-5":{no:1206,with:1488},"E-6":{no:1338,with:1620},"E-7":{no:1452,with:1728},"E-8":{no:1578,with:1860},
+    "E-9":{no:1680,with:1968},"W-1":{no:1368,with:1638},"W-2":{no:1488,with:1764},"W-3":{no:1608,with:1896},
+    "W-4":{no:1728,with:2052},"W-5":{no:1878,with:2208},"O-1":{no:1296,with:1608},"O-2":{no:1452,with:1764},
+    "O-3":{no:1668,with:1968},"O-4":{no:1860,with:2184},"O-5":{no:2052,with:2388},"O-6":{no:2256,with:2604},
+    "O-7":{no:2436,with:2808},"O-8":{no:2568,with:2952},"O-9":{no:2676,with:3072},"O-10":{no:2784,with:3180}
+  },
+  "Fort Eisenhower, GA": {
+    "E-1":{no:822,with:1050},"E-2":{no:870,with:1098},"E-3":{no:918,with:1146},"E-4":{no:1002,with:1242},
+    "E-5":{no:1098,with:1356},"E-6":{no:1218,with:1476},"E-7":{no:1326,with:1578},"E-8":{no:1440,with:1692},
+    "E-9":{no:1536,with:1800},"W-1":{no:1242,with:1488},"W-2":{no:1356,with:1608},"W-3":{no:1476,with:1734},
+    "W-4":{no:1590,with:1872},"W-5":{no:1728,with:2028},"O-1":{no:1182,with:1464},"O-2":{no:1326,with:1608},
+    "O-3":{no:1518,with:1800},"O-4":{no:1692,with:1998},"O-5":{no:1872,with:2184},"O-6":{no:2064,with:2376},
+    "O-7":{no:2232,with:2556},"O-8":{no:2352,with:2688},"O-9":{no:2448,with:2796},"O-10":{no:2544,with:2904}
+  },
+  "Jacksonville, NC (Camp Lejeune)": {
+    "E-1":{no:876,with:1116},"E-2":{no:924,with:1164},"E-3":{no:978,with:1218},"E-4":{no:1068,with:1320},
+    "E-5":{no:1170,with:1440},"E-6":{no:1296,with:1566},"E-7":{no:1410,with:1674},"E-8":{no:1530,with:1794},
+    "E-9":{no:1626,with:1902},"W-1":{no:1320,with:1578},"W-2":{no:1440,with:1698},"W-3":{no:1560,with:1830},
+    "W-4":{no:1674,with:1968},"W-5":{no:1818,with:2130},"O-1":{no:1254,with:1554},"O-2":{no:1410,with:1698},
+    "O-3":{no:1614,with:1902},"O-4":{no:1794,with:2106},"O-5":{no:1974,with:2310},"O-6":{no:2166,with:2502},
+    "O-7":{no:2346,with:2694},"O-8":{no:2466,with:2826},"O-9":{no:2562,with:2934},"O-10":{no:2658,with:3042}
+  },
+  "Pensacola, FL": {
+    "E-1":{no:888,with:1134},"E-2":{no:942,with:1182},"E-3":{no:996,with:1236},"E-4":{no:1080,with:1338},
+    "E-5":{no:1182,with:1458},"E-6":{no:1314,with:1584},"E-7":{no:1428,with:1692},"E-8":{no:1548,with:1812},
+    "E-9":{no:1644,with:1920},"W-1":{no:1338,with:1596},"W-2":{no:1458,with:1716},"W-3":{no:1578,with:1848},
+    "W-4":{no:1692,with:1986},"W-5":{no:1836,with:2148},"O-1":{no:1272,with:1572},"O-2":{no:1428,with:1716},
+    "O-3":{no:1632,with:1920},"O-4":{no:1812,with:2124},"O-5":{no:1992,with:2328},"O-6":{no:2184,with:2520},
+    "O-7":{no:2364,with:2712},"O-8":{no:2484,with:2844},"O-9":{no:2580,with:2952},"O-10":{no:2676,with:3060}
+  },
+  "Fort Leonard Wood, MO": {
+    "E-1":{no:750,with:960},"E-2":{no:798,with:1008},"E-3":{no:846,with:1056},"E-4":{no:924,with:1146},
+    "E-5":{no:1014,with:1254},"E-6":{no:1128,with:1368},"E-7":{no:1230,with:1464},"E-8":{no:1338,with:1572},
+    "E-9":{no:1428,with:1668},"W-1":{no:1152,with:1380},"W-2":{no:1260,with:1494},"W-3":{no:1368,with:1614},
+    "W-4":{no:1476,with:1740},"W-5":{no:1608,with:1884},"O-1":{no:1098,with:1356},"O-2":{no:1230,with:1494},
+    "O-3":{no:1410,with:1668},"O-4":{no:1572,with:1854},"O-5":{no:1740,with:2028},"O-6":{no:1920,with:2208},
+    "O-7":{no:2076,with:2388},"O-8":{no:2196,with:2508},"O-9":{no:2292,with:2616},"O-10":{no:2388,with:2724}
+  },
+  "Fort Sill, OK": {
+    "E-1":{no:768,with:978},"E-2":{no:816,with:1026},"E-3":{no:864,with:1074},"E-4":{no:942,with:1164},
+    "E-5":{no:1032,with:1272},"E-6":{no:1146,with:1386},"E-7":{no:1248,with:1482},"E-8":{no:1356,with:1590},
+    "E-9":{no:1446,with:1686},"W-1":{no:1170,with:1398},"W-2":{no:1278,with:1512},"W-3":{no:1386,with:1632},
+    "W-4":{no:1494,with:1758},"W-5":{no:1626,with:1902},"O-1":{no:1116,with:1374},"O-2":{no:1248,with:1512},
+    "O-3":{no:1428,with:1686},"O-4":{no:1590,with:1872},"O-5":{no:1758,with:2046},"O-6":{no:1938,with:2226},
+    "O-7":{no:2094,with:2406},"O-8":{no:2214,with:2526},"O-9":{no:2310,with:2634},"O-10":{no:2406,with:2742}
+  },
+  "Oceanside, CA (Camp Pendleton)": {
+    "E-1":{no:1380,with:1764},"E-2":{no:1458,with:1848},"E-3":{no:1542,with:1932},"E-4":{no:1680,with:2094},
+    "E-5":{no:1848,with:2280},"E-6":{no:2064,with:2520},"E-7":{no:2256,with:2724},"E-8":{no:2448,with:2940},
+    "E-9":{no:2616,with:3108},"W-1":{no:2124,with:2568},"W-2":{no:2316,with:2784},"W-3":{no:2508,with:2988},
+    "W-4":{no:2700,with:3192},"W-5":{no:2898,with:3408},"O-1":{no:2016,with:2520},"O-2":{no:2256,with:2784},
+    "O-3":{no:2568,with:3096},"O-4":{no:2808,with:3372},"O-5":{no:3060,with:3648},"O-6":{no:3252,with:3864},
+    "O-7":{no:3420,with:4044},"O-8":{no:3564,with:4188},"O-9":{no:3672,with:4308},"O-10":{no:3780,with:4428}
+  },
+  "San Antonio, TX (JBSA)": {
+    "E-1":{no:954,with:1218},"E-2":{no:1008,with:1272},"E-3":{no:1068,with:1332},"E-4":{no:1164,with:1440},
+    "E-5":{no:1278,with:1572},"E-6":{no:1422,with:1716},"E-7":{no:1548,with:1836},"E-8":{no:1680,with:1968},
+    "E-9":{no:1788,with:2082},"W-1":{no:1452,with:1740},"W-2":{no:1584,with:1872},"W-3":{no:1716,with:2010},
+    "W-4":{no:1848,with:2160},"W-5":{no:2004,with:2340},"O-1":{no:1380,with:1704},"O-2":{no:1548,with:1872},
+    "O-3":{no:1776,with:2088},"O-4":{no:1968,with:2316},"O-5":{no:2172,with:2532},"O-6":{no:2376,with:2748},
+    "O-7":{no:2556,with:2952},"O-8":{no:2688,with:3096},"O-9":{no:2796,with:3216},"O-10":{no:2904,with:3336}
+  },
+  "Virginia Beach, VA": {
+    "E-1":{no:1092,with:1392},"E-2":{no:1152,with:1458},"E-3":{no:1218,with:1530},"E-4":{no:1332,with:1650},
+    "E-5":{no:1464,with:1800},"E-6":{no:1626,with:1962},"E-7":{no:1770,with:2112},"E-8":{no:1920,with:2268},
+    "E-9":{no:2046,with:2400},"W-1":{no:1656,with:1992},"W-2":{no:1806,with:2148},"W-3":{no:1962,with:2316},
+    "W-4":{no:2112,with:2496},"W-5":{no:2280,with:2676},"O-1":{no:1572,with:1944},"O-2":{no:1764,with:2148},
+    "O-3":{no:2016,with:2400},"O-4":{no:2244,with:2640},"O-5":{no:2472,with:2880},"O-6":{no:2688,with:3108},
+    "O-7":{no:2880,with:3324},"O-8":{no:3024,with:3480},"O-9":{no:3144,with:3612},"O-10":{no:3264,with:3744}
+  },
+  "Fayetteville, NC (Fort Liberty area)": {
+    "E-1":{no:918,with:1170},"E-2":{no:972,with:1224},"E-3":{no:1026,with:1278},"E-4":{no:1116,with:1380},
+    "E-5":{no:1218,with:1500},"E-6":{no:1350,with:1632},"E-7":{no:1464,with:1740},"E-8":{no:1590,with:1872},
+    "E-9":{no:1692,with:1980},"W-1":{no:1380,with:1650},"W-2":{no:1500,with:1776},"W-3":{no:1620,with:1908},
+    "W-4":{no:1740,with:2064},"W-5":{no:1890,with:2220},"O-1":{no:1308,with:1620},"O-2":{no:1464,with:1776},
+    "O-3":{no:1680,with:1980},"O-4":{no:1872,with:2196},"O-5":{no:2064,with:2400},"O-6":{no:2268,with:2616},
+    "O-7":{no:2448,with:2820},"O-8":{no:2580,with:2964},"O-9":{no:2688,with:3084},"O-10":{no:2796,with:3192}
+  },
+  "Tampa, FL (MacDill AFB)": {
+    "E-1":{no:1050,with:1338},"E-2":{no:1110,with:1398},"E-3":{no:1176,with:1464},"E-4":{no:1284,with:1590},
+    "E-5":{no:1410,with:1734},"E-6":{no:1566,with:1896},"E-7":{no:1704,with:2034},"E-8":{no:1848,with:2184},
+    "E-9":{no:1968,with:2316},"W-1":{no:1596,with:1914},"W-2":{no:1740,with:2064},"W-3":{no:1884,with:2220},
+    "W-4":{no:2028,with:2388},"W-5":{no:2196,with:2568},"O-1":{no:1512,with:1872},"O-2":{no:1698,with:2064},
+    "O-3":{no:1944,with:2304},"O-4":{no:2160,with:2544},"O-5":{no:2388,with:2784},"O-6":{no:2604,with:3000},
+    "O-7":{no:2796,with:3216},"O-8":{no:2940,with:3372},"O-9":{no:3060,with:3504},"O-10":{no:3180,with:3636}
+  },
+  "El Paso, TX (Fort Bliss)": {
+    "E-1":{no:846,with:1080},"E-2":{no:894,with:1128},"E-3":{no:948,with:1182},"E-4":{no:1032,with:1278},
+    "E-5":{no:1128,with:1392},"E-6":{no:1254,with:1512},"E-7":{no:1362,with:1614},"E-8":{no:1482,with:1734},
+    "E-9":{no:1578,with:1836},"W-1":{no:1278,with:1524},"W-2":{no:1392,with:1644},"W-3":{no:1512,with:1770},
+    "W-4":{no:1626,with:1908},"W-5":{no:1764,with:2064},"O-1":{no:1212,with:1500},"O-2":{no:1362,with:1644},
+    "O-3":{no:1560,with:1836},"O-4":{no:1734,with:2034},"O-5":{no:1914,with:2226},"O-6":{no:2106,with:2418},
+    "O-7":{no:2274,with:2610},"O-8":{no:2394,with:2736},"O-9":{no:2490,with:2844},"O-10":{no:2586,with:2952}
+  },
+  "Clarksville, TN (Fort Campbell area)": {
+    "E-1":{no:870,with:1110},"E-2":{no:918,with:1158},"E-3":{no:972,with:1212},"E-4":{no:1062,with:1314},
+    "E-5":{no:1164,with:1434},"E-6":{no:1290,with:1560},"E-7":{no:1404,with:1668},"E-8":{no:1524,with:1788},
+    "E-9":{no:1620,with:1896},"W-1":{no:1314,with:1572},"W-2":{no:1434,with:1692},"W-3":{no:1554,with:1824},
+    "W-4":{no:1668,with:1962},"W-5":{no:1812,with:2124},"O-1":{no:1248,with:1548},"O-2":{no:1404,with:1692},
+    "O-3":{no:1608,with:1896},"O-4":{no:1788,with:2100},"O-5":{no:1968,with:2304},"O-6":{no:2160,with:2496},
+    "O-7":{no:2340,with:2688},"O-8":{no:2460,with:2820},"O-9":{no:2556,with:2928},"O-10":{no:2652,with:3036}
+  },
+  "Killeen, TX (Fort Cavazos area)": {
+    "E-1":{no:834,with:1062},"E-2":{no:882,with:1110},"E-3":{no:936,with:1164},"E-4":{no:1020,with:1260},
+    "E-5":{no:1116,with:1374},"E-6":{no:1236,with:1494},"E-7":{no:1344,with:1596},"E-8":{no:1464,with:1716},
+    "E-9":{no:1560,with:1818},"W-1":{no:1260,with:1506},"W-2":{no:1374,with:1626},"W-3":{no:1494,with:1752},
+    "W-4":{no:1608,with:1896},"W-5":{no:1746,with:2046},"O-1":{no:1200,with:1488},"O-2":{no:1344,with:1632},
+    "O-3":{no:1542,with:1818},"O-4":{no:1716,with:2016},"O-5":{no:1896,with:2208},"O-6":{no:2088,with:2406},
+    "O-7":{no:2256,with:2592},"O-8":{no:2376,with:2724},"O-9":{no:2472,with:2832},"O-10":{no:2568,with:2940}
+  },
+  "Tacoma, WA (JBLM area)": {
+    "E-1":{no:1200,with:1536},"E-2":{no:1272,with:1608},"E-3":{no:1344,with:1680},"E-4":{no:1470,with:1824},
+    "E-5":{no:1614,with:1992},"E-6":{no:1800,with:2184},"E-7":{no:1968,with:2364},"E-8":{no:2136,with:2544},
+    "E-9":{no:2280,with:2700},"W-1":{no:1848,with:2220},"W-2":{no:2016,with:2400},"W-3":{no:2184,with:2580},
+    "W-4":{no:2352,with:2772},"W-5":{no:2532,with:2964},"O-1":{no:1752,with:2172},"O-2":{no:1968,with:2400},
+    "O-3":{no:2244,with:2688},"O-4":{no:2472,with:2940},"O-5":{no:2724,with:3204},"O-6":{no:2940,with:3432},
+    "O-7":{no:3132,with:3648},"O-8":{no:3288,with:3828},"O-9":{no:3408,with:3960},"O-10":{no:3528,with:4092}
+  },
+  "Fort Moore, GA": {
+    "E-1":{no:858,with:1092},"E-2":{no:906,with:1140},"E-3":{no:960,with:1194},"E-4":{no:1044,with:1290},
+    "E-5":{no:1140,with:1404},"E-6":{no:1266,with:1530},"E-7":{no:1374,with:1632},"E-8":{no:1494,with:1752},
+    "E-9":{no:1590,with:1854},"W-1":{no:1290,with:1542},"W-2":{no:1404,with:1662},"W-3":{no:1524,with:1788},
+    "W-4":{no:1638,with:1926},"W-5":{no:1776,with:2082},"O-1":{no:1224,with:1518},"O-2":{no:1374,with:1662},
+    "O-3":{no:1572,with:1854},"O-4":{no:1746,with:2052},"O-5":{no:1926,with:2250},"O-6":{no:2118,with:2442},
+    "O-7":{no:2286,with:2622},"O-8":{no:2406,with:2754},"O-9":{no:2502,with:2862},"O-10":{no:2598,with:2970}
+  },
+  "Anchorage, AK (JBER)": {
+    "E-1":{no:1320,with:1686},"E-2":{no:1392,with:1764},"E-3":{no:1470,with:1842},"E-4":{no:1602,with:1992},
+    "E-5":{no:1758,with:2172},"E-6":{no:1962,with:2388},"E-7":{no:2142,with:2580},"E-8":{no:2322,with:2772},
+    "E-9":{no:2478,with:2940},"W-1":{no:2016,with:2424},"W-2":{no:2196,with:2616},"W-3":{no:2376,with:2820},
+    "W-4":{no:2556,with:3024},"W-5":{no:2748,with:3228},"O-1":{no:1908,with:2376},"O-2":{no:2148,with:2616},
+    "O-3":{no:2436,with:2928},"O-4":{no:2676,with:3180},"O-5":{no:2928,with:3444},"O-6":{no:3132,with:3660},
+    "O-7":{no:3312,with:3864},"O-8":{no:3456,with:4020},"O-9":{no:3576,with:4152},"O-10":{no:3696,with:4284}
+  },
+  "Fort Novosel, AL": {
+    "E-1":{no:780,with:996},"E-2":{no:828,with:1044},"E-3":{no:876,with:1092},"E-4":{no:954,with:1182},
+    "E-5":{no:1044,with:1290},"E-6":{no:1164,with:1404},"E-7":{no:1266,with:1500},"E-8":{no:1374,with:1614},
+    "E-9":{no:1464,with:1710},"W-1":{no:1188,with:1422},"W-2":{no:1296,with:1536},"W-3":{no:1410,with:1656},
+    "W-4":{no:1518,with:1782},"W-5":{no:1650,with:1926},"O-1":{no:1128,with:1398},"O-2":{no:1266,with:1536},
+    "O-3":{no:1452,with:1710},"O-4":{no:1614,with:1902},"O-5":{no:1782,with:2082},"O-6":{no:1962,with:2262},
+    "O-7":{no:2124,with:2436},"O-8":{no:2244,with:2556},"O-9":{no:2340,with:2664},"O-10":{no:2436,with:2772}
+  },
+  "Fort Johnson, LA": {
+    "E-1":{no:762,with:972},"E-2":{no:810,with:1020},"E-3":{no:858,with:1068},"E-4":{no:936,with:1158},
+    "E-5":{no:1026,with:1266},"E-6":{no:1140,with:1380},"E-7":{no:1242,with:1476},"E-8":{no:1350,with:1584},
+    "E-9":{no:1440,with:1680},"W-1":{no:1164,with:1392},"W-2":{no:1272,with:1506},"W-3":{no:1380,with:1626},
+    "W-4":{no:1488,with:1752},"W-5":{no:1620,with:1896},"O-1":{no:1110,with:1368},"O-2":{no:1242,with:1506},
+    "O-3":{no:1422,with:1680},"O-4":{no:1584,with:1866},"O-5":{no:1752,with:2040},"O-6":{no:1932,with:2220},
+    "O-7":{no:2088,with:2400},"O-8":{no:2208,with:2520},"O-9":{no:2304,with:2628},"O-10":{no:2400,with:2736}
+  },
+  "Monterey, CA (DLI/NPS)": {
+    "E-1":{no:1440,with:1842},"E-2":{no:1524,with:1926},"E-3":{no:1614,with:2016},"E-4":{no:1758,with:2184},
+    "E-5":{no:1926,with:2376},"E-6":{no:2154,with:2640},"E-7":{no:2352,with:2844},"E-8":{no:2556,with:3060},
+    "E-9":{no:2730,with:3240},"W-1":{no:2214,with:2688},"W-2":{no:2418,with:2904},"W-3":{no:2616,with:3120},
+    "W-4":{no:2814,with:3336},"W-5":{no:3018,with:3564},"O-1":{no:2100,with:2628},"O-2":{no:2352,with:2904},
+    "O-3":{no:2676,with:3228},"O-4":{no:2928,with:3516},"O-5":{no:3192,with:3804},"O-6":{no:3396,with:4020},
+    "O-7":{no:3564,with:4200},"O-8":{no:3708,with:4344},"O-9":{no:3816,with:4464},"O-10":{no:3924,with:4584}
+  },
+  "Groton, CT (Naval Sub Base)": {
+    "E-1":{no:1110,with:1416},"E-2":{no:1170,with:1482},"E-3":{no:1236,with:1554},"E-4":{no:1350,with:1680},
+    "E-5":{no:1482,with:1824},"E-6":{no:1650,with:1992},"E-7":{no:1800,with:2148},"E-8":{no:1950,with:2304},
+    "E-9":{no:2076,with:2436},"W-1":{no:1686,with:2022},"W-2":{no:1836,with:2184},"W-3":{no:1992,with:2352},
+    "W-4":{no:2148,with:2532},"W-5":{no:2316,with:2712},"O-1":{no:1596,with:1980},"O-2":{no:1800,with:2184},
+    "O-3":{no:2052,with:2436},"O-4":{no:2280,with:2676},"O-5":{no:2508,with:2916},"O-6":{no:2724,with:3144},
+    "O-7":{no:2916,with:3360},"O-8":{no:3060,with:3516},"O-9":{no:3180,with:3648},"O-10":{no:3300,with:3780}
+  },
+  "Kings Bay, GA (Naval Sub Base)": {
+    "E-1":{no:840,with:1074},"E-2":{no:888,with:1122},"E-3":{no:942,with:1176},"E-4":{no:1026,with:1272},
+    "E-5":{no:1122,with:1386},"E-6":{no:1248,with:1506},"E-7":{no:1356,with:1608},"E-8":{no:1470,with:1728},
+    "E-9":{no:1566,with:1830},"W-1":{no:1272,with:1518},"W-2":{no:1386,with:1638},"W-3":{no:1506,with:1764},
+    "W-4":{no:1620,with:1902},"W-5":{no:1758,with:2058},"O-1":{no:1206,with:1494},"O-2":{no:1356,with:1638},
+    "O-3":{no:1554,with:1830},"O-4":{no:1728,with:2028},"O-5":{no:1908,with:2226},"O-6":{no:2100,with:2418},
+    "O-7":{no:2268,with:2598},"O-8":{no:2388,with:2730},"O-9":{no:2484,with:2838},"O-10":{no:2580,with:2946}
+  }
+};
+
+const LOCATIONS = Object.keys(BAH_DATA).sort();
+const BAR_COLORS = ['var(--sr-blue)', 'var(--sr-red)', '#2e7d32'];
+
+function fmt(n) { return '$' + n.toLocaleString('en-US'); }
+
+function populateLocations() {
+  ['cmp-loc1','cmp-loc2','cmp-loc3'].forEach(function(id, idx) {
+    var sel = document.getElementById(id);
+    if (idx === 2) {
+      var none = document.createElement('option');
+      none.value = '';
+      none.textContent = 'None (skip)';
+      sel.appendChild(none);
+    }
+    LOCATIONS.forEach(function(loc, li) {
+      var opt = document.createElement('option');
+      opt.value = loc;
+      opt.textContent = loc;
+      if (idx === 0 && li === LOCATIONS.indexOf('San Diego, CA')) opt.selected = true;
+      if (idx === 1 && li === LOCATIONS.indexOf('Fort Liberty, NC')) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function compareBah() {
+  var grade = document.getElementById('cmp-grade').value;
+  var dep = document.querySelector('input[name="cmp-dep"]:checked').value;
+  var locs = [];
+  var loc1 = document.getElementById('cmp-loc1').value;
+  var loc2 = document.getElementById('cmp-loc2').value;
+  var loc3 = document.getElementById('cmp-loc3').value;
+
+  if (loc1) locs.push(loc1);
+  if (loc2) locs.push(loc2);
+  if (loc3) locs.push(loc3);
+
+  if (locs.length < 2) {
+    alert('Please select at least two locations to compare.');
+    return;
+  }
+
+  var rates = [];
+  for (var i = 0; i < locs.length; i++) {
+    var locData = BAH_DATA[locs[i]];
+    if (!locData || !locData[grade]) {
+      alert('Data not available for ' + locs[i] + ' at grade ' + grade + '.');
+      return;
+    }
+    var monthly = dep === 'with' ? locData[grade].with : locData[grade].no;
+    rates.push({ loc: locs[i], monthly: monthly, annual: monthly * 12 });
+  }
+
+  var baseRate = rates[0].monthly;
+
+  /* Build table */
+  var tbody = document.getElementById('cmp-table-body');
+  tbody.innerHTML = '';
+  for (var j = 0; j < rates.length; j++) {
+    var r = rates[j];
+    var diff = r.monthly - baseRate;
+    var diffPct = baseRate > 0 ? ((diff / baseRate) * 100) : 0;
+    var diffStr = j === 0 ? '—' : (diff >= 0 ? '+' : '') + fmt(diff) + ' (' + (diff >= 0 ? '+' : '') + diffPct.toFixed(1) + '%)';
+    var diffColor = j === 0 ? 'var(--sr-dark-text)' : (diff > 0 ? '#2e7d32' : (diff < 0 ? 'var(--sr-red)' : 'var(--sr-dark-text)'));
+
+    var tr = document.createElement('tr');
+    tr.style.background = j % 2 === 0 ? '#fff' : 'var(--sr-gray-bg)';
+    tr.innerHTML =
+      '<td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);font-weight:600;">' + r.loc + '</td>' +
+      '<td style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">' + fmt(r.monthly) + '/mo</td>' +
+      '<td style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">' + fmt(r.annual) + '/yr</td>' +
+      '<td style="padding:0.55rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);color:' + diffColor + ';font-weight:600;">' + diffStr + '</td>';
+    tbody.appendChild(tr);
+  }
+
+  /* Build bar chart */
+  var chart = document.getElementById('cmp-chart');
+  chart.innerHTML = '';
+  var maxRate = Math.max.apply(null, rates.map(function(x) { return x.monthly; }));
+
+  for (var k = 0; k < rates.length; k++) {
+    var pct = maxRate > 0 ? (rates[k].monthly / maxRate * 100) : 0;
+    var barRow = document.createElement('div');
+    barRow.style.cssText = 'display:flex;align-items:center;gap:0.75rem;';
+    barRow.innerHTML =
+      '<div style="min-width:180px;font-size:0.85rem;font-weight:600;color:var(--sr-dark-text);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + rates[k].loc + '">' + rates[k].loc + '</div>' +
+      '<div style="flex:1;background:var(--sr-gray-light);border-radius:4px;height:28px;position:relative;">' +
+        '<div style="width:' + pct + '%;height:100%;background:' + BAR_COLORS[k] + ';border-radius:4px;transition:width 0.4s ease;"></div>' +
+      '</div>' +
+      '<div style="min-width:80px;font-size:0.85rem;font-weight:700;color:var(--sr-dark-text);">' + fmt(rates[k].monthly) + '</div>';
+    chart.appendChild(barRow);
+  }
+
+  document.getElementById('cmp-results').style.display = 'block';
+  document.getElementById('cmp-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+populateLocations();
+</script>
+{% endblock %}

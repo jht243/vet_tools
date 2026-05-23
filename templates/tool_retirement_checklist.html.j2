@@ -1,0 +1,281 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>Military Retirement Checklist</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">Military Retirement Checklist 2026</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Interactive checklist for your military retirement transition. Track every step from 12 months out through your first 90 days as a retiree.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+
+    <!-- Progress bar -->
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+        <span style="font-size:0.9rem;font-weight:600;color:var(--sr-blue);">Progress</span>
+        <span id="progress-text" style="font-size:0.9rem;color:var(--sr-gray-text);">0 of 0 items complete</span>
+      </div>
+      <div style="background:var(--sr-gray-light);border-radius:999px;height:12px;overflow:hidden;">
+        <div id="progress-bar" style="height:100%;width:0%;background:var(--sr-blue);border-radius:999px;transition:width 0.3s ease;"></div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.75rem;">
+      <button onclick="markAll(true)" style="padding:0.5rem 1rem;background:var(--sr-blue);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Mark All Complete</button>
+      <button onclick="markAll(false)" style="padding:0.5rem 1rem;background:none;color:var(--sr-blue);border:1px solid var(--sr-blue);border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Clear All</button>
+      <button onclick="window.print()" style="padding:0.5rem 1rem;background:none;color:var(--sr-gray-text);border:1px solid var(--sr-gray-light);border-radius:var(--radius);cursor:pointer;font-size:0.85rem;">Print Checklist</button>
+    </div>
+
+    <!-- Checklist sections -->
+    <div id="checklist-container"></div>
+
+  </div>
+
+  <!-- Why a Retirement Checklist Matters -->
+  <section style="margin-bottom:2rem;">
+    <h2>Why a Retirement Checklist Matters</h2>
+
+    <p>Military retirement involves dozens of overlapping deadlines across pay, benefits, healthcare, and legal paperwork. Missing a single step — like failing to file your VA disability claim through the Benefits Delivery at Discharge (BDD) program before separation, or letting your SGLI lapse without converting to VGLI — can cost you thousands of dollars and months of delayed benefits.</p>
+
+    <p>A structured timeline keeps every action item visible so nothing falls through the cracks. Starting 12 months out gives you enough runway to gather records, attend required briefings, and make informed decisions about retirement pay options, the Survivor Benefit Plan, and healthcare coverage. The earlier you begin, the smoother your transition from active duty to retired status.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the difference between Final Pay, High-36, and BRS?</summary>
+      <p style="margin-top:0.75rem;">Final Pay uses your base pay at retirement (only available for members who entered service before September 8, 1980). High-36 averages your highest 36 months of base pay and applies to those who entered between September 8, 1980 and December 31, 2017. The Blended Retirement System (BRS) combines a reduced High-36 multiplier (2.0% instead of 2.5%) with TSP matching contributions and a mid-career continuation pay bonus. If you entered service after January 1, 2018, you are automatically under BRS.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">When should I file my VA disability claim before retirement?</summary>
+      <p style="margin-top:0.75rem;">File through the Benefits Delivery at Discharge (BDD) program between 180 and 90 days before your separation date. BDD allows the VA to begin processing your claim while you are still on active duty, which often results in a rating decision within weeks of retirement rather than months. If you are within 89 days of separation, you can still file a pre-discharge claim but processing may take longer.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the Survivor Benefit Plan (SBP) and is it worth it?</summary>
+      <p style="margin-top:0.75rem;">SBP provides your surviving spouse (or other eligible beneficiary) up to 55% of your retirement pay if you die. The cost is 6.5% of your base retirement pay. You must make your SBP election before retirement — it is irrevocable after your first retirement pay. Whether SBP is worth it depends on your age, health, other life insurance coverage, and your spouse's financial situation. <a href="/military-retirement/survivor-benefit-plan/">Read our full SBP guide &rarr;</a></p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How do I convert SGLI to VGLI after retirement?</summary>
+      <p style="margin-top:0.75rem;">You have 240 days (about 8 months) after separation to convert your Servicemembers' Group Life Insurance (SGLI) to Veterans' Group Life Insurance (VGLI) without a medical exam. If you apply within 240 days, you are automatically approved at the same coverage level. After 240 days you can still apply, but you will need to provide evidence of insurability (medical underwriting). VGLI premiums increase with age, so compare rates with private term life insurance before deciding. <a href="/va-benefits/vgli/">Learn more about VGLI &rarr;</a></p>
+    </details>
+  </section>
+
+  <!-- Related Resources -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/tools/military-retirement-calculator/">Military Retirement Pay Calculator</a></li>
+      <li><a href="/tools/crsc-crdp-calculator/">CRSC vs CRDP Calculator</a></li>
+      <li><a href="/military-retirement/">Military Retirement Hub</a></li>
+      <li><a href="/military-retirement/survivor-benefit-plan/">Survivor Benefit Plan (SBP) Guide</a></li>
+      <li><a href="/va-benefits/sgli/">SGLI — Servicemembers' Group Life Insurance</a></li>
+      <li><a href="/va-benefits/vgli/">VGLI — Veterans' Group Life Insurance</a></li>
+      <li><a href="/va-claims/">How to File a VA Disability Claim</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This checklist is for informational purposes only. Military retirement rules, benefits, and timelines vary by branch, years of service, and individual circumstances. Consult your installation's Transition Assistance Office, a financial advisor, or a VA-accredited representative for guidance specific to your situation.
+  </div>
+
+</main>
+
+<style>
+.checklist-section { margin-bottom: 1.5rem; }
+.checklist-section-title {
+  font-family: var(--font-serif);
+  color: var(--sr-blue);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.6rem 0.75rem;
+  background: var(--sr-gray-bg);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--sr-gray-light);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+.checklist-item:hover { background: var(--sr-gray-bg); }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-item input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--sr-blue);
+  cursor: pointer;
+}
+.checklist-item-content { flex: 1; }
+.checklist-item-label { font-weight: 600; font-size: 0.9rem; line-height: 1.4; }
+.checklist-item-desc { font-size: 0.82rem; color: var(--sr-gray-text); margin-top: 0.2rem; line-height: 1.5; }
+.checklist-item.checked .checklist-item-label { text-decoration: line-through; color: var(--sr-gray-text); }
+
+@media print {
+  nav.breadcrumbs, section:not(.checklist-section), .page-disclaimer, .site-header, .site-footer { display: none; }
+  .checklist-section { break-inside: avoid; }
+}
+</style>
+
+<script>
+const CHECKLIST = [
+  {
+    id: "12-months-before",
+    title: "1. 12 Months Before Retirement",
+    items: [
+      { id: "tap-briefing", label: "Attend Transition Assistance Program (TAP) briefing", desc: "TAP is mandatory for all separating service members. Covers career readiness, VA benefits, financial planning, and more. Schedule early — classes fill up fast at many installations." },
+      { id: "retirement-counseling", label: "Request retirement counseling from your finance office", desc: "Your installation finance office will walk you through retirement pay estimates, tax withholding, SBP costs, and other financial considerations specific to your situation." },
+      { id: "verify-service-records", label: "Verify your years of service and pay records (DFAS myPay)", desc: "Log in to <a href=\"https://mypay.dfas.mil\" target=\"_blank\" rel=\"noopener noreferrer\">DFAS myPay</a> and confirm your total active service dates, pay grade history, and leave balances are accurate. Disputes take time to resolve." },
+      { id: "retirement-plan-choice", label: "Decide: Final Pay vs High-36 vs BRS (if eligible to choose)", desc: "Your retirement pay calculation depends on which system you fall under. If you had the option to opt into BRS during the 2018 window, confirm your election is recorded correctly." },
+      { id: "estimate-retirement-pay", label: "Estimate retirement pay using calculator", desc: "Use a <a href=\"/tools/military-retirement-calculator/\">military retirement pay calculator</a> to project your monthly retirement income under your applicable retirement system." },
+      { id: "review-sbp", label: "Review Survivor Benefit Plan (SBP) options", desc: "Understand SBP costs (6.5% of base retired pay), coverage levels, and how it interacts with DIC. Your SBP election is due before retirement and is generally irrevocable. <a href=\"/military-retirement/survivor-benefit-plan/\">SBP guide &rarr;</a>" },
+      { id: "gather-medical-records", label: "Start gathering medical records for VA disability claim", desc: "Request copies of all service treatment records and begin documenting current conditions. The earlier you start, the stronger your <a href=\"/va-claims/\">VA disability claim</a> will be." },
+    ],
+  },
+  {
+    id: "6-months-before",
+    title: "2. 6 Months Before Retirement",
+    items: [
+      { id: "file-bdd-claim", label: "File VA disability claim through BDD program", desc: "The Benefits Delivery at Discharge (BDD) program lets you file between 180–90 days before separation. Filing through BDD can result in a rating decision shortly after retirement." },
+      { id: "final-medical-exams", label: "Schedule final medical exams and dental work", desc: "Complete any needed medical procedures, specialty referrals, and dental work while you still have active-duty healthcare coverage at no cost." },
+      { id: "job-search-vre", label: "Begin job search / apply for VR&E (Chapter 31) if eligible", desc: "Veteran Readiness and Employment (VR&E, Chapter 31) provides career counseling, training, and job placement for veterans with service-connected disabilities." },
+      { id: "va-home-loan-coe", label: "Research VA home loan Certificate of Eligibility (COE)", desc: "If you plan to buy a home after retirement, verify your VA home loan eligibility and obtain your Certificate of Eligibility through VA.gov or your lender." },
+      { id: "tricare-options", label: "Review TRICARE retiree healthcare options (TRICARE Select/Prime)", desc: "Retirees under 65 can enroll in TRICARE Prime or TRICARE Select. Compare costs, provider networks, and coverage. Enrollment must happen within specific windows." },
+      { id: "sgli-vgli-planning", label: "Update SGLI beneficiaries / plan VGLI conversion", desc: "Review your <a href=\"/va-benefits/sgli/\">SGLI</a> beneficiary designations. Plan whether to convert to <a href=\"/va-benefits/vgli/\">VGLI</a> or purchase private life insurance after separation." },
+      { id: "state-benefits-research", label: "Research state veterans benefits for your planned residence", desc: "State benefits vary widely — some states exempt military retirement pay from income tax, offer property tax exemptions, or provide additional veterans benefits. Research before choosing where to settle." },
+    ],
+  },
+  {
+    id: "3-months-before",
+    title: "3. 3 Months Before Retirement",
+    items: [
+      { id: "confirm-retirement-orders", label: "Confirm retirement orders", desc: "Verify your retirement orders have been published with the correct effective date, pay grade, and years of service. Report any discrepancies to your personnel office immediately." },
+      { id: "sbp-election-paperwork", label: "Complete SBP election paperwork", desc: "Submit your Survivor Benefit Plan election form. If you are married and decline SBP, your spouse must sign a written acknowledgment. This decision is generally irrevocable." },
+      { id: "outprocessing-briefings", label: "Attend final out-processing briefings", desc: "Complete all required out-processing steps including installation clearance, security debriefings, and branch-specific separation requirements." },
+      { id: "va-healthcare-enrollment", label: "Register with VA healthcare (VA.gov enrollment)", desc: "Enroll in <a href=\"https://www.va.gov/health-care/apply/application/introduction\" target=\"_blank\" rel=\"noopener noreferrer\">VA healthcare</a> even if you plan to use TRICARE. VA healthcare provides additional coverage options and access to VA medical facilities." },
+      { id: "gi-bill-transfer", label: "Apply for GI Bill transfer (if not already done)", desc: "If you want to transfer Post-9/11 GI Bill benefits to dependents, you must do so while still serving. Transfer requests require a 4-year service obligation from the date of transfer approval." },
+      { id: "dfas-retiree-account", label: "Set up DFAS retiree account for retirement pay", desc: "Create your <a href=\"https://mypay.dfas.mil\" target=\"_blank\" rel=\"noopener noreferrer\">DFAS retiree account</a> (separate from your active-duty myPay account) to manage retirement pay, tax withholding, and allotments." },
+      { id: "dd214-copies", label: "Obtain multiple certified copies of DD-214", desc: "Your DD-214 is required for nearly every veteran benefit. Obtain at least 5–10 certified copies. You will need them for VA claims, employment verification, state benefits, and more." },
+    ],
+  },
+  {
+    id: "30-days-before",
+    title: "4. 30 Days Before / Retirement Day",
+    items: [
+      { id: "confirm-direct-deposit", label: "Confirm DFAS direct deposit for retirement pay", desc: "Verify your bank account information is correctly entered in the DFAS retiree system so your first retirement pay deposit arrives on time." },
+      { id: "sgli-to-vgli", label: "Convert SGLI to VGLI (or purchase private life insurance)", desc: "You have 240 days after separation to convert SGLI to VGLI without a medical exam. Compare VGLI rates with private term life insurance — private coverage may be cheaper depending on your age and health." },
+      { id: "retiree-id-card", label: "Obtain military ID card for retirees", desc: "Visit the nearest ID card office (RAPIDS/DEERS) to obtain your retiree ID card. This card provides access to military installations, commissaries, exchanges, and MWR facilities." },
+      { id: "mail-forwarding", label: "Set up forwarding for official mail", desc: "Ensure all official correspondence (VA, DFAS, TRICARE) will reach you at your post-retirement address. Update your address with USPS, DFAS, VA, and TRICARE." },
+      { id: "equipment-turn-in", label: "Complete final hand receipt / equipment turn-in", desc: "Turn in all government-issued equipment, clear all hand receipts, and obtain signed clearance from your supply office. Unreturned equipment can result in pay deductions." },
+    ],
+  },
+  {
+    id: "first-90-days",
+    title: "5. First 90 Days After Retirement",
+    items: [
+      { id: "verify-first-pay", label: "Verify first retirement pay deposit (DFAS)", desc: "Check that your first retirement pay deposit is correct. Log in to <a href=\"https://mypay.dfas.mil\" target=\"_blank\" rel=\"noopener noreferrer\">DFAS myPay</a> to review your Retiree Account Statement (RAS) for pay amount, tax withholding, and SBP deductions." },
+      { id: "tricare-enrollment", label: "Enroll in TRICARE retiree plan", desc: "If you have not already enrolled, select and enroll in TRICARE Prime or TRICARE Select through <a href=\"https://www.tricare.mil\" target=\"_blank\" rel=\"noopener noreferrer\">TRICARE</a>. Ensure your enrollment is active to avoid gaps in healthcare coverage." },
+      { id: "va-rating-followup", label: "Apply for VA disability rating increase (if BDD claim pending)", desc: "If your BDD claim is still processing, monitor its status on VA.gov. If you receive a rating you disagree with, you can file a Supplemental Claim or Higher-Level Review." },
+      { id: "crsc-crdp", label: "Register for CRSC or CRDP (if applicable)", desc: "If you have both retirement pay and VA disability compensation, you may be eligible for Concurrent Retirement and Disability Pay (CRDP) or Combat-Related Special Compensation (CRSC). <a href=\"/tools/crsc-crdp-calculator/\">CRSC vs CRDP calculator &rarr;</a>" },
+      { id: "property-tax-exemption", label: "File for state veteran property tax exemptions", desc: "Many states offer property tax reductions or exemptions for disabled veterans or military retirees. Check with your county assessor's office and file the required paperwork." },
+      { id: "update-estate-docs", label: "Update estate documents (will, POA, beneficiaries)", desc: "Review and update your will, power of attorney, and beneficiary designations on all accounts (TSP, life insurance, bank accounts, retirement pay). Military legal assistance offices can help before separation." },
+    ],
+  },
+];
+
+const STORAGE_KEY = 'rp-retirement-checklist';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveState(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+let checkState = loadState();
+
+function buildChecklist() {
+  const container = document.getElementById('checklist-container');
+  container.innerHTML = '';
+  CHECKLIST.forEach(section => {
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'checklist-section';
+    const completedCount = section.items.filter(i => checkState[i.id]).length;
+    sectionDiv.innerHTML = `
+      <div class="checklist-section-title">
+        <span>${section.title}</span>
+        <span style="font-size:0.8rem;font-weight:400;color:var(--sr-gray-text);">${completedCount}/${section.items.length}</span>
+      </div>
+    `;
+    section.items.forEach(item => {
+      const isChecked = !!checkState[item.id];
+      const row = document.createElement('label');
+      row.className = 'checklist-item' + (isChecked ? ' checked' : '');
+      row.setAttribute('for', 'chk-' + item.id);
+      row.innerHTML = `
+        <input type="checkbox" id="chk-${item.id}" data-item="${item.id}" ${isChecked ? 'checked' : ''}>
+        <div class="checklist-item-content">
+          <div class="checklist-item-label">${item.label}</div>
+          <div class="checklist-item-desc">${item.desc}</div>
+        </div>
+      `;
+      row.addEventListener('change', e => {
+        if (e.target.type === 'checkbox') {
+          checkState[e.target.dataset.item] = e.target.checked;
+          saveState(checkState);
+          buildChecklist();
+          updateProgress();
+        }
+      });
+      sectionDiv.appendChild(row);
+    });
+    container.appendChild(sectionDiv);
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  const allItems = CHECKLIST.flatMap(s => s.items);
+  const total = allItems.length;
+  const done  = allItems.filter(i => checkState[i.id]).length;
+  const pct   = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${done} of ${total} items complete (${pct}%)`;
+}
+
+function markAll(checked) {
+  CHECKLIST.flatMap(s => s.items).forEach(i => { checkState[i.id] = checked; });
+  saveState(checkState);
+  buildChecklist();
+}
+
+buildChecklist();
+</script>
+{% endblock %}

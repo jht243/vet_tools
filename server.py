@@ -89,6 +89,8 @@ VA_CLAIMS_SPOKES = {
     "secondary-conditions",
     "va-rating-increase",
     "claim-for-increase",
+    "benefits-delivery-at-discharge",
+    "va-claim-denied",
 }
 
 RETIREMENT_SPOKES = {
@@ -103,6 +105,7 @@ RETIREMENT_SPOKES = {
 
 MILITARY_PAY_SPOKES = {
     "basic-pay", "basic-allowance-housing", "special-pays",
+    "pcs-entitlements",
 }
 
 VA_BENEFITS_SPOKES = {
@@ -181,6 +184,66 @@ TOOLS_DATA = [
         "seo_title": "VA Secondary Conditions Lookup Tool | Rank and Pay",
         "seo_description": "Look up secondary service-connected VA conditions by primary diagnosis. Understand the medical nexus for PTSD, back pain, tinnitus, TBI, and more — free lookup tool.",
     },
+    {
+        "slug": "bah-comparison",
+        "title": "BAH Comparison Tool",
+        "description": "Compare BAH rates side-by-side for 2-3 duty stations to see which location pays more housing allowance.",
+        "icon": "📊",
+        "live": True,
+        "template": "tool_bah_comparison.html.j2",
+        "seo_title": "BAH Comparison Tool 2026: Compare Rates by Location",
+        "seo_description": "Compare BAH rates side-by-side for multiple duty stations. See which location pays more housing allowance by grade and dependent status.",
+    },
+    {
+        "slug": "va-back-pay-calculator",
+        "title": "VA Back Pay Calculator",
+        "description": "Estimate your VA disability back pay based on your effective date, decision date, and disability rating.",
+        "icon": "💵",
+        "live": True,
+        "template": "tool_back_pay.html.j2",
+        "seo_title": "VA Back Pay Calculator 2026 | Estimate Retroactive Pay",
+        "seo_description": "Calculate your estimated VA disability back pay. Enter your effective date, rating, and dependents to see your retroactive lump sum — free tool.",
+    },
+    {
+        "slug": "military-retirement-checklist",
+        "title": "Military Retirement Checklist",
+        "description": "Interactive checklist covering every step of military retirement — from 12 months out through your first 90 days as a retiree.",
+        "icon": "📋",
+        "live": True,
+        "template": "tool_retirement_checklist.html.j2",
+        "seo_title": "Military Retirement Checklist 2026 | Rank and Pay",
+        "seo_description": "Interactive military retirement checklist — track every step from 12 months out through your first 90 days. SBP, VA claims, DFAS, TRICARE. Free.",
+    },
+    {
+        "slug": "va-claim-eligibility",
+        "title": "Can I Still File a VA Claim?",
+        "description": "Answer a few questions to find out if you're eligible to file a VA disability claim and which filing path is right for you.",
+        "icon": "🔀",
+        "live": True,
+        "template": "tool_claim_decision_tree.html.j2",
+        "seo_title": "Can I Still File a VA Claim? | Eligibility Check",
+        "seo_description": "Find out if you can still file a VA disability claim. Answer a few questions about your service and get a personalized filing recommendation — free.",
+    },
+    {
+        "slug": "total-retirement-income-estimator",
+        "title": "Total Retirement Income Estimator",
+        "description": "Combine military retirement pay, VA disability compensation, and TSP withdrawals into one total monthly income estimate.",
+        "icon": "📈",
+        "live": True,
+        "template": "tool_retirement_estimator.html.j2",
+        "seo_title": "Total Military Retirement Income Estimator 2026",
+        "seo_description": "Estimate your total military retirement income — combine retirement pay, VA disability compensation, and TSP withdrawals in one monthly picture. Free.",
+    },
+    {
+        "slug": "va-rating-estimator",
+        "title": "VA Rating Estimator",
+        "description": "Select your conditions to see typical VA disability ratings and estimate your combined rating with monthly compensation.",
+        "icon": "🎯",
+        "live": True,
+        "template": "tool_rating_estimator.html.j2",
+        "seo_title": "VA Rating Estimator 2026: What Rating Will I Get?",
+        "seo_description": "Estimate your VA disability rating by condition. See typical ratings, calculate your combined rating, and view 2026 monthly compensation — free.",
+    },
 ]
 
 TOOL_SLUGS = {t["slug"] for t in TOOLS_DATA}
@@ -191,6 +254,8 @@ EXPLAINER_SLUGS = {
     "pact-act-explained",
     "cdr-explained",
     "tdiu-explained",
+    "va-intent-to-file",
+    "va-claim-status-guide",
     "va-appeals-process",
     "blended-retirement-system",
     "bah-explained",
@@ -200,6 +265,7 @@ EXPLAINER_SLUGS = {
     "va-ebenefits-vs-va-gov",
     "va-buddy-statement-guide",
     "va-disability-back-pay",
+    "tsp-withdrawal-strategies",
 }
 
 BLOG_POSTS_PER_PAGE = 20

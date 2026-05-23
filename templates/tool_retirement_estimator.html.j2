@@ -1,0 +1,502 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>Total Retirement Income Estimator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">Total Military Retirement Income Estimator 2026</h1>
+    <p style="opacity:0.9;max-width:700px;margin:0;">See the complete picture &mdash; combine your military retirement pay, VA disability compensation, and TSP withdrawals into one monthly income estimate.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <!-- Calculator Card -->
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+
+    <!-- Section 1: Military Retirement Pay -->
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Section 1: Military Retirement Pay</h2>
+
+    <div style="margin-bottom:1.5rem;">
+      <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.5rem;">Retirement System</label>
+      <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+        <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.95rem;cursor:pointer;">
+          <input type="radio" name="ret-system" value="high36" checked> High-36
+        </label>
+        <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.95rem;cursor:pointer;">
+          <input type="radio" name="ret-system" value="finalpay"> Final Pay
+        </label>
+        <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.95rem;cursor:pointer;">
+          <input type="radio" name="ret-system" value="brs"> BRS (Blended Retirement System)
+        </label>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+      <div>
+        <label for="pay-grade" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Pay Grade at Retirement</label>
+        <select id="pay-grade" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <optgroup label="Enlisted">
+            <option value="E-1">E-1</option><option value="E-2">E-2</option><option value="E-3">E-3</option>
+            <option value="E-4">E-4</option><option value="E-5">E-5</option><option value="E-6">E-6</option>
+            <option value="E-7" selected>E-7</option><option value="E-8">E-8</option><option value="E-9">E-9</option>
+          </optgroup>
+          <optgroup label="Warrant Officer">
+            <option value="W-1">W-1</option><option value="W-2">W-2</option><option value="W-3">W-3</option>
+            <option value="W-4">W-4</option><option value="W-5">W-5</option>
+          </optgroup>
+          <optgroup label="Officer">
+            <option value="O-1">O-1</option><option value="O-2">O-2</option><option value="O-3">O-3</option>
+            <option value="O-4">O-4</option><option value="O-5">O-5</option><option value="O-6">O-6</option>
+            <option value="O-7">O-7</option><option value="O-8">O-8</option><option value="O-9">O-9</option>
+            <option value="O-10">O-10</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div>
+        <label for="yos-input" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Years of Service at Retirement</label>
+        <input type="number" id="yos-input" min="20" max="40" value="20" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+      </div>
+
+      <div>
+        <label for="high3-pay" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">High-3 Average Base Pay <span style="font-weight:400;color:var(--sr-gray-text);">(auto-filled)</span></label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);color:var(--sr-gray-text);font-size:0.95rem;">$</span>
+          <input type="number" id="high3-pay" style="width:100%;padding:0.5rem 0.65rem 0.5rem 1.5rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;" placeholder="e.g. 4500">
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: VA Disability Compensation -->
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Section 2: VA Disability Compensation</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+      <div>
+        <label for="va-rating" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Combined VA Disability Rating</label>
+        <select id="va-rating" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="0">0%</option>
+          <option value="10">10%</option>
+          <option value="20">20%</option>
+          <option value="30">30%</option>
+          <option value="40">40%</option>
+          <option value="50" selected>50%</option>
+          <option value="60">60%</option>
+          <option value="70">70%</option>
+          <option value="80">80%</option>
+          <option value="90">90%</option>
+          <option value="100">100%</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="dep-status" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Dependent Status</label>
+        <select id="dep-status" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="alone">Veteran alone</option>
+          <option value="spouse">Spouse only</option>
+          <option value="spouse1">Spouse + 1 child</option>
+          <option value="spouse2">Spouse + 2 children</option>
+          <option value="spouse3">Spouse + 3 children</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Section 3: TSP -->
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Section 3: TSP (Thrift Savings Plan)</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+      <div>
+        <label for="tsp-balance" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Estimated TSP Balance at Retirement</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);color:var(--sr-gray-text);font-size:0.95rem;">$</span>
+          <input type="number" id="tsp-balance" value="250000" style="width:100%;padding:0.5rem 0.65rem 0.5rem 1.5rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;" placeholder="e.g. 250000">
+        </div>
+      </div>
+
+      <div>
+        <label for="tsp-strategy" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Planned Withdrawal Strategy</label>
+        <select id="tsp-strategy" onchange="toggleTspFields()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="4pct">4% Rule (auto-calculated)</option>
+          <option value="monthly">Monthly Amount</option>
+          <option value="fixed">Fixed Amount</option>
+        </select>
+      </div>
+
+      <div id="tsp-amount-wrap" style="display:none;">
+        <label for="tsp-monthly-amt" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Monthly Withdrawal Amount</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);color:var(--sr-gray-text);font-size:0.95rem;">$</span>
+          <input type="number" id="tsp-monthly-amt" value="1000" style="width:100%;padding:0.5rem 0.65rem 0.5rem 1.5rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;" placeholder="e.g. 1000">
+        </div>
+      </div>
+    </div>
+
+    <!-- Calculate Button -->
+    <button id="calc-btn" onclick="calculateTotalIncome()" style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--sr-blue);color:#fff;border:none;padding:0.75rem 2rem;border-radius:var(--radius);cursor:pointer;font-size:1.05rem;font-weight:600;margin-top:0.5rem;">
+      Calculate Total Income
+    </button>
+
+    <!-- Results -->
+    <div id="results" style="display:none;margin-top:1.75rem;">
+
+      <!-- Summary Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.25rem;">
+        <div style="text-align:center;padding:1rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.78rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Monthly Retirement Pay</div>
+          <div id="res-ret-monthly" style="font-size:1.6rem;font-weight:700;color:var(--sr-blue);">$0</div>
+          <div id="res-ret-annual" style="font-size:0.82rem;color:var(--sr-gray-text);margin-top:0.15rem;">$0/year</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.78rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Monthly VA Compensation</div>
+          <div id="res-va-monthly" style="font-size:1.6rem;font-weight:700;color:var(--sr-blue);">$0</div>
+          <div id="res-va-annual" style="font-size:0.82rem;color:var(--sr-gray-text);margin-top:0.15rem;">$0/year</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.78rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Monthly TSP Income</div>
+          <div id="res-tsp-monthly" style="font-size:1.6rem;font-weight:700;color:var(--sr-blue);">$0</div>
+          <div id="res-tsp-annual" style="font-size:0.82rem;color:var(--sr-gray-text);margin-top:0.15rem;">$0/year</div>
+        </div>
+        <div style="text-align:center;padding:1.15rem;background:var(--sr-blue);border-radius:var(--radius);color:#fff;">
+          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;opacity:0.85;">Total Monthly Income</div>
+          <div id="res-total-monthly" style="font-size:1.8rem;font-weight:700;">$0</div>
+          <div id="res-total-annual" style="font-size:0.82rem;opacity:0.85;margin-top:0.15rem;">$0/year</div>
+        </div>
+      </div>
+
+      <!-- Stacked Bar Chart -->
+      <div style="margin-bottom:1.25rem;">
+        <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;color:var(--sr-gray-text);">Income Breakdown</div>
+        <div id="income-bar" style="display:flex;height:36px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--sr-gray-light);">
+          <div id="bar-ret" style="background:var(--sr-blue);height:100%;transition:width 0.4s;" title="Retirement Pay"></div>
+          <div id="bar-va" style="background:#2e7d32;height:100%;transition:width 0.4s;" title="VA Compensation"></div>
+          <div id="bar-tsp" style="background:#e65100;height:100%;transition:width 0.4s;" title="TSP Withdrawals"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;margin-top:0.5rem;font-size:0.82rem;color:var(--sr-gray-text);">
+          <span><span style="display:inline-block;width:12px;height:12px;background:var(--sr-blue);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Retirement Pay <span id="bar-ret-pct"></span></span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#2e7d32;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>VA Compensation <span id="bar-va-pct"></span></span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#e65100;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>TSP Income <span id="bar-tsp-pct"></span></span>
+        </div>
+      </div>
+
+      <!-- Tax Note -->
+      <div style="background:#fff3cd;border:1px solid #ffc107;padding:0.75rem 1rem;border-radius:var(--radius);font-size:0.85rem;margin-bottom:0.75rem;">
+        <strong>Tax Note:</strong> Military retirement pay is federally taxable. VA disability compensation is tax-free. TSP withdrawals are taxable (Roth TSP portions may be tax-free).
+      </div>
+
+      <!-- CRSC/CRDP Note -->
+      <div style="background:#e3f2fd;border:1px solid #90caf9;padding:0.75rem 1rem;border-radius:var(--radius);font-size:0.85rem;">
+        <strong>Concurrent Receipt:</strong> If you are a military retiree with VA disability, you may qualify for concurrent receipt (CRSC or CRDP) to receive both retirement pay and VA compensation without an offset. <a href="/tools/crsc-crdp-calculator/">Use our CRSC vs CRDP calculator &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content: Understanding Total Retirement Income -->
+  <section style="margin-bottom:2rem;">
+    <h2>Understanding Your Total Retirement Income</h2>
+    <p>Most military retirees have income from multiple sources, yet many planning tools only show one stream at a time. By combining retirement pay, VA disability compensation, and TSP withdrawals, you get a realistic picture of your monthly cash flow after the uniform comes off.</p>
+    <p>This matters because each income source has different tax treatment, different inflation adjustments (retirement pay and VA comp receive annual COLA; TSP does not), and different eligibility rules. Viewing them together helps you answer the most important question: <em>Will my total income cover my expenses in retirement?</em></p>
+    <p>For veterans with VA disability ratings of 50% or higher, concurrent receipt (CRDP) allows you to collect both retirement pay and VA comp without a dollar-for-dollar offset &mdash; significantly boosting total income. Veterans with combat-related disabilities may qualify for CRSC instead.</p>
+  </section>
+
+  <!-- Content: How Military Retirement Pay Is Calculated -->
+  <section style="margin-bottom:2rem;">
+    <h2>How Military Retirement Pay Is Calculated</h2>
+    <p>Your military retirement pay depends on which retirement system applies to you:</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin:1rem 0;">
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">Final Pay</h3>
+        <p style="font-size:0.9rem;">For members who entered service before September 8, 1980. Monthly retirement pay equals <strong>2.5% &times; years of service &times; final month's basic pay</strong>. A 20-year retiree receives 50% of their final base pay.</p>
+      </div>
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">High-36</h3>
+        <p style="font-size:0.9rem;">For members who entered between September 8, 1980 and December 31, 2017. Uses <strong>2.5% &times; years of service &times; average of the highest 36 months of basic pay</strong>. A 20-year retiree receives 50% of their high-3 average.</p>
+      </div>
+      <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:0.5rem;">Blended Retirement System (BRS)</h3>
+        <p style="font-size:0.9rem;">For members who entered on or after January 1, 2018, or who opted in. Uses <strong>2.0% &times; years of service &times; high-3 average</strong>. The lower multiplier is offset by government TSP matching up to 5% of basic pay, plus continuation pay at the 12-year mark.</p>
+      </div>
+    </div>
+
+    <p>Use our standalone <a href="/tools/military-retirement-calculator/">Military Retirement Pay Calculator</a> for a deeper breakdown of each system.</p>
+  </section>
+
+  <!-- Content: Tax Considerations -->
+  <section style="margin-bottom:2rem;">
+    <h2>Tax Considerations for Military Retirees</h2>
+    <p>Understanding what is taxable versus tax-free is critical for planning your actual take-home income in retirement:</p>
+    <ul>
+      <li><strong>Military retirement pay</strong> is subject to federal income tax. However, many states exempt military retirement pay from state income tax, either partially or fully. States like Texas, Florida, and Nevada have no state income tax at all.</li>
+      <li><strong>VA disability compensation</strong> is completely tax-free at both the federal and state level. This is one of the most valuable benefits for disabled veterans, as every dollar of VA comp goes directly into your pocket.</li>
+      <li><strong>TSP withdrawals</strong> from traditional (pre-tax) TSP accounts are taxed as ordinary income. Roth TSP withdrawals are generally tax-free if you meet qualifying conditions (age 59&frac12; and the account has been open for at least 5 years). A mix of traditional and Roth TSP can provide valuable tax flexibility.</li>
+      <li><strong>CRSC payments</strong> are tax-free (they replace VA comp). <strong>CRDP payments</strong> are taxable (they restore retired pay).</li>
+    </ul>
+    <p>Consider consulting a tax professional familiar with military benefits to optimize your withdrawal strategy and minimize your overall tax burden.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How much does a military retiree actually take home per month?</summary>
+      <p style="margin-top:0.75rem;">It depends on pay grade, years of service, VA rating, and TSP savings. As an example, an E-7 retiring at 20 years under High-36 with a 50% VA rating and $250,000 in TSP (using the 4% rule) would receive roughly $2,500 in retirement pay, $1,075 in VA comp, and $833 from TSP &mdash; approximately $4,400 per month before taxes on the retirement pay and TSP portions.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the 4% rule for TSP withdrawals?</summary>
+      <p style="margin-top:0.75rem;">The 4% rule is a widely used retirement guideline. You withdraw 4% of your total balance in the first year, then adjust for inflation each year. For monthly income, divide the annual amount by 12. On a $250,000 balance, that equals about $833 per month. The rule is designed so your savings last roughly 30 years.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does VA disability compensation reduce my retirement pay?</summary>
+      <p style="margin-top:0.75rem;">Historically yes &mdash; VA comp was offset dollar-for-dollar against retirement pay. However, Concurrent Retirement and Disability Pay (CRDP) now allows retirees rated 50% or higher to receive both in full. For combat-related disabilities, Combat-Related Special Compensation (CRSC) may apply even at lower ratings. <a href="/tools/crsc-crdp-calculator/">Check our CRSC vs CRDP calculator</a> for your situation.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Do military retirement pay and VA compensation get COLA adjustments?</summary>
+      <p style="margin-top:0.75rem;">Yes. Both military retirement pay and VA disability compensation receive annual Cost-of-Living Adjustments (COLA) based on the Consumer Price Index. TSP withdrawals do not automatically adjust for inflation, which is why many financial planners recommend increasing TSP withdrawals each year to keep pace with rising costs.</p>
+    </details>
+  </section>
+
+  <!-- Related Resources -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/tools/military-retirement-calculator/">Military Retirement Pay Calculator</a></li>
+      <li><a href="/tools/crsc-crdp-calculator/">CRSC vs CRDP Calculator</a></li>
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a></li>
+      <li><a href="/military-retirement/">Military Retirement Hub</a></li>
+      <li><a href="/military-retirement/blended-retirement-system/">Blended Retirement System (BRS) Guide</a></li>
+      <li><a href="/military-retirement/survivor-benefit-plan/">Survivor Benefit Plan (SBP) Guide</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This calculator provides estimates only. Actual retirement pay is computed by <a href="https://www.dfas.mil/" target="_blank" rel="noopener noreferrer">DFAS</a>. VA compensation rates are based on the 2025 VA schedule. TSP projections do not account for investment returns, fees, or market fluctuations. This tool does not account for SBP premiums, tax withholding, or TRICARE deductions. Always verify figures with your service finance office and <a href="https://www.va.gov" rel="noopener">VA.gov</a>.
+  </div>
+
+</main>
+
+<script>
+// =========================================================
+// 2025 Military Base Pay Table (monthly, by grade and YOS bracket)
+// =========================================================
+const PAY_TABLE_2025 = {
+  "E-1": [1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917,1917],
+  "E-2": [2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149,2149],
+  "E-3": [2259,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425,2425],
+  "E-4": [2509,2644,2726,2726,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053,3053],
+  "E-5": [2728,2872,2987,3187,3098,3098,3268,3268,3268,3268,3268,3268,3268,3268,3268,3268,3268],
+  "E-6": [2977,3271,3401,3550,3757,3757,3898,3958,4049,4049,4049,4049,4049,4049,4049,4049,4049],
+  "E-7": [3443,3730,3858,3981,4109,4234,4371,4437,4534,4690,4817,4904,5008,5008,5008,5008,5008],
+  "E-8": [4954,5081,5176,5361,5502,5596,5696,5822,5822,5822,5822,5895,6012,6012,6012,6012,6012],
+  "E-9": [6052,6367,6524,6619,6831,6958,6958,7119,7274,7274,7274,7530,7598,7598,7598,7598,7598],
+  "W-1": [3447,3814,3945,4148,4302,4517,4679,4833,5020,5196,5305,5411,5411,5411,5411,5411,5411],
+  "W-2": [3980,4374,4484,4621,4829,4979,5218,5379,5556,5718,5879,6036,6095,6095,6095,6095,6095],
+  "W-3": [4605,4929,5062,5187,5395,5572,5731,5960,6119,6369,6498,6635,6770,6888,6888,6888,6888],
+  "W-4": [5149,5534,5688,5825,5968,6200,6459,6655,6888,7122,7341,7567,7793,8022,8247,8247,8247],
+  "W-5": [0,0,0,0,0,0,0,7699,7699,7922,8208,8499,8787,9075,9356,9610,9610],
+  "O-1": [3803,3961,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962,4962],
+  "O-2": [4382,4983,5698,5900,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004,6004],
+  "O-3": [5079,5754,6215,6735,7068,7263,7398,7530,7530,7530,7530,7530,7530,7530,7530,7530,7530],
+  "O-4": [5784,6699,7144,7630,7989,8321,8534,8767,8983,9085,9127,9127,9127,9127,9127,9127,9127],
+  "O-5": [6737,7591,8103,8420,8774,9015,9344,9677,9947,10237,10433,10497,10497,10497,10497,10497,10497],
+  "O-6": [8093,8891,9481,9481,9538,9945,10051,10311,10622,11029,11317,11605,11605,11605,11605,11605,11605],
+  "O-7": [10225,10688,10847,11123,11308,11598,11851,12087,12432,12798,12798,13120,13120,13120,13120,13120,13120],
+  "O-8": [12406,12821,13119,13265,13360,13613,14029,14392,14674,15046,15339,15556,15697,15697,15697,15697,15697],
+  "O-9": [14714,15207,15323,15474,15699,16040,16296,16296,16776,16776,17286,17286,17286,17286,17286,17286,17286],
+  "O-10": [0,0,0,0,0,0,17675,17675,17675,17675,18491,18491,18491,18491,18491,18491,18491]
+};
+const YOS_BRACKETS = [0,2,3,4,6,8,10,12,14,16,18,20,22,24,26,28,30];
+
+// =========================================================
+// 2025 VA Compensation Rates
+// =========================================================
+const VA_RATES = {
+  alone: {
+    0: 0, 10: 171.23, 20: 338.49, 30: 524.31, 40: 755.28,
+    50: 1075.16, 60: 1361.88, 70: 1716.28, 80: 1995.01,
+    90: 2241.91, 100: 3737.85
+  },
+  spouse: {
+    0: 0, 10: 171.23, 20: 338.49, 30: 586.31, 40: 838.28,
+    50: 1179.16, 60: 1486.88, 70: 1862.28, 80: 2162.01,
+    90: 2429.91, 100: 3946.25
+  },
+  spouse1: {
+    0: 0, 10: 171.23, 20: 338.49, 30: 633.31, 40: 897.28,
+    50: 1250.16, 60: 1569.88, 70: 1957.28, 80: 2269.01,
+    90: 2548.91, 100: 4078.82
+  },
+  spouse2: {
+    0: 0, 10: 171.23, 20: 338.49, 30: 680.31, 40: 956.28,
+    50: 1321.16, 60: 1652.88, 70: 2052.28, 80: 2376.01,
+    90: 2667.91, 100: 4211.39
+  },
+  spouse3: {
+    0: 0, 10: 171.23, 20: 338.49, 30: 727.31, 40: 1015.28,
+    50: 1392.16, 60: 1735.88, 70: 2147.28, 80: 2483.01,
+    90: 2786.91, 100: 4343.96
+  }
+};
+
+// =========================================================
+// Helper functions
+// =========================================================
+function getBasePay(grade, yos) {
+  var row = PAY_TABLE_2025[grade];
+  if (!row) return 0;
+  var idx = 0;
+  for (var i = 0; i < YOS_BRACKETS.length; i++) {
+    if (yos >= YOS_BRACKETS[i]) idx = i;
+  }
+  return row[idx];
+}
+
+function fmt(n) {
+  return '$' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function getSelectedSystem() {
+  var radios = document.querySelectorAll('input[name="ret-system"]');
+  for (var i = 0; i < radios.length; i++) {
+    if (radios[i].checked) return radios[i].value;
+  }
+  return 'high36';
+}
+
+// =========================================================
+// Auto-fill high-3 pay when grade or YOS changes
+// =========================================================
+function updateHighPay() {
+  var grade = document.getElementById('pay-grade').value;
+  var yos = parseInt(document.getElementById('yos-input').value, 10) || 20;
+  var basePay = getBasePay(grade, yos);
+  var high3El = document.getElementById('high3-pay');
+  if (!high3El.dataset.userEdited) {
+    high3El.value = basePay || '';
+  }
+}
+
+document.getElementById('pay-grade').addEventListener('change', updateHighPay);
+document.getElementById('yos-input').addEventListener('input', updateHighPay);
+document.getElementById('high3-pay').addEventListener('input', function() {
+  this.dataset.userEdited = '1';
+});
+
+// =========================================================
+// Toggle TSP withdrawal amount field
+// =========================================================
+function toggleTspFields() {
+  var strategy = document.getElementById('tsp-strategy').value;
+  var wrap = document.getElementById('tsp-amount-wrap');
+  if (strategy === '4pct') {
+    wrap.style.display = 'none';
+  } else {
+    wrap.style.display = 'block';
+    var label = wrap.querySelector('label');
+    if (strategy === 'monthly') {
+      label.textContent = 'Monthly Withdrawal Amount';
+    } else {
+      label.textContent = 'Fixed Monthly Amount';
+    }
+  }
+}
+
+// =========================================================
+// Main calculation
+// =========================================================
+function calculateTotalIncome() {
+  var system = getSelectedSystem();
+  var grade = document.getElementById('pay-grade').value;
+  var yos = parseInt(document.getElementById('yos-input').value, 10) || 20;
+  if (yos < 20) yos = 20;
+  if (yos > 40) yos = 40;
+
+  var basePay = getBasePay(grade, yos);
+  var high3Pay = parseFloat(document.getElementById('high3-pay').value) || basePay;
+
+  // 1. Retirement pay
+  var retMultiplier, retMonthly;
+  if (system === 'finalpay') {
+    retMultiplier = 2.5 * yos;
+    retMonthly = (retMultiplier / 100) * basePay;
+  } else if (system === 'high36') {
+    retMultiplier = 2.5 * yos;
+    retMonthly = (retMultiplier / 100) * high3Pay;
+  } else {
+    // BRS
+    retMultiplier = 2.0 * yos;
+    retMonthly = (retMultiplier / 100) * high3Pay;
+  }
+
+  // 2. VA compensation
+  var vaRating = parseInt(document.getElementById('va-rating').value, 10);
+  var depStatus = document.getElementById('dep-status').value;
+  var effectiveStatus = vaRating < 30 ? 'alone' : depStatus;
+  var vaMonthly = VA_RATES[effectiveStatus][vaRating] || 0;
+
+  // 3. TSP income
+  var tspBalance = parseFloat(document.getElementById('tsp-balance').value) || 0;
+  var tspStrategy = document.getElementById('tsp-strategy').value;
+  var tspMonthly = 0;
+
+  if (tspStrategy === '4pct') {
+    tspMonthly = (tspBalance * 0.04) / 12;
+  } else {
+    tspMonthly = parseFloat(document.getElementById('tsp-monthly-amt').value) || 0;
+  }
+
+  // Total
+  var totalMonthly = retMonthly + vaMonthly + tspMonthly;
+
+  // Update summary cards
+  document.getElementById('res-ret-monthly').textContent = fmt(retMonthly);
+  document.getElementById('res-ret-annual').textContent = fmt(retMonthly * 12) + '/year';
+  document.getElementById('res-va-monthly').textContent = fmt(vaMonthly);
+  document.getElementById('res-va-annual').textContent = fmt(vaMonthly * 12) + '/year';
+  document.getElementById('res-tsp-monthly').textContent = fmt(tspMonthly);
+  document.getElementById('res-tsp-annual').textContent = fmt(tspMonthly * 12) + '/year';
+  document.getElementById('res-total-monthly').textContent = fmt(totalMonthly);
+  document.getElementById('res-total-annual').textContent = fmt(totalMonthly * 12) + '/year';
+
+  // Update bar chart
+  if (totalMonthly > 0) {
+    var retPct = (retMonthly / totalMonthly * 100);
+    var vaPct = (vaMonthly / totalMonthly * 100);
+    var tspPct = (tspMonthly / totalMonthly * 100);
+
+    document.getElementById('bar-ret').style.width = retPct + '%';
+    document.getElementById('bar-va').style.width = vaPct + '%';
+    document.getElementById('bar-tsp').style.width = tspPct + '%';
+
+    document.getElementById('bar-ret-pct').textContent = '(' + retPct.toFixed(1) + '%)';
+    document.getElementById('bar-va-pct').textContent = '(' + vaPct.toFixed(1) + '%)';
+    document.getElementById('bar-tsp-pct').textContent = '(' + tspPct.toFixed(1) + '%)';
+  } else {
+    document.getElementById('bar-ret').style.width = '0%';
+    document.getElementById('bar-va').style.width = '0%';
+    document.getElementById('bar-tsp').style.width = '0%';
+    document.getElementById('bar-ret-pct').textContent = '';
+    document.getElementById('bar-va-pct').textContent = '';
+    document.getElementById('bar-tsp-pct').textContent = '';
+  }
+
+  // Show results
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+// Initialize
+updateHighPay();
+</script>
+{% endblock %}

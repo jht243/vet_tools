@@ -1,0 +1,301 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>VA Back Pay Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">VA Disability Back Pay Calculator 2026</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Use this free <strong>VA back pay calculator</strong> to estimate how much retroactive <strong>VA disability back pay</strong> you may receive based on your effective date, decision date, and disability rating.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <!-- Calculator Card -->
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Estimate Your VA Back Pay</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label for="effective-month" style="display:block;font-size:0.9rem;font-weight:600;color:var(--sr-gray-text);margin-bottom:0.35rem;">Effective Date (Month/Year)</label>
+        <p style="font-size:0.78rem;color:var(--sr-gray-text);margin:0 0 0.4rem;">Your Intent to File or claim filing date</p>
+        <div style="display:flex;gap:0.5rem;">
+          <select id="effective-month" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;flex:1;">
+            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+            <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+            <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+            <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+          <select id="effective-year" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;flex:1;"></select>
+        </div>
+      </div>
+
+      <div>
+        <label for="decision-month" style="display:block;font-size:0.9rem;font-weight:600;color:var(--sr-gray-text);margin-bottom:0.35rem;">Decision Date (Month/Year)</label>
+        <p style="font-size:0.78rem;color:var(--sr-gray-text);margin:0 0 0.4rem;">When VA made the rating decision</p>
+        <div style="display:flex;gap:0.5rem;">
+          <select id="decision-month" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;flex:1;">
+            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+            <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+            <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+            <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+          <select id="decision-year" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;flex:1;"></select>
+        </div>
+      </div>
+
+      <div>
+        <label for="rating-select" style="display:block;font-size:0.9rem;font-weight:600;color:var(--sr-gray-text);margin-bottom:0.35rem;">VA Disability Rating</label>
+        <p style="font-size:0.78rem;color:var(--sr-gray-text);margin:0 0 0.4rem;">Your combined disability rating</p>
+        <select id="rating-select" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;width:100%;">
+          <option value="10">10%</option>
+          <option value="20">20%</option>
+          <option value="30">30%</option>
+          <option value="40">40%</option>
+          <option value="50" selected>50%</option>
+          <option value="60">60%</option>
+          <option value="70">70%</option>
+          <option value="80">80%</option>
+          <option value="90">90%</option>
+          <option value="100">100%</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="dependent-select" style="display:block;font-size:0.9rem;font-weight:600;color:var(--sr-gray-text);margin-bottom:0.35rem;">Dependent Status</label>
+        <p style="font-size:0.78rem;color:var(--sr-gray-text);margin:0 0 0.4rem;">Dependents at 30%+ only</p>
+        <select id="dependent-select" style="padding:0.45rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;width:100%;">
+          <option value="alone">Veteran alone</option>
+          <option value="spouse">Spouse only</option>
+          <option value="spouse1">Spouse + 1 child</option>
+          <option value="spouse2">Spouse + 2 children</option>
+          <option value="spouse3">Spouse + 3 children</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="calc-btn" onclick="calculateBackPay()" style="display:inline-flex;align-items:center;gap:0.4rem;background:var(--sr-blue);color:#fff;border:none;padding:0.65rem 1.5rem;border-radius:var(--radius);cursor:pointer;font-size:1rem;font-weight:600;">
+      Calculate Back Pay
+    </button>
+
+    <!-- Results -->
+    <div id="results" style="display:none;margin-top:1.75rem;padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1rem;">
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Estimated Back Pay</div>
+          <div id="res-total" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">$0</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Monthly Rate</div>
+          <div id="res-monthly" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">$0</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Months Owed</div>
+          <div id="res-months" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">0</div>
+        </div>
+      </div>
+      <div id="res-breakdown" style="font-size:0.9rem;color:var(--sr-gray-text);background:#fff;padding:0.75rem;border-radius:var(--radius);border:1px solid var(--sr-gray-light);margin-bottom:0.75rem;"></div>
+      <div style="background:#fff3cd;border:1px solid #ffc107;padding:0.75rem 1rem;border-radius:var(--radius);font-size:0.85rem;">
+        <strong>Note:</strong> Back pay is typically paid as a lump sum within 2&ndash;4 weeks of your decision via direct deposit. The first regular monthly payment follows on the 1st of the next month.
+      </div>
+    </div>
+  </div>
+
+  <!-- How VA Back Pay Is Calculated -->
+  <section style="margin-bottom:2rem;">
+    <h2>How VA Back Pay Is Calculated</h2>
+    <p>VA disability back pay (retroactive pay) is the compensation owed to you for the period between your <strong>effective date</strong> and the date the VA issues its <strong>rating decision</strong>. The formula is straightforward:</p>
+    <ol>
+      <li><strong>Determine your effective date.</strong> This is typically the date you filed your Intent to File (ITF) or your formal claim, whichever is earlier.</li>
+      <li><strong>Identify your decision date.</strong> This is the date the VA granted your disability rating.</li>
+      <li><strong>Calculate the number of months between the two dates.</strong> Each full month between your effective date and decision date counts toward back pay.</li>
+      <li><strong>Multiply months by your monthly compensation rate.</strong> The VA uses the compensation rate schedule in effect during each period.</li>
+    </ol>
+    <p>For example, if your effective date is January 2024 and your decision date is January 2026 at a 50% rating (veteran alone), you would receive approximately 24 months &times; $1,102.04 = $26,448.96 in back pay.</p>
+  </section>
+
+  <!-- What Determines Your Effective Date -->
+  <section style="margin-bottom:2rem;">
+    <h2>What Determines Your Effective Date?</h2>
+    <p>Your effective date controls how far back the VA owes you compensation. Several rules determine which date applies:</p>
+    <ul>
+      <li><strong>Intent to File (ITF):</strong> Filing an ITF gives you up to one year to submit a complete claim. Your effective date locks in at the ITF date, potentially adding months of back pay.</li>
+      <li><strong>Formal claim date:</strong> If you skip the ITF, your effective date is the date the VA receives your completed application (VA Form 21-526EZ).</li>
+      <li><strong>Liberalizing law changes:</strong> When the VA adds new presumptive conditions (such as PACT Act burn pit exposures), the effective date may go back to the date the law took effect.</li>
+      <li><strong>One-year rule:</strong> If you file within one year of separation from active duty, the effective date can be set to the day after discharge&mdash;maximizing back pay.</li>
+      <li><strong>Increased ratings:</strong> For claims for increase, the effective date is generally up to one year before the date the VA receives the claim, if evidence shows the increase was warranted during that period.</li>
+    </ul>
+    <p>For a deeper explanation, read the <a href="/explainers/va-disability-back-pay/">complete guide to VA disability back pay</a>.</p>
+  </section>
+
+  <!-- How Long Does It Take -->
+  <section style="margin-bottom:2rem;">
+    <h2>How Long Does It Take to Receive Back Pay?</h2>
+    <p>Once the VA issues a favorable rating decision, back pay is typically deposited within <strong>2 to 4 weeks</strong>. Here is what to expect:</p>
+    <ul>
+      <li><strong>Direct deposit:</strong> If your bank information is on file with the VA, the lump sum is deposited directly. This is the fastest method.</li>
+      <li><strong>Paper check:</strong> If the VA does not have direct deposit information, a check is mailed to your address on file, which can take 4 to 6 weeks.</li>
+      <li><strong>Large back pay amounts:</strong> Claims with back pay exceeding $25,000 may require additional review before release, potentially adding 1 to 2 weeks.</li>
+      <li><strong>Partial payments:</strong> In some cases, the VA releases an initial partial payment quickly and a second payment once full processing is complete.</li>
+    </ul>
+    <p>You can track the status of your payment on <a href="https://www.va.gov/va-payment-history/" target="_blank" rel="noopener noreferrer">VA.gov payment history</a>.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Is VA disability back pay taxable?</summary>
+      <p style="margin-top:0.75rem;">No. VA disability compensation, including back pay, is completely tax-free at the federal and state level. You do not need to report it as income on your tax return.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I receive back pay for dependents I added after my rating?</summary>
+      <p style="margin-top:0.75rem;">Yes, but only back to the date you notified the VA of the dependent, or the date of the qualifying event (marriage, birth of a child), whichever is later. The VA will pay the difference between the veteran-alone rate and the with-dependents rate for the applicable months.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What if my rating increased &mdash; do I get back pay on the difference?</summary>
+      <p style="margin-top:0.75rem;">Yes. If the VA grants a higher rating, you receive retroactive pay equal to the difference between your old monthly rate and your new monthly rate, multiplied by the number of months between the effective date of the increase and the decision date.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does filing an Intent to File really increase my back pay?</summary>
+      <p style="margin-top:0.75rem;">Absolutely. An Intent to File locks in your effective date up to one year before your completed claim is submitted. If it takes you several months to gather evidence and file, that ITF date ensures you receive back pay for those months. Always file an ITF first.</p>
+    </details>
+  </section>
+
+  <!-- Related Resources -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a></li>
+      <li><a href="/explainers/va-disability-back-pay/">VA Disability Back Pay &mdash; Full Guide</a></li>
+      <li><a href="/va-claims/how-to-file-a-va-claim/">How to File a VA Claim</a></li>
+      <li><a href="/va-claims/">VA Claims Hub</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This calculator provides estimates only. Actual back pay amounts depend on the exact effective date assigned by the VA, applicable compensation rate schedules for each year in the retroactive period, and any offsets or deductions. This tool uses 2025 VA compensation rates for all months. Verify all results at <a href="https://www.va.gov" rel="noopener">VA.gov</a>.
+  </div>
+
+</main>
+
+<script>
+// 2025 VA Compensation Rates by rating and dependent status
+// Sources: VA.gov 2025 disability compensation rate tables
+const VA_BACK_PAY_RATES = {
+  alone: {
+    10: 171.23, 20: 338.49, 30: 524.31, 40: 755.28,
+    50: 1075.16, 60: 1361.88, 70: 1716.28, 80: 1995.01,
+    90: 2241.91, 100: 3737.85
+  },
+  spouse: {
+    10: 171.23, 20: 338.49, 30: 586.31, 40: 838.28,
+    50: 1179.16, 60: 1486.88, 70: 1862.28, 80: 2162.01,
+    90: 2429.91, 100: 3946.25
+  },
+  spouse1: {
+    10: 171.23, 20: 338.49, 30: 633.31, 40: 897.28,
+    50: 1250.16, 60: 1569.88, 70: 1957.28, 80: 2269.01,
+    90: 2548.91, 100: 4078.82
+  },
+  spouse2: {
+    10: 171.23, 20: 338.49, 30: 680.31, 40: 956.28,
+    50: 1321.16, 60: 1652.88, 70: 2052.28, 80: 2376.01,
+    90: 2667.91, 100: 4211.39
+  },
+  spouse3: {
+    10: 171.23, 20: 338.49, 30: 727.31, 40: 1015.28,
+    50: 1392.16, 60: 1735.88, 70: 2147.28, 80: 2483.01,
+    90: 2786.91, 100: 4343.96
+  }
+};
+
+// Populate year dropdowns
+(function() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const effYearEl = document.getElementById('effective-year');
+  const decYearEl = document.getElementById('decision-year');
+
+  for (let y = currentYear; y >= 2000; y--) {
+    effYearEl.appendChild(new Option(y, y));
+    decYearEl.appendChild(new Option(y, y));
+  }
+
+  // Default effective date to 1 year ago
+  const effDefaultYear = currentYear - 1;
+  document.getElementById('effective-month').value = currentMonth;
+  document.getElementById('effective-year').value = effDefaultYear;
+
+  // Default decision date to current month/year
+  document.getElementById('decision-month').value = currentMonth;
+  document.getElementById('decision-year').value = currentYear;
+})();
+
+function calculateBackPay() {
+  const effMonth = parseInt(document.getElementById('effective-month').value, 10);
+  const effYear = parseInt(document.getElementById('effective-year').value, 10);
+  const decMonth = parseInt(document.getElementById('decision-month').value, 10);
+  const decYear = parseInt(document.getElementById('decision-year').value, 10);
+  const rating = parseInt(document.getElementById('rating-select').value, 10);
+  const depStatus = document.getElementById('dependent-select').value;
+
+  // Calculate months between dates
+  let months = (decYear - effYear) * 12 + (decMonth - effMonth);
+
+  if (months <= 0) {
+    alert('The decision date must be after the effective date.');
+    return;
+  }
+
+  // For ratings below 30%, dependents don't apply
+  const effectiveStatus = rating < 30 ? 'alone' : depStatus;
+  const monthlyRate = VA_BACK_PAY_RATES[effectiveStatus][rating];
+  const total = monthlyRate * months;
+
+  // Display results
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('res-total').textContent = formatCurrency(total);
+  document.getElementById('res-monthly').textContent = formatCurrency(monthlyRate);
+  document.getElementById('res-months').textContent = months;
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const effLabel = monthNames[effMonth - 1] + ' ' + effYear;
+  const decLabel = monthNames[decMonth - 1] + ' ' + decYear;
+
+  let breakdownHTML = '<strong>Breakdown:</strong> ';
+  breakdownHTML += formatCurrency(monthlyRate) + '/month &times; ' + months + ' months = <strong>' + formatCurrency(total) + '</strong>';
+  breakdownHTML += '<br><span style="font-size:0.85rem;color:var(--sr-gray-text);">Period: ' + effLabel + ' &rarr; ' + decLabel;
+  breakdownHTML += ' &bull; Rating: ' + rating + '%';
+  if (rating >= 30 && effectiveStatus !== 'alone') {
+    const labels = {spouse:'Spouse',spouse1:'Spouse + 1 child',spouse2:'Spouse + 2 children',spouse3:'Spouse + 3 children'};
+    breakdownHTML += ' &bull; Dependents: ' + labels[effectiveStatus];
+  }
+  breakdownHTML += '</span>';
+
+  document.getElementById('res-breakdown').innerHTML = breakdownHTML;
+
+  // Scroll to results
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function formatCurrency(amount) {
+  return '$' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+</script>
+{% endblock %}

@@ -41,6 +41,15 @@ VA_CLAIMS_SPOKES = [
     "secondary-conditions",
     "va-rating-increase",
     "claim-for-increase",
+    "benefits-delivery-at-discharge",
+    "va-claim-denied",
+]
+
+MILITARY_PAY_SPOKES = [
+    "basic-pay",
+    "basic-allowance-housing",
+    "special-pays",
+    "pcs-entitlements",
 ]
 
 CONDITIONS = [
@@ -92,6 +101,9 @@ EXPLAINER_SLUGS = [
     "va-ebenefits-vs-va-gov",
     "va-buddy-statement-guide",
     "va-disability-back-pay",
+    "va-intent-to-file",
+    "va-claim-status-guide",
+    "tsp-withdrawal-strategies",
 ]
 
 CONDITION_RESEARCH = {
@@ -329,6 +341,113 @@ EXPLAINER_RESEARCH = {
             "Veterans who deployed to Southwest Asia on or after August 2, 1990 may qualify under presumptive coverage.",
         ],
     },
+    "va-intent-to-file": {
+        "title": "VA Intent to File: Protect Your Effective Date",
+        "subtitle": "How Intent to File (ITF) locks in your effective date and maximizes your VA back pay",
+        "key_points": [
+            "An Intent to File gives you 1 year to complete your VA disability claim while protecting your effective date.",
+            "Your effective date determines how far back your VA compensation is paid — filing an ITF first can mean thousands in additional back pay.",
+            "Submit an ITF online at VA.gov, by phone (1-800-827-1000), or through a VSO — it takes less than 5 minutes.",
+            "If you don't file your full claim within 1 year of your ITF, the intent expires and you lose the protected effective date.",
+        ],
+    },
+    "va-claim-status-guide": {
+        "title": "How to Check Your VA Claim Status",
+        "subtitle": "Track your VA disability claim step-by-step — what each status means and what to expect next",
+        "key_points": [
+            "Check your VA claim status online at VA.gov, through the VA mobile app, or by calling 1-800-827-1000.",
+            "VA claims go through 8 steps: Claim Received → Initial Review → Evidence Gathering → Review of Evidence → Preparation for Decision → Pending Decision Approval → Preparation for Notification → Complete.",
+            "Average processing time for initial claims is 100-150 days in 2025, but complex claims or those requiring additional evidence can take longer.",
+            "If your claim has been in 'Evidence Gathering' for more than 60 days, call the VA or ask your VSO to check if they need additional information.",
+        ],
+    },
+    "tsp-withdrawal-strategies": {
+        "title": "TSP Withdrawal Strategies for Military Retirees",
+        "subtitle": "How to withdraw from your Thrift Savings Plan after military retirement — options, taxes, and timing",
+        "key_points": [
+            "TSP offers 4 withdrawal options after separation: single partial withdrawal, scheduled installments, life annuity, and full lump sum.",
+            "Withdrawals before age 59½ typically incur a 10% early withdrawal penalty — but the 'Rule of 55' exempts you if you separate in or after the year you turn 55.",
+            "TSP Roth contributions come out tax-free if the account has been open 5+ years and you're 59½ or older.",
+            "You can roll your TSP into an IRA for more investment options, but you lose access to TSP's ultra-low expense ratios (0.043% in the G/F/C/S/I funds).",
+            "Required Minimum Distributions (RMDs) begin at age 73 under current law — TSP will automatically calculate and distribute if you don't act.",
+            "Many military retirees use a 'bucket strategy' — keep 1-2 years of expenses in G Fund, mid-term in L Fund, and long-term in C/S/I for growth.",
+        ],
+    },
+}
+
+# Research data for VA Claims spoke pages that have structured SEO metadata
+VA_CLAIMS_SPOKE_RESEARCH = {
+    "benefits-delivery-at-discharge": {
+        "title": "Benefits Delivery at Discharge (BDD)",
+        "seo_title": "BDD VA Claim: File Before You Separate (2026 Guide)",
+        "h1": "Benefits Delivery at Discharge (BDD): File Your VA Claim Before You Separate",
+        "seo_description": "BDD lets active-duty members file VA disability claims 180-90 days before separation. Learn eligibility, steps, and why BDD gets faster decisions.",
+        "primary_keyword": "bdd va claim",
+        "secondary_keywords": ["benefits delivery at discharge", "file va claim before separation", "pre-discharge va claim", "va claim active duty", "bdd program"],
+        "key_points": [
+            "BDD lets you file a VA disability claim 180 to 90 days before your separation date.",
+            "BDD claims are often decided within 30 days of separation — much faster than post-discharge claims.",
+            "You must be available for C&P exams at your current duty station during the BDD window.",
+            "If you're less than 90 days from separation, you can still file a pre-discharge claim but won't qualify for BDD specifically.",
+        ],
+        "internal_links": {
+            "VA Claims Guide": "/va-claims/",
+            "VA Claim Checklist": "/tools/va-claim-checklist/",
+            "C&P Exam Tips": "/va-claims/c-and-p-exam-tips/",
+            "Nexus Letter Guide": "/va-claims/nexus-letter-guide/",
+        },
+    },
+    "va-claim-denied": {
+        "title": "VA Claim Denied: Next Steps",
+        "seo_title": "VA Claim Denied? What to Do Next (2026 Guide)",
+        "h1": "VA Claim Denied: Your Options for Appeal and Next Steps",
+        "seo_description": "VA claim denied? Learn your appeal options — Supplemental Claim, Higher-Level Review, and Board Appeal. Step-by-step guide to overturning a VA denial in 2026.",
+        "primary_keyword": "va claim denied",
+        "secondary_keywords": ["va claim denial reasons", "appeal va decision", "supplemental claim", "higher level review", "board of veterans appeals", "va denial letter", "va claim reconsideration"],
+        "key_points": [
+            "A VA claim denial is not the end — over 25% of appealed claims are granted on review.",
+            "You have three appeal lanes: Supplemental Claim (new evidence), Higher-Level Review (same evidence, new reviewer), and Board Appeal (hearing with a Veterans Law Judge).",
+            "Supplemental Claims require new and relevant evidence not previously considered — a strong nexus letter is often the key.",
+            "Higher-Level Review has no new evidence allowed but a senior reviewer may catch errors the original rater missed.",
+            "You generally have 1 year from the date of your decision letter to file an appeal and preserve your effective date.",
+            "Common denial reasons include lack of nexus, insufficient evidence of in-service event, and missing current diagnosis.",
+        ],
+        "internal_links": {
+            "VA Claims Guide": "/va-claims/",
+            "Nexus Letter Guide": "/va-claims/nexus-letter-guide/",
+            "C&P Exam Tips": "/va-claims/c-and-p-exam-tips/",
+            "VA Appeals Process": "/explainers/va-appeals-process/",
+            "Buddy Statement Guide": "/va-claims/buddy-statement-guide/",
+            "VA Claim Checklist": "/tools/va-claim-checklist/",
+        },
+    },
+}
+
+# Research data for Military Pay spoke pages
+MILITARY_PAY_SPOKE_RESEARCH = {
+    "pcs-entitlements": {
+        "title": "PCS Entitlements Guide",
+        "seo_title": "PCS Entitlements 2026: Move Allowances & Per Diem",
+        "h1": "PCS Entitlements: Your Complete Guide to Military Move Allowances",
+        "seo_description": "Complete 2026 PCS entitlements guide — DLA, per diem, TLE, MALT, PPM/DITY moves, and more. Know what the military pays for your permanent change of station.",
+        "primary_keyword": "pcs entitlements",
+        "secondary_keywords": ["military pcs allowances", "dislocation allowance", "pcs per diem", "ppm dity move", "temporary lodging expense", "mileage allowance", "military moving entitlements", "pcs orders"],
+        "key_points": [
+            "PCS entitlements include DLA (Dislocation Allowance), per diem, TLE (Temporary Lodging Expense), MALT (Mileage Allowance), and household goods shipping.",
+            "DLA in 2025 ranges from ~$2,200 to ~$4,300+ depending on rank and dependency status — it's a flat payment, not based on actual expenses.",
+            "PPM (Personally Procured Move, formerly DITY) pays you 100% of the government's estimated cost — weigh tickets are required for reimbursement.",
+            "TLE covers up to 14 days of lodging and meals at the old or new duty station, capped at per diem locality rates.",
+            "Per diem during travel is based on the authorized travel days between duty stations, using the official DTOD mileage (350 miles/day standard).",
+            "BAH changes on a PCS — you start receiving the new duty station's BAH rate on the report date, which can mean higher or lower housing allowance.",
+        ],
+        "internal_links": {
+            "BAH Calculator": "/tools/bah-calculator/",
+            "BAH Comparison Tool": "/tools/bah-comparison/",
+            "Military Pay": "/military-pay/",
+            "BAH Explained": "/explainers/bah-explained/",
+            "Military Pay Calculator": "/tools/military-pay-calculator/",
+        },
+    },
 }
 
 
@@ -491,8 +610,8 @@ def generate_pillar_page(slug: str, dry_run: bool = False) -> Optional[LandingPa
 def generate_spoke_page(pillar: str, spoke_slug: str, dry_run: bool = False) -> Optional[LandingPage]:
     from src.config import settings
 
-    # Check for structured research data (VA Benefits spokes have detailed SEO metadata)
-    research = VA_BENEFITS_SPOKE_RESEARCH.get(spoke_slug, {})
+    # Check for structured research data (VA Benefits and VA Claims spokes may have detailed SEO metadata)
+    research = VA_BENEFITS_SPOKE_RESEARCH.get(spoke_slug, {}) or VA_CLAIMS_SPOKE_RESEARCH.get(spoke_slug, {}) or MILITARY_PAY_SPOKE_RESEARCH.get(spoke_slug, {})
 
     if research:
         display = research["title"]
@@ -722,6 +841,13 @@ def generate_all_landing_pages(
                 counts["spokes"] += 1
             except Exception as exc:
                 logger.error("spoke military-retirement/%s: %s", slug, exc)
+                counts["errors"] += 1
+        for slug in MILITARY_PAY_SPOKES:
+            try:
+                generate_spoke_page("military-pay", slug, dry_run=dry_run)
+                counts["spokes"] += 1
+            except Exception as exc:
+                logger.error("spoke military-pay/%s: %s", slug, exc)
                 counts["errors"] += 1
 
     if conditions:

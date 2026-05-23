@@ -1,0 +1,450 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>VA Rating Estimator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">What VA Disability Rating Will I Get?</h1>
+    <p style="opacity:0.9;max-width:640px;margin:0;">Select your conditions to see typical VA disability ratings and estimate your combined rating with monthly compensation.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <!-- Estimator Tool -->
+  <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;margin-bottom:2rem;" id="tool-grid">
+
+    <!-- Conditions Browser -->
+    <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;">
+      <h2 style="font-size:1.15rem;margin-bottom:1rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Select Your Conditions</h2>
+
+      <input type="text" id="condition-search" placeholder="Search conditions (e.g., PTSD, knee, sleep apnea)..." style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;margin-bottom:1.25rem;box-sizing:border-box;">
+
+      <div id="conditions-browser" style="max-height:520px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Your Conditions Panel -->
+    <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">
+        <h2 style="font-size:1.15rem;margin:0;">Your Conditions</h2>
+        <button id="clear-all-btn" onclick="clearAll()" style="background:none;border:1px solid #ccc;border-radius:var(--radius);padding:0.3rem 0.7rem;cursor:pointer;color:var(--sr-gray-text);font-size:0.8rem;display:none;">Clear All</button>
+      </div>
+
+      <div id="selected-conditions" style="margin-bottom:1rem;">
+        <p id="empty-msg" style="color:var(--sr-gray-text);font-size:0.9rem;font-style:italic;">No conditions selected. Browse or search above to add conditions.</p>
+      </div>
+
+      <!-- Results -->
+      <div id="results" style="display:none;padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1rem;">
+          <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+            <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Combined Rating</div>
+            <div id="res-rounded" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">0%</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+            <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Monthly Pay</div>
+            <div id="res-pay" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">$0</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+            <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Annual Pay</div>
+            <div id="res-annual" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">$0</div>
+          </div>
+        </div>
+        <div id="step-math" style="font-size:0.85rem;color:var(--sr-gray-text);font-family:monospace;background:#fff;padding:0.75rem;border-radius:var(--radius);border:1px solid var(--sr-gray-light);white-space:pre-wrap;margin-bottom:0.75rem;"></div>
+        <p style="font-size:0.85rem;color:var(--sr-gray-text);margin:0;">Already know your exact ratings? <a href="/tools/va-disability-rating-calculator/">Use our VA Rating Calculator</a> for precise numbers.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- How VA Disability Ratings Are Determined -->
+  <section style="margin-bottom:2rem;">
+    <h2>How VA Disability Ratings Are Determined</h2>
+    <p>The VA assigns disability ratings based on the Schedule for Rating Disabilities found in 38 CFR Part 4. Each condition is evaluated against specific diagnostic criteria that measure the severity of your symptoms and how they affect your ability to function in daily life and work.</p>
+    <p>Ratings are assigned in increments of 10%, from 0% to 100%. A 0% rating means your condition is service-connected but not severe enough to warrant compensation. The rating you receive depends on the evidence in your medical records, the findings at your Compensation and Pension (C&amp;P) exam, and how your symptoms align with the rating criteria for that specific condition.</p>
+    <p>Many conditions have a range of possible ratings. For example, PTSD can be rated from 0% to 100% depending on the severity of occupational and social impairment. The typical ratings shown in this tool reflect the most commonly awarded percentages based on available data.</p>
+  </section>
+
+  <!-- VA Math -->
+  <section style="margin-bottom:2rem;">
+    <h2>Understanding VA Math: Why Ratings Don't Simply Add Up</h2>
+    <p>The VA uses the "whole-person" method to combine multiple disability ratings. Rather than adding percentages together, each rating is applied to your remaining non-disabled portion.</p>
+    <p><strong>Example:</strong> Say you have PTSD rated at 50% and a knee condition rated at 20%.</p>
+    <ol>
+      <li>Start with 100% of a whole person.</li>
+      <li>Apply 50% (PTSD): you are 50% disabled, with 50% remaining.</li>
+      <li>Apply 20% (knee) to the remaining 50%: 20% &times; 50% = 10% additional disability.</li>
+      <li>Total: 50% + 10% = 60% combined (raw).</li>
+      <li>Round to nearest 10%: <strong>60%</strong> final VA rating.</li>
+    </ol>
+    <p>This means two conditions at 50% each do not equal 100% — they combine to 75%, which rounds to 80%. Each additional condition has a diminishing impact, so it is important to claim every service-connected condition to maximize your combined rating.</p>
+  </section>
+
+  <!-- Tips to Maximize -->
+  <section style="margin-bottom:2rem;">
+    <h2>Tips to Maximize Your VA Rating</h2>
+    <ul>
+      <li><strong>Claim secondary conditions.</strong> Many conditions are caused or aggravated by an existing service-connected disability. For example, back pain may cause radiculopathy, or PTSD may lead to depression or sleep problems. Each secondary condition adds to your combined rating. <a href="/tools/secondary-conditions-lookup/">Look up secondary conditions here.</a></li>
+      <li><strong>Do not downplay symptoms at your C&amp;P exam.</strong> The examiner is evaluating your worst days, not your best. Describe how your condition affects you on a bad day, including impacts on work, relationships, and daily activities.</li>
+      <li><strong>Get a nexus letter.</strong> A nexus letter from a medical professional connects your current condition to your military service. This is often the missing piece that makes or breaks a claim.</li>
+      <li><strong>File for all conditions at once.</strong> Filing all your conditions together is more efficient than filing one at a time. The VA will schedule fewer exams and you receive back pay from a single effective date.</li>
+      <li><strong>Request your C-file before filing.</strong> Review your claims file to make sure your service treatment records and relevant evidence are included before the VA makes a decision.</li>
+    </ul>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Are the typical ratings shown here guaranteed?</summary>
+      <p style="margin-top:0.75rem;">No. The typical ratings shown are based on commonly awarded percentages, but your actual rating depends on your specific medical evidence, C&amp;P exam findings, and how your symptoms match the rating criteria in 38 CFR Part 4. Your rating could be higher or lower than the typical range.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">What is the difference between this tool and the VA Rating Calculator?</summary>
+      <p style="margin-top:0.75rem;">This estimator helps you explore what ratings you might receive for specific conditions before you file. The <a href="/tools/va-disability-rating-calculator/">VA Rating Calculator</a> is for veterans who already know their individual ratings and want to calculate the combined result using VA math.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Can I claim conditions that are not on this list?</summary>
+      <p style="margin-top:0.75rem;">Yes. This tool includes the most commonly claimed conditions, but the VA rates hundreds of conditions. If your condition is service-connected, you can file a claim for it regardless of whether it appears here. Check the <a href="https://www.va.gov/disability/eligibility/" target="_blank" rel="noopener noreferrer">VA eligibility page</a> for more information.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How do secondary conditions affect my combined rating?</summary>
+      <p style="margin-top:0.75rem;">Secondary conditions are treated the same as primary conditions for rating purposes. Each one is rated individually and then combined using VA math. Adding secondary conditions is one of the most effective ways to increase your overall combined rating. Use our <a href="/tools/secondary-conditions-lookup/">Secondary Conditions Lookup</a> to find conditions linked to yours.</p>
+    </details>
+  </section>
+
+  <!-- Related Resources -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/tools/va-disability-rating-calculator/">VA Disability Rating Calculator</a> — combine known ratings</li>
+      <li><a href="/tools/secondary-conditions-lookup/">Secondary Conditions Lookup</a></li>
+      <li><a href="/va-claims/how-to-file-a-va-claim/">How to File a VA Claim</a></li>
+      <li><a href="/va-claims/c-and-p-exam-tips/">C&amp;P Exam Tips</a></li>
+      <li><a href="/va-disability/">VA Disability Benefits Hub</a></li>
+      <li><a href="/tools/va-back-pay-calculator/">VA Back Pay Calculator</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This tool provides estimates based on commonly awarded VA disability ratings. It is not a guarantee of any specific rating. Actual ratings depend on your medical evidence, C&amp;P exam findings, and VA adjudication. The VA applies additional factors (bilateral factor, dependents, special monthly compensation) not reflected here. Verify all information at <a href="https://www.va.gov" rel="noopener">VA.gov</a>.
+  </div>
+
+</main>
+
+<script>
+const VA_RATES = {0:0,10:175.51,20:346.95,30:537.42,40:774.16,50:1102.04,60:1395.93,70:1759.19,80:2044.89,90:2297.96,100:3831.30};
+
+const CONDITIONS_DATA = [
+  // Mental Health
+  {name:"PTSD",category:"Mental Health",typicalLow:50,typicalHigh:70,mostCommon:50,slug:"ptsd"},
+  {name:"Depression",category:"Mental Health",typicalLow:30,typicalHigh:70,mostCommon:50,slug:"depression"},
+  {name:"Anxiety",category:"Mental Health",typicalLow:30,typicalHigh:70,mostCommon:30,slug:"anxiety"},
+  {name:"TBI (Traumatic Brain Injury)",category:"Mental Health",typicalLow:10,typicalHigh:70,mostCommon:40,slug:"tbi"},
+
+  // Musculoskeletal
+  {name:"Lumbar Spine / Back Pain",category:"Musculoskeletal",typicalLow:10,typicalHigh:40,mostCommon:20,slug:"back-pain"},
+  {name:"Knee Condition",category:"Musculoskeletal",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"knee-condition"},
+  {name:"Shoulder Condition",category:"Musculoskeletal",typicalLow:10,typicalHigh:30,mostCommon:20,slug:"shoulder-condition"},
+  {name:"Cervical Spine / Neck Pain",category:"Musculoskeletal",typicalLow:10,typicalHigh:30,mostCommon:20,slug:"neck-pain"},
+  {name:"Plantar Fasciitis",category:"Musculoskeletal",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"plantar-fasciitis"},
+  {name:"Flat Feet (Pes Planus)",category:"Musculoskeletal",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"flat-feet"},
+
+  // Neurological
+  {name:"Radiculopathy — Lower Extremity",category:"Neurological",typicalLow:10,typicalHigh:40,mostCommon:20,slug:"radiculopathy-lower"},
+  {name:"Radiculopathy — Upper Extremity",category:"Neurological",typicalLow:10,typicalHigh:20,mostCommon:20,slug:"radiculopathy-upper"},
+  {name:"Migraines",category:"Neurological",typicalLow:10,typicalHigh:50,mostCommon:30,slug:"migraines"},
+
+  // Respiratory / ENT
+  {name:"Sleep Apnea",category:"Respiratory / ENT",typicalLow:30,typicalHigh:50,mostCommon:50,slug:"sleep-apnea"},
+  {name:"Tinnitus",category:"Respiratory / ENT",typicalLow:10,typicalHigh:10,mostCommon:10,slug:"tinnitus"},
+  {name:"Hearing Loss",category:"Respiratory / ENT",typicalLow:0,typicalHigh:10,mostCommon:0,slug:"hearing-loss"},
+  {name:"Rhinitis (Allergic)",category:"Respiratory / ENT",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"rhinitis"},
+  {name:"Sinusitis",category:"Respiratory / ENT",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"sinusitis"},
+
+  // Cardiovascular
+  {name:"Hypertension",category:"Cardiovascular",typicalLow:10,typicalHigh:60,mostCommon:10,slug:"hypertension"},
+
+  // Gastrointestinal
+  {name:"GERD",category:"Gastrointestinal",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"gerd"},
+  {name:"IBS (Irritable Bowel Syndrome)",category:"Gastrointestinal",typicalLow:10,typicalHigh:30,mostCommon:10,slug:"ibs"},
+  {name:"Hemorrhoids",category:"Gastrointestinal",typicalLow:0,typicalHigh:20,mostCommon:0,slug:"hemorrhoids"},
+
+  // Skin
+  {name:"Dermatitis / Eczema",category:"Skin",typicalLow:10,typicalHigh:60,mostCommon:10,slug:"dermatitis-eczema"},
+
+  // Toxic Exposure
+  {name:"Burn Pit Exposure",category:"Toxic Exposure",typicalLow:0,typicalHigh:100,mostCommon:10,slug:"burn-pit-exposure"},
+  {name:"Agent Orange Conditions",category:"Toxic Exposure",typicalLow:0,typicalHigh:100,mostCommon:10,slug:"agent-orange"},
+  {name:"Gulf War Illness",category:"Toxic Exposure",typicalLow:0,typicalHigh:100,mostCommon:10,slug:"gulf-war-illness"},
+
+  // Other
+  {name:"Diabetes Type 2",category:"Other",typicalLow:10,typicalHigh:60,mostCommon:20,slug:"diabetes-type-2"},
+  {name:"Fibromyalgia",category:"Other",typicalLow:10,typicalHigh:40,mostCommon:20,slug:"fibromyalgia"},
+  {name:"Chronic Fatigue Syndrome",category:"Other",typicalLow:10,typicalHigh:40,mostCommon:10,slug:"chronic-fatigue-syndrome"}
+];
+
+let selectedConditions = [];
+
+function getRatingOptions(cond) {
+  const options = [];
+  for (let r = cond.typicalLow; r <= cond.typicalHigh; r += 10) {
+    options.push(r);
+  }
+  // Ensure we include standard VA increments
+  if (options.indexOf(cond.mostCommon) === -1) options.push(cond.mostCommon);
+  options.sort((a, b) => a - b);
+  return [...new Set(options)];
+}
+
+function buildConditionsBrowser() {
+  const container = document.getElementById('conditions-browser');
+  const categories = [];
+  const catMap = {};
+
+  CONDITIONS_DATA.forEach(c => {
+    if (!catMap[c.category]) {
+      catMap[c.category] = [];
+      categories.push(c.category);
+    }
+    catMap[c.category].push(c);
+  });
+
+  let html = '';
+  categories.forEach(cat => {
+    html += `<div class="cond-category" data-category="${cat}">`;
+    html += `<h3 style="font-size:0.95rem;color:var(--sr-blue);margin:0.75rem 0 0.5rem;padding-bottom:0.35rem;border-bottom:1px solid var(--sr-gray-light);">${cat}</h3>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;margin-bottom:0.75rem;">`;
+
+    catMap[cat].forEach(cond => {
+      const options = getRatingOptions(cond);
+      const optionsHtml = options.map(r =>
+        `<option value="${r}" ${r === cond.mostCommon ? 'selected' : ''}>${r}%</option>`
+      ).join('');
+
+      const rangeLabel = cond.typicalLow === cond.typicalHigh
+        ? `Fixed: ${cond.typicalLow}%`
+        : `Range: ${cond.typicalLow}%–${cond.typicalHigh}%`;
+
+      html += `
+        <div class="cond-card" data-name="${cond.name.toLowerCase()}" style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.75rem;">
+          <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.15rem;">
+            <a href="/va-disability/${cond.slug}/" style="color:var(--sr-dark-text);text-decoration:none;">${cond.name}</a>
+          </div>
+          <div style="font-size:0.78rem;color:var(--sr-gray-text);margin-bottom:0.5rem;">${rangeLabel} &middot; Most common: ${cond.mostCommon}%</div>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <select id="sel-${cond.slug}" style="padding:0.3rem 0.5rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.85rem;flex:1;">
+              ${optionsHtml}
+            </select>
+            <button onclick="addCondition('${cond.slug}')" id="btn-${cond.slug}" style="background:var(--sr-blue);color:#fff;border:none;padding:0.35rem 0.75rem;border-radius:var(--radius);cursor:pointer;font-size:0.8rem;font-weight:600;white-space:nowrap;">+ Add</button>
+          </div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function addCondition(slug) {
+  const cond = CONDITIONS_DATA.find(c => c.slug === slug);
+  if (!cond) return;
+  if (selectedConditions.find(s => s.slug === slug)) return;
+
+  const sel = document.getElementById('sel-' + slug);
+  const rating = parseInt(sel.value, 10);
+
+  selectedConditions.push({slug: cond.slug, name: cond.name, rating: rating});
+
+  // Disable add button
+  const btn = document.getElementById('btn-' + slug);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Added';
+    btn.style.background = '#999';
+    btn.style.cursor = 'default';
+  }
+
+  renderSelected();
+  recalculate();
+}
+
+function removeCondition(slug) {
+  selectedConditions = selectedConditions.filter(s => s.slug !== slug);
+
+  // Re-enable add button
+  const btn = document.getElementById('btn-' + slug);
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '+ Add';
+    btn.style.background = 'var(--sr-blue)';
+    btn.style.cursor = 'pointer';
+  }
+
+  renderSelected();
+  recalculate();
+}
+
+function updateConditionRating(slug, newRating) {
+  const item = selectedConditions.find(s => s.slug === slug);
+  if (item) {
+    item.rating = parseInt(newRating, 10);
+    recalculate();
+  }
+}
+
+function clearAll() {
+  const slugs = selectedConditions.map(s => s.slug);
+  selectedConditions = [];
+  slugs.forEach(slug => {
+    const btn = document.getElementById('btn-' + slug);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '+ Add';
+      btn.style.background = 'var(--sr-blue)';
+      btn.style.cursor = 'pointer';
+    }
+  });
+  renderSelected();
+  recalculate();
+}
+
+function renderSelected() {
+  const container = document.getElementById('selected-conditions');
+  const emptyMsg = document.getElementById('empty-msg');
+  const clearBtn = document.getElementById('clear-all-btn');
+
+  if (selectedConditions.length === 0) {
+    container.innerHTML = '<p id="empty-msg" style="color:var(--sr-gray-text);font-size:0.9rem;font-style:italic;">No conditions selected. Browse or search above to add conditions.</p>';
+    clearBtn.style.display = 'none';
+    return;
+  }
+
+  clearBtn.style.display = 'inline-block';
+
+  let html = '<div style="display:flex;flex-direction:column;gap:0.5rem;">';
+  selectedConditions.forEach(item => {
+    const cond = CONDITIONS_DATA.find(c => c.slug === item.slug);
+    const options = getRatingOptions(cond);
+    const optionsHtml = options.map(r =>
+      `<option value="${r}" ${r === item.rating ? 'selected' : ''}>${r}%</option>`
+    ).join('');
+
+    html += `
+      <div style="display:flex;align-items:center;gap:0.75rem;background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:0.5rem 0.75rem;flex-wrap:wrap;">
+        <span style="flex:1;font-size:0.9rem;font-weight:600;min-width:140px;">${item.name}</span>
+        <select onchange="updateConditionRating('${item.slug}', this.value)" style="padding:0.3rem 0.5rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.85rem;">
+          ${optionsHtml}
+        </select>
+        <button onclick="removeCondition('${item.slug}')" style="background:none;border:1px solid #ccc;border-radius:var(--radius);padding:0.25rem 0.55rem;cursor:pointer;color:var(--sr-red);font-size:0.8rem;" title="Remove condition">&times; Remove</button>
+      </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function combinedRating(ratings) {
+  const sorted = [...ratings].sort((a, b) => b - a);
+  let combined = 0;
+  for (const r of sorted) {
+    combined = combined + (r / 100) * (100 - combined);
+  }
+  return combined;
+}
+
+function roundRating(raw) {
+  const r = Math.round(raw / 10) * 10;
+  return Math.min(100, Math.max(0, r));
+}
+
+function buildStepMath(items) {
+  const sorted = [...items].sort((a, b) => b.rating - a.rating);
+  let lines = ['Step-by-step whole-person calculation:'];
+  let remaining = 100;
+  let combined = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const r = sorted[i].rating;
+    const name = sorted[i].name;
+    if (r === 0) continue;
+    const added = (r / 100) * remaining;
+    combined += added;
+    lines.push(`  ${name} (${r}%): ${r}% × ${remaining.toFixed(1)}% remaining = +${added.toFixed(2)}%  →  combined: ${combined.toFixed(2)}%`);
+    remaining = 100 - combined;
+  }
+  lines.push('');
+  lines.push(`  Raw combined: ${combined.toFixed(2)}%`);
+  lines.push(`  Rounded to nearest 10%: ${roundRating(combined)}%`);
+  return lines.join('\n');
+}
+
+function recalculate() {
+  const resultsEl = document.getElementById('results');
+  const ratings = selectedConditions.map(s => s.rating).filter(v => v > 0);
+
+  if (ratings.length === 0) {
+    resultsEl.style.display = 'none';
+    return;
+  }
+
+  resultsEl.style.display = 'block';
+
+  const raw = combinedRating(ratings);
+  const rounded = roundRating(raw);
+  const monthlyPay = VA_RATES[rounded] || 0;
+  const annualPay = monthlyPay * 12;
+
+  document.getElementById('res-rounded').textContent = rounded + '%';
+  document.getElementById('res-pay').textContent = '$' + monthlyPay.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('res-annual').textContent = '$' + annualPay.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('step-math').textContent = buildStepMath(selectedConditions.filter(s => s.rating > 0));
+}
+
+// Search/filter functionality
+document.getElementById('condition-search').addEventListener('input', function() {
+  const query = this.value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.cond-card');
+  const categories = document.querySelectorAll('.cond-category');
+
+  cards.forEach(card => {
+    const name = card.getAttribute('data-name');
+    card.style.display = (!query || name.includes(query)) ? '' : 'none';
+  });
+
+  // Hide empty categories
+  categories.forEach(cat => {
+    const visibleCards = cat.querySelectorAll('.cond-card[style=""], .cond-card:not([style*="display: none"])');
+    let hasVisible = false;
+    cat.querySelectorAll('.cond-card').forEach(c => {
+      if (c.style.display !== 'none') hasVisible = true;
+    });
+    cat.style.display = hasVisible ? '' : 'none';
+  });
+});
+
+// Make layout side-by-side on wider screens
+(function() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @media (min-width: 768px) {
+      #tool-grid { grid-template-columns: 1fr 1fr !important; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// Initialize
+buildConditionsBrowser();
+</script>
+{% endblock %}
