@@ -194,6 +194,24 @@
     .nav-brand svg path:first-child { fill: var(--white); }
     .nav-brand svg path:last-child { fill: var(--sr-blue-dark); opacity: 0.4; }
 
+    .nav-brand-tagline {
+      font-family: var(--font-sans);
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.7);
+      padding-left: 0.85rem;
+      margin-left: 0.25rem;
+      border-left: 1px solid rgba(255,255,255,0.25);
+      line-height: 1.2;
+      white-space: normal;
+      max-width: 220px;
+    }
+
+    /* hide the tagline on narrower viewports so the nav doesn't crowd */
+    @media (max-width: 1000px) {
+      .nav-brand-tagline { display: none; }
+    }
+
     .nav-links {
       display: flex;
       align-items: center;
@@ -1426,7 +1444,8 @@
         <path d="M15 2L4 7v8c0 6.5 4.7 12.6 11 14.3C21.3 27.6 26 21.5 26 15V7L15 2z" fill="#ffffff"/>
         <path d="M15 5L7 9v6c0 4.9 3.5 9.5 8 10.9C20.5 24.5 23 19.9 23 15V9L15 5z" fill="#002b5e" opacity="0.5"/>
       </svg>
-      Rank and Pay
+      <span class="nav-brand-name">Rank and Pay</span>
+      <span class="nav-brand-tagline" aria-hidden="true">Free Tools &amp; Guides for Veterans and Service Members</span>
     </a>
 
     <nav aria-label="Main navigation">
@@ -1458,7 +1477,7 @@
             <li><a href="/state-benefits/">State Veterans Benefits</a></li>
           </ul>
         </li>
-        <li><a href="/briefing/">Briefings</a></li>
+        <li><a href="/briefing/">Recent News</a></li>
       </ul>
     </nav>
 
@@ -1486,7 +1505,7 @@
       <li><a href="/military-retirement/">Military Retirement</a></li>
       <li><a href="/state-benefits/">State Veterans Benefits</a></li>
       <li class="nav-mobile-divider"></li>
-      <li><a href="/briefing/">Briefings</a></li>
+      <li><a href="/briefing/">Recent News</a></li>
     </ul>
   </nav>
 </header>
@@ -1518,7 +1537,7 @@
           </svg>
           Rank and Pay
         </div>
-        <p class="footer-desc">Free tools and daily briefings covering military pay tables, BAH rates, VA disability ratings, retirement calculators, and benefits guides for veterans and military families.</p>
+        <p class="footer-desc">Free tools and recent news covering military pay tables, BAH rates, VA disability ratings, retirement calculators, and benefits guides for veterans and military families.</p>
       </div>
 
       <div class="footer-col">

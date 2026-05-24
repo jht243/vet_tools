@@ -1,4 +1,4 @@
-{% macro recent_briefings_rail(briefings, heading="Latest briefings") %}
+{% macro recent_briefings_rail(briefings, heading="Recent news") %}
 {% if briefings %}
 <section class="recent-briefings" aria-label="{{ heading }}">
   <h2 class="section-heading">{{ heading }}</h2>
@@ -18,7 +18,7 @@
     </article>
     {% endfor %}
   </div>
-  <a href="/briefing/" class="view-all-link">View all briefings &rarr;</a>
+  <a href="/briefing/" class="view-all-link">View all news &rarr;</a>
 </section>
 {% endif %}
 {% endmacro %}
