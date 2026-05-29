@@ -237,7 +237,7 @@ def build_landing_page_jsonld(page, seo: dict, faq_block=None) -> str:
 
     # Pillar pages use Article; collection/index pages use CollectionPage
     page_type = getattr(page, "page_type", "") or ""
-    if page_type in ("pillar", "spoke", "explainer", "condition", "state"):
+    if page_type in ("pillar", "spoke", "explainer", "condition", "state", "page", "hub", "form"):
         content_node: dict = {
             "@type": "Article",
             "@id": f"{canonical}#article",

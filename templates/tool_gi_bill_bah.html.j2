@@ -1,0 +1,202 @@
+{% extends "_base.html.j2" %}
+{% block title %}{{ seo.title }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <div class="container">
+    <a href="/">Home</a> &rsaquo;
+    <a href="/tools/">Tools</a> &rsaquo;
+    <span>GI Bill BAH Calculator</span>
+  </div>
+</nav>
+
+<section style="background:var(--sr-blue);color:#fff;padding:2.5rem 0 2rem;">
+  <div class="container" style="max-width:1040px;">
+    <h1 style="color:#fff;font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:0.5rem;">GI Bill BAH Calculator 2026: Monthly Housing Allowance (MHA)</h1>
+    <p style="opacity:0.9;max-width:680px;margin:0;">Estimate your Post-9/11 GI Bill housing allowance for the 2026&ndash;2027 school year. Your MHA depends on your eligibility tier, your course load, and where you take classes.</p>
+  </div>
+</section>
+
+<main class="container" style="max-width:1040px;margin:2rem auto;padding:0 1.25rem;">
+
+  <div style="background:#fff;border:1px solid var(--sr-gray-light);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;margin-bottom:1.25rem;border-bottom:2px solid var(--sr-blue);padding-bottom:0.5rem;">Estimate Your GI Bill Housing Allowance</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+      <div>
+        <label for="gib-tier" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Eligibility Tier (% of benefit)</label>
+        <select id="gib-tier" onchange="calcGib()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="1.00" selected>100% &mdash; 36+ months of service</option>
+          <option value="0.90">90% &mdash; 30 to 35 months</option>
+          <option value="0.80">80% &mdash; 24 to 29 months</option>
+          <option value="0.70">70% &mdash; 18 to 23 months</option>
+          <option value="0.60">60% &mdash; 6 to 17 months</option>
+          <option value="0.50">50% &mdash; 90 days to 5 months</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="gib-type" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">How You Attend</label>
+        <select id="gib-type" onchange="calcGib()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+          <option value="local" selected>In person / hybrid (U.S. school)</option>
+          <option value="online">Online only (distance learning)</option>
+          <option value="foreign">Foreign school (in person)</option>
+        </select>
+      </div>
+
+      <div id="gib-credits-wrap">
+        <label for="gib-credits" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Credit Hours This Term</label>
+        <input type="number" id="gib-credits" value="12" min="1" max="24" step="1" oninput="calcGib()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        <p style="font-size:0.78rem;color:var(--sr-gray-text);margin:0.35rem 0 0;">12+ credits = full time. You must be over 50% to get any MHA.</p>
+      </div>
+
+      <div id="gib-bah-wrap">
+        <label for="gib-bah" style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:0.4rem;">Your School's E-5 + Dependents BAH</label>
+        <input type="number" id="gib-bah" value="2522" min="0" step="1" oninput="calcGib()" style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--sr-gray-light);border-radius:var(--radius);font-size:0.95rem;">
+        <p style="font-size:0.78rem;color:var(--sr-gray-text);margin:0.35rem 0 0;">Defaults to the national average. <a href="https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup/" target="_blank" rel="noopener noreferrer">Look up the E-5 with-dependents rate</a> for your school's ZIP code.</p>
+      </div>
+
+    </div>
+
+    <div id="gib-result" style="padding:1.5rem;background:var(--sr-gray-bg);border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.25rem;">
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Estimated Monthly MHA</div>
+          <div id="gib-monthly" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">&mdash;</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#fff;border-radius:var(--radius);border:1px solid var(--sr-gray-light);">
+          <div style="font-size:0.8rem;color:var(--sr-gray-text);text-transform:uppercase;letter-spacing:.04em;margin-bottom:0.25rem;">Over a 9-Month School Year</div>
+          <div id="gib-annual" style="font-size:1.8rem;font-weight:700;color:var(--sr-blue);">&mdash;</div>
+        </div>
+      </div>
+
+      <div id="gib-note" style="background:#e8f0fe;border:1px solid #b3c7f7;border-radius:var(--radius);padding:1rem;margin-bottom:0.75rem;font-size:0.9rem;"></div>
+
+      <a href="https://www.va.gov/education/gi-bill-comparison-tool/" target="_blank" rel="noopener noreferrer"
+        style="display:inline-flex;align-items:center;gap:0.5rem;background:var(--sr-blue);color:#fff;padding:0.65rem 1.25rem;border-radius:var(--radius);text-decoration:none;font-weight:600;font-size:0.9rem;">
+        Confirm With the Official VA GI Bill Comparison Tool &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- How MHA is calculated -->
+  <section style="margin-bottom:2rem;">
+    <h2>How the GI Bill Housing Allowance Is Calculated</h2>
+    <p>The Post-9/11 GI Bill pays a Monthly Housing Allowance (MHA) while you are in school. The VA uses three things to set your payment:</p>
+    <ul>
+      <li><strong>Your eligibility tier.</strong> This is the percentage of the full benefit you earned, based on how long you served. Only veterans with 36+ months of qualifying service get the full 100%.</li>
+      <li><strong>Where you take classes.</strong> The VA uses the Basic Allowance for Housing (BAH) rate for an <strong>E-5 with dependents</strong> at the ZIP code of your school. High-cost cities pay much more than rural areas.</li>
+      <li><strong>Your rate of pursuit.</strong> This is how many classes you take. Full time is 12 credit hours. You must be enrolled at more than 50% to get any housing money.</li>
+    </ul>
+    <p>The basic formula is simple:</p>
+    <p style="background:var(--sr-gray-bg);border-left:4px solid var(--sr-blue);padding:0.85rem 1.1rem;font-weight:600;">MHA = Local E-5 (with dependents) BAH &times; Tier % &times; Rate of Pursuit %</p>
+  </section>
+
+  <!-- Online vs in person -->
+  <section style="margin-bottom:2rem;">
+    <h2>Online vs. In-Person Housing Rates (2026&ndash;2027)</h2>
+    <p>Where you take classes changes your rate a lot. Here are the 2026&ndash;2027 maximums (for a 100% tier, full-time student):</p>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <thead>
+          <tr style="background:var(--sr-blue);color:#fff;">
+            <th style="padding:0.6rem 0.75rem;text-align:left;">Type of Enrollment</th>
+            <th style="padding:0.6rem 0.75rem;text-align:right;">Max Monthly MHA (2026&ndash;2027)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">In person at a U.S. school</td><td style="padding:0.5rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">Local E-5 BAH (varies by ZIP)</td></tr>
+          <tr style="background:var(--sr-gray-bg);"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Online only (distance learning)</td><td style="padding:0.5rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">$1,261</td></tr>
+          <tr style="background:#fff;"><td style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--sr-gray-light);">Foreign school (in person)</td><td style="padding:0.5rem 0.75rem;text-align:right;border-bottom:1px solid var(--sr-gray-light);">$2,522</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:0.85rem;color:var(--sr-gray-text);margin-top:0.5rem;">The online-only rate is half the national average BAH. Taking even one in-person class can qualify you for the higher local rate.</p>
+  </section>
+
+  <!-- FAQ -->
+  <section style="margin-bottom:2rem;">
+    <h2>Frequently Asked Questions</h2>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">How much is the GI Bill housing allowance in 2026?</summary>
+      <p style="margin-top:0.75rem;">It depends on your school's location. The VA uses the E-5 with-dependents BAH rate for your school's ZIP code. Online-only students get $1,261 per month for the 2026&ndash;2027 year. In-person rates in big cities can be much higher.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Does the GI Bill pay BAH over the summer?</summary>
+      <p style="margin-top:0.75rem;">You only get MHA for the days you are enrolled. If you take summer classes at more than half time, you keep getting paid. During breaks between terms, payments usually stop.</p>
+    </details>
+
+    <details style="border:1px solid var(--sr-gray-light);border-radius:var(--radius);margin-bottom:0.75rem;padding:0.75rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--sr-blue);">Why is my MHA lower than the full rate?</summary>
+      <p style="margin-top:0.75rem;">Two common reasons: your eligibility tier is below 100%, or your course load is part time. The VA prorates your housing money by both. Active-duty students and their spouses using transferred benefits do not get MHA.</p>
+    </details>
+  </section>
+
+  <!-- Internal links -->
+  <section style="background:var(--sr-gray-bg);border:1px solid var(--sr-gray-light);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+    <h3 style="font-size:1rem;margin-bottom:0.75rem;">Related Resources</h3>
+    <ul style="margin:0;padding-left:1.25rem;">
+      <li><a href="/explainers/post-9-11-gi-bill-bah/">Post-9/11 GI Bill BAH: Full 2026 Housing Allowance Guide</a></li>
+      <li><a href="/va-benefits/gi-bill/">GI Bill Guide: Eligibility, Benefits &amp; How to Apply</a></li>
+      <li><a href="/tools/gi-bill-eligibility-quiz/">GI Bill Eligibility Quiz</a></li>
+      <li><a href="https://www.va.gov/education/gi-bill-comparison-tool/" target="_blank" rel="noopener">Official VA GI Bill Comparison Tool</a></li>
+    </ul>
+  </section>
+
+  <div class="page-disclaimer">
+    <strong>Disclaimer:</strong> This calculator gives an estimate for educational purposes only. Your actual Monthly Housing Allowance is set by the VA based on official BAH rates, your verified enrollment, and your eligibility tier. Always confirm with the <a href="https://www.va.gov/education/gi-bill-comparison-tool/" rel="noopener" target="_blank">VA GI Bill Comparison Tool</a> or your school's certifying official.
+  </div>
+
+</main>
+
+<script>
+const ONLINE_MAX = 1261;   // 2026-2027 online-only national half-average
+const FOREIGN_MAX = 2522;  // 2026-2027 foreign-school national average
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function pursuitFactor(credits) {
+  // Full time = 12 credits. Round to nearest 10%. Must be > 50% to get MHA.
+  let pct = Math.min(credits / 12, 1);
+  let rounded = Math.round(pct * 10) / 10;
+  if (rounded <= 0.5) return 0;
+  return rounded;
+}
+
+function calcGib() {
+  const tier = parseFloat(document.getElementById('gib-tier').value);
+  const type = document.getElementById('gib-type').value;
+  const credits = parseFloat(document.getElementById('gib-credits').value) || 0;
+  const bahWrap = document.getElementById('gib-bah-wrap');
+
+  // Online-only is paid as a flat national rate; local BAH input is irrelevant.
+  bahWrap.style.display = (type === 'local') ? '' : 'none';
+
+  let base;
+  if (type === 'online') base = ONLINE_MAX;
+  else if (type === 'foreign') base = FOREIGN_MAX;
+  else base = parseFloat(document.getElementById('gib-bah').value) || 0;
+
+  const pf = pursuitFactor(credits);
+  const monthly = base * tier * pf;
+
+  const noteEl = document.getElementById('gib-note');
+  if (pf === 0) {
+    document.getElementById('gib-monthly').textContent = '$0';
+    document.getElementById('gib-annual').textContent = '$0';
+    noteEl.innerHTML = '<strong>You must be enrolled at more than 50% (about 7+ credits) to receive any housing allowance.</strong>';
+    return;
+  }
+
+  document.getElementById('gib-monthly').textContent = fmt(monthly) + '/mo';
+  document.getElementById('gib-annual').textContent = fmt(monthly * 9);
+  noteEl.innerHTML = 'Based on a <strong>' + Math.round(tier * 100) + '%</strong> eligibility tier and a <strong>' +
+    Math.round(pf * 100) + '%</strong> rate of pursuit. You also get up to <strong>$1,000/year</strong> for books and supplies.';
+}
+
+calcGib();
+</script>
+{% endblock %}

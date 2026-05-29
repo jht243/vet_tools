@@ -151,6 +151,65 @@ SPOKE_DESCRIPTIONS = {
         "Concurrent receipt lets qualifying veterans receive both military retirement pay and VA disability "
         "compensation. Compare CRSC vs CRDP eligibility rules, application steps, and which pays more."
     ),
+    # ── VA Benefits spokes ────────────────────────────────────────────────
+    "va-benefits:gi-bill": (
+        "GI Bill guide for 2026 — compare the Post-9/11 and Montgomery GI Bill, check eligibility, and learn "
+        "the BAH housing stipend (MHA), tuition coverage, transfer rules, and how to apply."
+    ),
+    "va-benefits:sgli": (
+        "SGLI guide — up to $500,000 in coverage for about $31 per month. Learn premium rates, how to name "
+        "beneficiaries, and what happens to your SGLI coverage when you separate from service."
+    ),
+    "va-benefits:vgli": (
+        "VGLI lets you convert SGLI within 240 days of separation with no health exam. Compare VGLI rates by "
+        "age, coverage limits, and whether VGLI or a private term life policy is the cheaper option."
+    ),
+    "va-benefits:dic": (
+        "DIC benefits guide for surviving spouses and dependents — 2026 monthly rates, eligibility, how to "
+        "apply with VA Form 21-534EZ, and how DIC compares to the Survivor Benefit Plan (SBP)."
+    ),
+    "va-benefits:va-home-loan": (
+        "VA home loan guide — no down payment, no PMI, competitive rates. Learn eligibility, the funding fee, "
+        "loan limits, and how to get your Certificate of Eligibility (COE) in 2026."
+    ),
+    "va-benefits:va-healthcare": (
+        "VA healthcare guide — eligibility requirements, the 8 priority groups, how to enroll, copays, and "
+        "what VA medical centers cover. How VA health benefits differ from TRICARE."
+    ),
+    "va-benefits:va-pension": (
+        "VA pension guide — income-based benefits for wartime veterans, not the same as disability "
+        "compensation. Eligibility, 2026 rates, Aid and Attendance, and the Housebound benefit explained."
+    ),
+    "va-benefits:vocational-rehab": (
+        "VA Vocational Rehab (VR&E / Chapter 31) guide — eligibility, the 5 career tracks, how it compares to "
+        "the GI Bill, and how to apply for veterans with a service-connected disability."
+    ),
+    # ── VA Claims spokes (research-sourced) ───────────────────────────────
+    "va-claims:va-claim-denied": (
+        "VA claim denied? Learn your appeal options — Supplemental Claim, Higher-Level Review, and Board "
+        "Appeal. Step-by-step guide to overturning a VA disability denial in 2026."
+    ),
+    "va-claims:benefits-delivery-at-discharge": (
+        "BDD lets active-duty members file a VA disability claim 180–90 days before separation for faster "
+        "decisions. Learn eligibility, the steps, and the C&P exam requirements."
+    ),
+    # ── Military Pay spokes ───────────────────────────────────────────────
+    "military-pay:basic-pay": (
+        "Official 2026 military basic pay tables for every grade — E-1 to E-9, W-1 to W-5, and O-1 to O-10. "
+        "Find monthly pay by rank and years of service, plus the 2026 pay raise."
+    ),
+    "military-pay:basic-allowance-housing": (
+        "Basic Allowance for Housing (BAH) guide — how rates are set by pay grade, dependents, and duty-station "
+        "ZIP, plus OHA, partial BAH, and 2026 rate changes. Look up your housing allowance."
+    ),
+    "military-pay:special-pays": (
+        "Guide to military special and incentive pays in 2026 — hazardous duty, flight and aviation pay, sea "
+        "pay, the combat-zone tax exclusion, and reenlistment bonuses. See who qualifies and how much."
+    ),
+    "military-pay:pcs-entitlements": (
+        "Complete 2026 PCS entitlements guide — DLA, per diem, TLE, MALT, and PPM/DITY moves. Know exactly "
+        "what the military pays for your permanent change of station and how to claim it."
+    ),
 }
 
 EXPLAINER_TITLES = {
@@ -226,6 +285,18 @@ EXPLAINER_DESCRIPTIONS = {
     "va-disability-back-pay": (
         "VA disability back pay covers the period from your effective date to the date of your rating decision. "
         "Learn how effective dates work, the one-year presumptive rule, and how to calculate your retroactive pay."
+    ),
+    "va-claim-status-guide": (
+        "How to check your VA disability claim status online at VA.gov or by phone. Learn what each of the 8 "
+        "claim stages means, average processing times in 2026, and what to do if your claim stalls."
+    ),
+    "va-intent-to-file": (
+        "A VA Intent to File (ITF) locks in your effective date and gives you a year to complete your claim — "
+        "protecting thousands in back pay. Learn how to submit an ITF online, by phone, or through a VSO."
+    ),
+    "tsp-withdrawal-strategies": (
+        "TSP withdrawal strategies for military retirees — lump sum, installments, and annuity options, the "
+        "Rule of 55, Roth tax rules, RMDs at 73, and IRA rollovers. Withdraw your Thrift Savings Plan wisely."
     ),
 }
 

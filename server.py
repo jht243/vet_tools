@@ -107,6 +107,16 @@ RETIREMENT_SPOKES = {
 MILITARY_PAY_SPOKES = {
     "basic-pay", "basic-allowance-housing", "special-pays",
     "pcs-entitlements",
+    "army-pay-chart", "army-pay-calculator",
+    "navy-pay-chart", "air-force-pay-chart",
+}
+
+GI_BILL_SPOKES = {
+    "post-9-11", "comparison",
+}
+
+VA_FORMS = {
+    "21-526ez", "21-4138", "21-0781", "21-8940",
 }
 
 VA_BENEFITS_SPOKES = {
@@ -234,6 +244,16 @@ TOOLS_DATA = [
         "template": "tool_retirement_estimator.html.j2",
         "seo_title": "Total Military Retirement Income Estimator 2026",
         "seo_description": "Estimate your total military retirement income — combine retirement pay, VA disability compensation, and TSP withdrawals in one monthly picture. Free.",
+    },
+    {
+        "slug": "gi-bill-bah-calculator",
+        "title": "GI Bill BAH Calculator",
+        "description": "Estimate your Post-9/11 GI Bill Monthly Housing Allowance (MHA) by eligibility tier, course load, and whether you study online or in person.",
+        "icon": "🎓",
+        "live": True,
+        "template": "tool_gi_bill_bah.html.j2",
+        "seo_title": "GI Bill BAH Calculator 2026: Housing Allowance (MHA)",
+        "seo_description": "Free GI Bill BAH calculator — estimate your 2026 Post-9/11 Monthly Housing Allowance (MHA) by eligibility tier, credit hours, and online vs. in-person study. No signup.",
     },
     {
         "slug": "va-rating-estimator",
@@ -637,6 +657,25 @@ EXPLAINER_SLUGS = {
     "va-buddy-statement-guide",
     "va-disability-back-pay",
     "tsp-withdrawal-strategies",
+    "post-9-11-gi-bill-bah",
+    "100-percent-disabled-veteran-benefits-by-state",
+    "100-percent-va-disability-benefits",
+    "100-percent-va-disability-pay",
+    "how-to-get-100-va-disability",
+    "va-disability-rates-2026",
+    "va-disability-pay-dates-2026",
+    "va-cola-2026",
+    "pact-act-presumptive-conditions",
+    "presumptive-conditions",
+    "38-cfr-rating-schedule",
+    "sgli-explained",
+    "vgli-explained",
+    "military-life-insurance",
+    "tdiu-benefits",
+    "tdiu-approval-rate",
+    "va-unemployability-vs-100-percent",
+    "veterans-evaluation-services",
+    "optum-serve-cp-exam",
 }
 
 BLOG_POSTS_PER_PAGE = 20
@@ -1055,6 +1094,9 @@ def va_claims_pillar():
         {"url": "/va-claims/claim-for-increase/", "label": "Claim for Increase", "description": "File a claim for increase when your disability has gotten worse."},
         {"url": "/va-claims/benefits-delivery-at-discharge/", "label": "BDD Program", "description": "File your claim 180–90 days before separation for faster benefits."},
         {"url": "/va-claims/va-claim-denied/", "label": "Claim Denied?", "description": "Your options after a VA claim denial — supplemental claims, HLR, and appeals."},
+        {"url": "/va-intent-to-file/", "label": "VA Intent to File", "description": "Lock your effective date for back pay for 12 months while you gather evidence."},
+        {"url": "/va-claim-status/", "label": "Check Claim Status", "description": "Track your VA disability claim through every stage on VA.gov."},
+        {"url": "/va-forms/", "label": "VA Disability Forms", "description": "Every form you may need: 21-526EZ, 21-4138, 21-0781, 21-8940, and more."},
     ]
     return _serve_landing_page(
         "pillar:va-claims", template="pillar.html.j2", spokes=spoke_links,
@@ -1081,8 +1123,14 @@ def va_claims_spoke(spoke: str):
 def va_disability_pillar():
     db = SessionLocal()
     try:
-        conditions = db.query(VACondition).order_by(VACondition.display_name).all()
+        conditions = db.query(VACondition).order_by(VACondition.name).all()
         spoke_links = [
+            {"url": "/va-disability-conditions-list/", "label": "VA Conditions List", "description": "Every VA-rated condition with diagnostic codes and rating ranges."},
+            {"url": "/va-disability-percentages/", "label": "VA Disability Percentages", "description": "What each rating from 0% to 100% means and pays in 2026."},
+            {"url": "/va-disability-cheat-sheet/", "label": "VA Disability Cheat Sheet", "description": "Quick-reference pay rates, combined rating math, and key deadlines."},
+            {"url": "/explainers/38-cfr-rating-schedule/", "label": "38 CFR Rating Schedule", "description": "How the VA rating rulebook is organized and how to read it."},
+            {"url": "/explainers/va-disability-rates-2026/", "label": "2026 VA Pay Chart", "description": "Full 2026 VA disability pay chart by rating and dependents."},
+        ] + [
             {
                 "url": f"/va-disability/{c.slug}/",
                 "label": c.display_name,
@@ -1256,6 +1304,10 @@ def military_pay_pillar():
         {"url": "/military-pay/basic-allowance-housing/", "label": "BAH Rates", "description": "Basic Allowance for Housing rates by location, rank, and dependents."},
         {"url": "/military-pay/special-pays/", "label": "Special & Incentive Pay", "description": "Hazardous duty, flight pay, dive pay, and other special pays."},
         {"url": "/military-pay/pcs-entitlements/", "label": "PCS Entitlements", "description": "Moving allowances, DITY moves, TLE, and per diem for PCS orders."},
+        {"url": "/military-pay/army-pay-chart/", "label": "Army Pay Chart 2026", "description": "Army monthly basic pay by rank and years of service."},
+        {"url": "/military-pay/navy-pay-chart/", "label": "Navy Pay Chart 2026", "description": "Navy monthly basic pay by rank and years of service."},
+        {"url": "/military-pay/air-force-pay-chart/", "label": "Air Force Pay Chart 2026", "description": "Air Force monthly basic pay by rank and years of service."},
+        {"url": "/military-pay/army-pay-calculator/", "label": "Army Pay Calculator", "description": "Estimate Army monthly pay including BAH, BAS, and special pays."},
         {"url": "/tools/bah-calculator/", "label": "BAH Calculator", "description": "Look up your BAH rate by zip code, rank, and dependency status."},
         {"url": "/tools/military-pay-calculator/", "label": "Military Pay Calculator", "description": "Estimate your total military compensation including allowances."},
     ]
@@ -1280,16 +1332,20 @@ def military_pay_spoke(spoke: str):
 @app.route("/va-benefits/")
 def va_benefits_pillar():
     spoke_links = [
-        {"url": "/va-benefits/gi-bill/", "label": "GI Bill Benefits", "description": "Post-9/11, Montgomery GI Bill, housing stipend, and eligibility."},
+        {"url": "/gi-bill/", "label": "GI Bill Benefits", "description": "Post-9/11, Montgomery GI Bill, housing stipend, and eligibility."},
+        {"url": "/va-education-benefits/", "label": "VA Education Benefits", "description": "Every education program: GI Bill, VR&E, DEA, Fry Scholarship, Yellow Ribbon."},
         {"url": "/va-benefits/va-home-loan/", "label": "VA Home Loan", "description": "Zero down payment, no PMI, and how to get your COE."},
         {"url": "/va-benefits/va-healthcare/", "label": "VA Healthcare", "description": "Eligibility, priority groups, enrollment, and copays."},
-        {"url": "/va-benefits/dic/", "label": "DIC Survivor Benefits", "description": "Dependency and Indemnity Compensation for surviving spouses."},
-        {"url": "/va-benefits/sgli/", "label": "SGLI Life Insurance", "description": "Active-duty life insurance — coverage, rates, and beneficiaries."},
-        {"url": "/va-benefits/vgli/", "label": "VGLI Life Insurance", "description": "Convert your SGLI after separation — rates and enrollment."},
+        {"url": "/dic-benefits/", "label": "DIC Survivor Benefits", "description": "$1,699/mo tax-free DIC for surviving spouses and dependents."},
+        {"url": "/va-survivor-benefits/", "label": "VA Survivor Benefits", "description": "DIC, Survivors Pension, CHAMPVA, Chapter 35, and burial benefits."},
+        {"url": "/va-life-insurance/", "label": "VA Life Insurance", "description": "Compare SGLI, VGLI, VALife, and VMLI in one guide."},
+        {"url": "/explainers/sgli-explained/", "label": "SGLI Explained", "description": "Active-duty $500K life insurance for $26/month in 2026."},
+        {"url": "/explainers/vgli-explained/", "label": "VGLI Explained", "description": "Convert your SGLI after separation — rates and enrollment."},
         {"url": "/va-benefits/va-pension/", "label": "VA Pension", "description": "Income-based benefits for wartime veterans and Aid & Attendance."},
         {"url": "/va-benefits/vocational-rehab/", "label": "Vocational Rehab (VR&E)", "description": "Chapter 31 career training for disabled veterans."},
         {"url": "/va-disability/", "label": "VA Disability Ratings", "description": "How VA rates service-connected disabilities."},
         {"url": "/va-claims/", "label": "VA Claims Guide", "description": "Step-by-step guide to filing your VA disability claim."},
+        {"url": "/va-forms/", "label": "VA Disability Forms", "description": "Every disability form: 21-526EZ, 21-4138, 21-0781, 21-8940."},
     ]
     return _serve_landing_page(
         "pillar:va-benefits", template="pillar.html.j2", spokes=spoke_links,
@@ -1362,6 +1418,86 @@ def explainer_detail(slug: str):
     if slug not in EXPLAINER_SLUGS:
         abort(404)
     return _serve_landing_page(f"explainer:{slug}")
+
+
+# ---------------------------------------------------------------------------
+# Routes — Top-level SEO content pages (Priority 4-11 from keyword inventory)
+# ---------------------------------------------------------------------------
+
+@app.route("/va-disability-conditions-list/")
+def va_disability_conditions_list():
+    return _serve_landing_page("page:va-disability-conditions-list")
+
+
+@app.route("/va-disability-percentages/")
+def va_disability_percentages():
+    return _serve_landing_page("page:va-disability-percentages")
+
+
+@app.route("/va-disability-cheat-sheet/")
+def va_disability_cheat_sheet():
+    return _serve_landing_page("page:va-disability-cheat-sheet")
+
+
+@app.route("/dic-benefits/")
+def dic_benefits():
+    return _serve_landing_page("page:dic-benefits")
+
+
+@app.route("/va-survivor-benefits/")
+def va_survivor_benefits():
+    return _serve_landing_page("page:va-survivor-benefits")
+
+
+@app.route("/va-survivor-benefits/dic-vs-sbp/")
+def va_survivor_dic_vs_sbp():
+    return _serve_landing_page("page:va-survivor-benefits-dic-vs-sbp")
+
+
+@app.route("/va-life-insurance/")
+def va_life_insurance():
+    return _serve_landing_page("page:va-life-insurance")
+
+
+@app.route("/va-intent-to-file/")
+def va_intent_to_file():
+    return _serve_landing_page("page:va-intent-to-file")
+
+
+@app.route("/va-claim-status/")
+def va_claim_status():
+    return _serve_landing_page("page:va-claim-status")
+
+
+@app.route("/va-education-benefits/")
+def va_education_benefits():
+    return _serve_landing_page("page:va-education-benefits")
+
+
+# VA Forms cluster
+@app.route("/va-forms/")
+def va_forms_hub():
+    return _serve_landing_page("hub:va-forms")
+
+
+@app.route("/va-forms/<form_id>/")
+def va_forms_detail(form_id: str):
+    if form_id not in VA_FORMS:
+        abort(404)
+    return _serve_landing_page(f"form:{form_id}")
+
+
+# GI Bill cluster
+@app.route("/gi-bill/")
+def gi_bill_hub():
+    return _serve_landing_page("hub:gi-bill")
+
+
+@app.route("/gi-bill/<spoke>/")
+def gi_bill_spoke(spoke: str):
+    if spoke not in GI_BILL_SPOKES:
+        abort(404)
+    return _serve_landing_page(f"spoke:gi-bill:{spoke}")
 
 
 # ---------------------------------------------------------------------------
